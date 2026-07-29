@@ -1,0 +1,301 @@
+// TrackFlow — schéma Prisma
+// Portage fidèle du modèle Doctrine/Symfony (repo Maksenoff/Trackflow, src/Entity/*.php)
+// Règle: IDs en String (cuid) pour rester compatible SQLite (dev) -> PostgreSQL (prod)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Utilisateurs & rôles
+// ---------------------------------------------------------------------------
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  firstName String
+  lastName  String
+  password  String
+  // Plusieurs rôles simultanés possibles: ROLE_ADMIN, ROLE_COACH, ROLE_COMPETITION_MANAGER, ROLE_ATHLETE
+  roles     String   @default("[]") // JSON string: ROLE_ADMIN, ROLE_COACH, ROLE_COMPETITION_MANAGER, ROLE_ATHLETE
+  createdAt DateTime @default(now())
+
+  linkedAthleteId String?  @unique
+  linkedAthlete   Athlete? @relation("UserLinkedAthlete", fields: [linkedAthleteId], references: [id], onDelete: SetNull)
+
+  feedbacks         Feedback[]
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
+
+  @@map("app_user")
+}
+
+// ---------------------------------------------------------------------------
+// Athlète
+// ---------------------------------------------------------------------------
+
+model Athlete {
+  id               String    @id @default(cuid())
+  firstName        String
+  lastName         String
+  birthDate        DateTime?
+  gender           String?
+  disciplines      String    @default("[]") // JSON string array
+  disciplineColors String    @default("{}") // JSON string object
+  notes            String?
+  photoUrl         String?
+  bannerUrl        String?
+  bannerConfig     String    @default("{}") // JSON string object
+  licenseNumber    String?
+  ffaProfileUrl    String?
+  lastSyncedAt     DateTime?
+  createdAt        DateTime  @default(now())
+
+  user                     User?                     @relation("UserLinkedAthlete")
+  performances             Performance[]
+  goals                    Goal[]
+  athleteSessions          AthleteSession[]
+  customSessions           AthleteCustomSession[]
+  videos                   AthleteVideo[]
+  notesList                AthleteNote[]
+  competitionRegistrations CompetitionRegistration[]
+
+  @@map("athlete")
+}
+
+model AthleteNote {
+  id        String   @id @default(cuid())
+  athleteId String
+  athlete   Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  title     String?
+  content   String
+  pinned    Boolean  @default(false)
+  color     String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("athlete_note")
+}
+
+model AthleteSession {
+  id         String   @id @default(cuid())
+  athleteId  String
+  athlete    Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  sessionId  String
+  session    Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  comment    String?
+  difficulty Int? // RPE 0-10
+  skipped    Boolean  @default(false)
+  loggedAt   DateTime @default(now())
+
+  @@unique([athleteId, sessionId])
+  @@map("athlete_session")
+}
+
+model AthleteCustomSession {
+  id          String   @id @default(cuid())
+  athleteId   String
+  athlete     Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  title       String
+  comment     String?
+  difficulty  Int?
+  performedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@map("athlete_custom_session")
+}
+
+model AthleteVideo {
+  id         String   @id @default(cuid())
+  athleteId  String
+  athlete    Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  title      String
+  discipline String?
+  url        String
+  createdAt  DateTime @default(now())
+
+  @@map("athlete_video")
+}
+
+// ---------------------------------------------------------------------------
+// Performances & objectifs
+// ---------------------------------------------------------------------------
+
+model Performance {
+  id             String   @id @default(cuid())
+  athleteId      String
+  athlete        Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  sessionId      String?
+  session        Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  discipline     String
+  value          Float
+  unit           String
+  notes          String?
+  recordedAt     DateTime @default(now())
+  isPersonalBest Boolean  @default(false)
+  isCompetition  Boolean  @default(false)
+  isIndoor       Boolean?
+  venue          String?
+  level          String?
+  levelPoints    Int?
+  wind           String?
+
+  @@map("performance")
+}
+
+model Goal {
+  id          String    @id @default(cuid())
+  athleteId   String
+  athlete     Athlete   @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  title       String
+  discipline  String?
+  targetValue Float?
+  unit        String?
+  deadline    DateTime?
+  status      String    @default("in_progress") // in_progress | achieved | abandoned
+  notes       String?
+  createdAt   DateTime  @default(now())
+
+  @@map("goal")
+}
+
+// ---------------------------------------------------------------------------
+// Entraînement
+// ---------------------------------------------------------------------------
+
+model TrainingType {
+  id       String    @id @default(cuid())
+  name     String
+  color    String    @default("#6366f1")
+  sessions Session[]
+
+  @@map("training_type")
+}
+
+model Session {
+  id              String           @id @default(cuid())
+  title           String
+  date            DateTime         @default(now())
+  trainingTypeId  String?
+  trainingType    TrainingType?    @relation(fields: [trainingTypeId], references: [id], onDelete: SetNull)
+  description     String?
+  durationMinutes Int?
+  startTime       DateTime?
+  athleteSessions AthleteSession[]
+  performances    Performance[]
+
+  @@map("session")
+}
+
+// ---------------------------------------------------------------------------
+// Compétitions
+// ---------------------------------------------------------------------------
+
+model CompetitionType {
+  id           String        @id @default(cuid())
+  name         String
+  color        String        @default("#f59e0b")
+  competitions Competition[]
+
+  @@map("competition_type")
+}
+
+model Competition {
+  id                   String                    @id @default(cuid())
+  title                String
+  location             String?
+  date                 DateTime                  @default(now())
+  competitionTypeId    String?
+  competitionType      CompetitionType?          @relation(fields: [competitionTypeId], references: [id], onDelete: SetNull)
+  documentUrl          String?
+  schedulesUrl         String?
+  websiteUrl           String?
+  description          String?
+  availableDisciplines String                    @default("[]") // JSON string array
+  requestExpectedPerf  Boolean                   @default(false)
+  createdAt            DateTime                  @default(now())
+  registrations        CompetitionRegistration[]
+
+  @@map("competition")
+}
+
+model CompetitionRegistration {
+  id                   String              @id @default(cuid())
+  athleteId            String
+  athlete              Athlete             @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  competitionId        String
+  competition          Competition         @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  disciplines          String              @default("[]") // JSON string array
+  registeredAt         DateTime            @default(now())
+  ffaRegistered        Boolean             @default(false)
+  expectedPerformances String? // JSON string object
+  debrief              CompetitionDebrief?
+
+  @@unique([athleteId, competitionId])
+  @@map("competition_registration")
+}
+
+model CompetitionDebrief {
+  id             String                  @id @default(cuid())
+  registrationId String                  @unique
+  registration   CompetitionRegistration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  feeling        Int?
+  notes          String?
+  skipped        Boolean                 @default(false)
+  doneAt         DateTime                @default(now())
+
+  @@map("competition_debrief")
+}
+
+// ---------------------------------------------------------------------------
+// Notifications, feedback, push
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String // feedback | debrief | competition | ffa
+  title     String
+  body      String
+  url       String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead, createdAt])
+  @@map("notification")
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  publicKey String
+  authToken String
+  createdAt DateTime @default(now())
+
+  @@map("push_subscription")
+}
+
+model Feedback {
+  id          String    @id @default(cuid())
+  type        String    @default("bug") // bug | suggestion
+  description String
+  page        String?
+  status      String    @default("new") // new | in_progress | done
+  authorId    String?
+  author      User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorName  String?
+  authorEmail String?
+  adminNote   String?
+  createdAt   DateTime  @default(now())
+  resolvedAt  DateTime?
+
+  @@map("feedback")
+}
