@@ -9,7 +9,10 @@ import type { Role } from '@/lib/roles'
 
 export function MobileNav({ roles }: { roles: Role[] }) {
   const pathname = usePathname()
-  const links = NAV_LINKS.filter((l) => !l.roles || l.roles.some((r) => roles.includes(r))).slice(0, 5)
+  const links = NAV_LINKS.filter((l) => !l.roles || l.roles.some((r) => roles.includes(r))).slice(
+    0,
+    5
+  )
 
   return (
     <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 pb-[env(safe-area-inset-bottom)]">

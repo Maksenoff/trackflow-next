@@ -73,7 +73,13 @@ export function LoginForm() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="vous@club.fr" autoComplete="email" {...register('email')} />
+              <Input
+                id="email"
+                type="email"
+                placeholder="vous@club.fr"
+                autoComplete="email"
+                {...register('email')}
+              />
               {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
             </div>
 
@@ -86,7 +92,9 @@ export function LoginForm() {
                 autoComplete="current-password"
                 {...register('password')}
               />
-              {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
+              {errors.password && (
+                <p className="text-xs text-destructive">{errors.password.message}</p>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -95,7 +103,10 @@ export function LoginForm() {
                 checked={watch('remember')}
                 onCheckedChange={(checked) => setValue('remember', checked === true)}
               />
-              <Label htmlFor="remember" className="text-sm font-normal text-muted-foreground cursor-pointer">
+              <Label
+                htmlFor="remember"
+                className="text-sm font-normal text-muted-foreground cursor-pointer"
+              >
                 Se souvenir de moi
               </Label>
             </div>

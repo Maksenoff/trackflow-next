@@ -94,18 +94,28 @@ export function RegisterForm() {
               <div className="space-y-2">
                 <Label htmlFor="firstName">Prénom</Label>
                 <Input id="firstName" autoComplete="given-name" {...register('firstName')} />
-                {errors.firstName && <p className="text-xs text-destructive">{errors.firstName.message}</p>}
+                {errors.firstName && (
+                  <p className="text-xs text-destructive">{errors.firstName.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lastName">Nom</Label>
                 <Input id="lastName" autoComplete="family-name" {...register('lastName')} />
-                {errors.lastName && <p className="text-xs text-destructive">{errors.lastName.message}</p>}
+                {errors.lastName && (
+                  <p className="text-xs text-destructive">{errors.lastName.message}</p>
+                )}
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="vous@club.fr" autoComplete="email" {...register('email')} />
+              <Input
+                id="email"
+                type="email"
+                placeholder="vous@club.fr"
+                autoComplete="email"
+                {...register('email')}
+              />
               {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
             </div>
 
@@ -118,7 +128,9 @@ export function RegisterForm() {
                 autoComplete="new-password"
                 {...register('password')}
               />
-              {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
+              {errors.password && (
+                <p className="text-xs text-destructive">{errors.password.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">

@@ -31,10 +31,7 @@ export async function POST(request: Request) {
 
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
-    return NextResponse.json(
-      { error: 'Un compte avec cet email existe déjà.' },
-      { status: 409 }
-    )
+    return NextResponse.json({ error: 'Un compte avec cet email existe déjà.' }, { status: 409 })
   }
 
   const hashed = await bcrypt.hash(password, 10)

@@ -28,7 +28,9 @@ export function Topbar({ name }: { name: string }) {
       <div className="flex items-center gap-1">
         <ThemeToggle />
         <Avatar className="size-8">
-          <AvatarFallback className="text-xs bg-accent text-accent-foreground">{initials(name)}</AvatarFallback>
+          <AvatarFallback className="text-xs bg-accent text-accent-foreground">
+            {initials(name)}
+          </AvatarFallback>
         </Avatar>
         <Button
           variant="ghost"

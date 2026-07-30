@@ -3,3 +3,4 @@ node_modules
 public
 prisma/migrations
 package-lock.json
+CLAUDE.md
