@@ -1,30 +1,13 @@
 import Link from 'next/link'
-import { Crown, Medal } from 'lucide-react'
 import { formatDiscipline } from '@/lib/performance'
 import { formatFullDate } from '@/lib/date'
 import type { PerformanceWidgetItem } from '@/lib/dashboard'
 import { cn } from '@/lib/utils'
 
-function RankBadge({ kind }: { kind: 'pb' | 'sb' }) {
-  const isGold = kind === 'pb'
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide shadow-sm ring-1',
-        isGold
-          ? 'bg-gradient-to-br from-yellow-200 via-amber-400 to-yellow-600 text-amber-950 ring-amber-300/60 shadow-amber-500/30'
-          : 'bg-gradient-to-br from-slate-100 via-slate-300 to-slate-400 text-slate-800 ring-slate-300/60 shadow-slate-400/30'
-      )}
-    >
-      {isGold ? (
-        <Crown className="size-2.5" strokeWidth={2.5} />
-      ) : (
-        <Medal className="size-2.5" strokeWidth={2.5} />
-      )}
-      {isGold ? 'PB' : 'SB'}
-    </span>
-  )
-}
+const GOLD =
+  'bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-600 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(245,158,11,0.35)]'
+const SILVER =
+  'bg-gradient-to-br from-slate-200 via-slate-400 to-slate-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(148,163,184,0.35)]'
 
 export function PerformanceList({
   performances,
@@ -57,16 +40,14 @@ export function PerformanceList({
           </div>
           <div className="text-right shrink-0">
             <div className="flex items-center justify-end gap-1.5">
-              {perf.isPB && <RankBadge kind="pb" />}
-              {!perf.isPB && perf.isSB && <RankBadge kind="sb" />}
+              {perf.isPB && <span className={cn('text-[11px] font-extrabold', GOLD)}>PB</span>}
+              {!perf.isPB && perf.isSB && (
+                <span className={cn('text-[11px] font-extrabold', SILVER)}>SB</span>
+              )}
               <span
                 className={cn(
                   'text-sm font-bold font-mono',
-                  perf.isPB
-                    ? 'bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-600 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(245,158,11,0.35)]'
-                    : perf.isSB
-                      ? 'bg-gradient-to-br from-slate-200 via-slate-300 to-slate-400 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(148,163,184,0.35)]'
-                      : 'text-primary'
+                  perf.isPB ? GOLD : perf.isSB ? SILVER : 'text-primary'
                 )}
               >
                 {perf.value}
