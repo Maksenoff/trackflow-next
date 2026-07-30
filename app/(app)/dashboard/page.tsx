@@ -1,5 +1,4 @@
-import Link from 'next/link'
-import { Plus, TrendingUp } from 'lucide-react'
+import { TrendingUp } from 'lucide-react'
 import { auth } from '@/lib/auth'
 import { isAdmin, type Role } from '@/lib/roles'
 import { getDashboardData } from '@/lib/dashboard'
@@ -10,26 +9,8 @@ import { CompetitionWidget } from '@/components/dashboard/competition-widget'
 import { PerformanceList } from '@/components/dashboard/performance-list'
 import { PerformancePanel } from '@/components/dashboard/performance-panel'
 
-function greeting() {
-  const hour = new Date().getHours()
-  if (hour < 12) return 'Bonjour'
-  if (hour < 18) return 'Bon après-midi'
-  return 'Bonsoir'
-}
-
-function initials(name: string) {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
-}
-
 export default async function DashboardPage() {
   const session = await auth()
-  const firstName = session?.user.name?.split(' ')[0] ?? ''
   const roles = (session?.user.roles ?? []) as Role[]
   const today = new Date().toLocaleDateString('fr-FR', {
     weekday: 'long',
@@ -42,45 +23,21 @@ export default async function DashboardPage() {
   return (
     <PageTransition>
       <div className="p-4 lg:p-8 xl:p-10 space-y-6">
-        <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card via-card to-primary/[0.06] p-8 lg:p-12 shadow-sm">
+        <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card via-card to-primary/[0.06] p-5 lg:p-6 shadow-sm">
           <div
             aria-hidden
-            className="pointer-events-none absolute -top-24 left-1/2 size-80 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl"
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -bottom-24 -left-16 size-72 rounded-full bg-cyan-400/5 blur-3xl"
+            className="pointer-events-none absolute -top-16 left-1/2 size-56 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl"
           />
 
-          {isAdmin(roles) && (
-            <Link
-              href="/athletes/new"
-              className="group absolute top-5 right-5 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-primary/80 px-3.5 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/35 lg:top-6 lg:right-6 lg:px-5 lg:py-2.5"
-            >
-              <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
-              <span className="hidden sm:inline">Nouvel athlète</span>
-            </Link>
-          )}
+          <div className="relative flex flex-col items-center gap-2 text-center">
+            <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tight">
+              Bienvenue sur{' '}
+              <span className="inline-block bg-gradient-to-r from-primary to-cyan-400 bg-clip-text pr-1 text-transparent italic">
+                TrackFlow
+              </span>
+            </h1>
 
-          <div className="relative flex flex-col items-center gap-3 text-center">
-            <div className="flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/60 text-lg font-bold text-primary-foreground shadow-lg shadow-primary/25">
-              {initials(firstName)}
-            </div>
-
-            <div className="space-y-1">
-              <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tight">
-                Bienvenue sur{' '}
-                <span className="bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent italic">
-                  TrackFlow
-                </span>
-              </h1>
-              <p className="text-base font-medium text-muted-foreground">
-                {greeting()}, <span className="font-semibold text-foreground">{firstName}</span>{' '}
-                <span className="inline-block">👋</span>
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
+            <div className="flex flex-wrap items-center justify-center gap-1.5">
               {roles.map((r) => (
                 <RoleBadge key={r} role={r} />
               ))}
@@ -124,6 +81,7 @@ export default async function DashboardPage() {
                   allPerformances={data.allPerformances}
                   myPerformances={data.myPerformances}
                   hasLinkedAthlete={data.hasLinkedAthlete}
+                  canCreateAthlete={isAdmin(roles)}
                 />
               ) : (
                 <div>

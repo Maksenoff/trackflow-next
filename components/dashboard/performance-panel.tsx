@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowRight, TrendingUp, Users, User } from 'lucide-react'
+import { ArrowRight, Plus, TrendingUp, Users, User } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { PerformanceList } from '@/components/dashboard/performance-list'
 import type { PerformanceWidgetItem } from '@/lib/dashboard'
@@ -13,10 +13,12 @@ export function PerformancePanel({
   allPerformances,
   myPerformances,
   hasLinkedAthlete,
+  canCreateAthlete,
 }: {
   allPerformances: PerformanceWidgetItem[]
   myPerformances: PerformanceWidgetItem[]
   hasLinkedAthlete: boolean
+  canCreateAthlete: boolean
 }) {
   const [mode, setMode] = useState<'all' | 'mine'>('all')
   const performances = mode === 'mine' ? myPerformances : allPerformances
@@ -29,7 +31,17 @@ export function PerformancePanel({
           Performances récentes
           {mode === 'mine' && <Badge variant="secondary">Moi</Badge>}
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          {canCreateAthlete && (
+            <Link
+              href="/athletes/new"
+              title="Nouvel athlète"
+              aria-label="Nouvel athlète"
+              className="group inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-sm shadow-primary/25 transition-all duration-300 hover:shadow-md hover:shadow-primary/35"
+            >
+              <Plus className="size-3.5 transition-transform duration-300 group-hover:rotate-90" />
+            </Link>
+          )}
           <div className="relative flex rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
             {(['all', 'mine'] as const).map((value) => (
               <button
@@ -37,7 +49,7 @@ export function PerformancePanel({
                 type="button"
                 onClick={() => setMode(value)}
                 className={cn(
-                  'relative z-10 flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium transition-colors',
+                  'relative z-10 flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-medium transition-colors',
                   mode === value
                     ? 'text-primary-foreground'
                     : 'text-muted-foreground hover:text-foreground'
@@ -51,15 +63,18 @@ export function PerformancePanel({
                   />
                 )}
                 {value === 'all' ? <Users className="size-3.5" /> : <User className="size-3.5" />}
-                {value === 'all' ? 'Vue coach' : 'Vue athlète'}
+                <span className="hidden md:inline">
+                  {value === 'all' ? 'Vue coach' : 'Vue athlète'}
+                </span>
               </button>
             ))}
           </div>
           <Link
             href="/athletes"
-            className="group hidden sm:inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-sm text-primary font-medium transition-colors hover:bg-primary/10"
+            title="Athlètes"
+            aria-label="Athlètes"
+            className="group hidden size-7 shrink-0 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10 sm:inline-flex"
           >
-            Athlètes
             <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
           </Link>
         </div>
