@@ -16,15 +16,18 @@ export const metadata: Metadata = {
     title: 'TrackFlow',
   },
   icons: {
-    icon: '/icons/icon-192.png',
+    icon: [
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/brand/icon.svg', type: 'image/svg+xml' },
+    ],
     apple: '/icons/apple-touch-icon.png',
   },
 }
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#0e0e14' },
+    { media: '(prefers-color-scheme: light)', color: '#F4F1EC' },
+    { media: '(prefers-color-scheme: dark)', color: '#0B0D10' },
   ],
   width: 'device-width',
   initialScale: 1,

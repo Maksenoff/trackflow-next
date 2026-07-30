@@ -5,6 +5,7 @@ import { signOut } from 'next-auth/react'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Logo } from '@/components/logo'
 
 function initials(name: string) {
   return name
@@ -19,12 +20,7 @@ function initials(name: string) {
 export function Topbar({ name }: { name: string }) {
   return (
     <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between h-14 px-4 border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="flex items-center gap-2">
-        <div className="size-7 rounded-lg bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center">
-          <span className="text-white font-bold text-xs">TF</span>
-        </div>
-        <span className="font-semibold tracking-tight">TrackFlow</span>
-      </div>
+      <Logo markClassName="size-6.5" wordmarkClassName="h-3 w-auto text-foreground" />
       <div className="flex items-center gap-1">
         <ThemeToggle />
         <Avatar className="size-8">

@@ -10,6 +10,7 @@ import { NAV_LINKS } from '@/components/nav/nav-links'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { AppVersion } from '@/components/ui/AppVersion'
 import { Button } from '@/components/ui/button'
+import { Logo } from '@/components/logo'
 import type { Role } from '@/lib/roles'
 
 export function Sidebar({ roles }: { roles: Role[] }) {
@@ -18,11 +19,8 @@ export function Sidebar({ roles }: { roles: Role[] }) {
 
   return (
     <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 border-r border-border/60 bg-sidebar text-sidebar-foreground h-dvh sticky top-0">
-      <div className="flex items-center gap-2 px-6 h-16 shrink-0">
-        <div className="size-8 rounded-lg bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center shrink-0">
-          <span className="text-white font-bold text-sm">TF</span>
-        </div>
-        <span className="font-semibold tracking-tight text-lg">TrackFlow</span>
+      <div className="flex items-center px-6 h-16 shrink-0">
+        <Logo wordmarkClassName="h-3.5 w-auto text-sidebar-foreground" />
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">

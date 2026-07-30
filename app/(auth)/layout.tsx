@@ -1,4 +1,5 @@
 import { ThemeToggle } from '@/components/theme-toggle'
+import { Wordmark } from '@/components/logo'
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -17,11 +18,15 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </div>
 
       <div className="relative w-full max-w-sm">
-        <div className="flex flex-col items-center gap-2 mb-8">
-          <div className="size-11 rounded-xl bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center shadow-lg shadow-primary/20">
-            <span className="text-white font-bold">TF</span>
-          </div>
-          <span className="font-semibold tracking-tight text-xl">TrackFlow</span>
+        <div className="flex flex-col items-center gap-3 mb-8">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/icon.svg"
+            alt=""
+            aria-hidden
+            className="size-14 rounded-xl shadow-lg shadow-primary/20"
+          />
+          <Wordmark className="h-5 w-auto text-foreground" />
         </div>
         {children}
       </div>
