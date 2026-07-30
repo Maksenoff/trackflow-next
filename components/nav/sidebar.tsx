@@ -19,8 +19,8 @@ export function Sidebar({ roles }: { roles: Role[] }) {
 
   return (
     <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 border-r border-border/60 bg-sidebar text-sidebar-foreground h-dvh sticky top-0">
-      <div className="flex items-center px-6 h-16 shrink-0">
-        <Logo wordmarkClassName="h-3.5 w-auto text-sidebar-foreground" />
+      <div className="flex items-center px-6 h-18 shrink-0">
+        <Logo markClassName="size-10" wordmarkClassName="h-5 w-auto text-sidebar-foreground" />
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">
