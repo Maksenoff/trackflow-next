@@ -15,7 +15,7 @@ export function MobileNav({ roles }: { roles: Role[] }) {
   )
 
   return (
-    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 pb-[env(safe-area-inset-bottom)]">
+    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 pb-[env(safe-area-inset-bottom)]">
       <ul className="flex items-stretch justify-around">
         {links.map((link) => {
           const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`)

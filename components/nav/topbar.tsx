@@ -19,7 +19,7 @@ function initials(name: string) {
 
 export function Topbar({ name }: { name: string }) {
   return (
-    <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between h-14 px-4 border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between h-14 px-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <Logo markClassName="size-6.5" wordmarkClassName="h-3 w-auto text-foreground" />
       <div className="flex items-center gap-1">
         <ThemeToggle />

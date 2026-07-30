@@ -114,7 +114,7 @@ export function SessionWidget({
               <motion.div key={session.id} variants={itemVariants}>
                 <Link
                   href={`/sessions/${session.id}`}
-                  className="group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-border/50 bg-card/60 px-4 py-3 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-card hover:shadow-lg hover:shadow-primary/5"
+                  className="group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-border bg-card px-4 py-3 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10"
                 >
                   <span
                     className="relative size-2 rounded-full shrink-0 transition-transform duration-200 group-hover:scale-125"
@@ -146,7 +146,7 @@ export function SessionWidget({
           })}
         </motion.div>
       ) : !nextSession ? (
-        <div className="rounded-2xl border border-border/50 bg-card/50 text-center py-8">
+        <div className="rounded-2xl border border-border bg-card text-center py-8 shadow-sm">
           <p className="text-sm text-muted-foreground">Aucune séance planifiée</p>
           <Link
             href="/calendar"

@@ -83,7 +83,7 @@ export function RegisterForm() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
     >
-      <Card className="border-border/60 shadow-xl shadow-black/5">
+      <Card className="border-border shadow-xl shadow-black/5">
         <CardHeader className="space-y-1">
           <CardTitle className="text-xl">Créer un compte</CardTitle>
           <CardDescription>Rejoignez votre club sur TrackFlow</CardDescription>

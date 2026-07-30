@@ -181,7 +181,7 @@ export function CompetitionWidget({
               <motion.div key={competition.id} variants={itemVariants}>
                 <Link
                   href={`/competitions/${competition.id}`}
-                  className="group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-border/50 bg-card/60 px-4 py-3 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-card hover:shadow-lg hover:shadow-primary/5"
+                  className="group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-border bg-card px-4 py-3 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10"
                 >
                   <span
                     className="relative w-1 h-9 rounded shrink-0 transition-all duration-200 group-hover:h-10"
@@ -230,7 +230,7 @@ export function CompetitionWidget({
           })}
         </motion.div>
       ) : !nextCompetition ? (
-        <div className="rounded-2xl border border-border/50 bg-card/50 text-center py-8">
+        <div className="rounded-2xl border border-border bg-card text-center py-8 shadow-sm">
           <p className="text-sm text-muted-foreground">Aucune compétition planifiée</p>
           {canCreate && (
             <Link

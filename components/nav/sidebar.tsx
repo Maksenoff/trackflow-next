@@ -18,7 +18,7 @@ export function Sidebar({ roles }: { roles: Role[] }) {
   const links = NAV_LINKS.filter((l) => !l.roles || l.roles.some((r) => roles.includes(r)))
 
   return (
-    <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 border-r border-border/60 bg-sidebar text-sidebar-foreground h-dvh sticky top-0">
+    <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 border-r border-border bg-sidebar text-sidebar-foreground h-dvh sticky top-0">
       <div className="flex items-center px-6 h-18 shrink-0">
         <Logo markClassName="size-10" wordmarkClassName="h-5 w-auto text-sidebar-foreground" />
       </div>
@@ -51,7 +51,7 @@ export function Sidebar({ roles }: { roles: Role[] }) {
         })}
       </nav>
 
-      <div className="px-3 py-4 border-t border-border/60 space-y-2">
+      <div className="px-3 py-4 border-t border-border space-y-2">
         <div className="flex items-center justify-between px-3">
           <ThemeToggle />
           <Button

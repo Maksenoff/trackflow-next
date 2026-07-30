@@ -31,7 +31,7 @@ export function PerformanceList({
 }) {
   if (performances.length === 0) {
     return (
-      <div className="rounded-2xl border border-border/50 bg-card/50 py-10 text-center">
+      <div className="rounded-2xl border border-border bg-card py-10 text-center shadow-sm">
         <p className="text-sm text-muted-foreground">{emptyMessage}</p>
       </div>
     )
@@ -43,7 +43,7 @@ export function PerformanceList({
         <motion.div key={perf.id} variants={itemVariants}>
           <Link
             href={`/athletes/${perf.athleteId}`}
-            className="group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-border/50 bg-card/60 px-4 py-3.5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-card hover:shadow-lg hover:shadow-primary/5"
+            className="group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-border bg-card px-4 py-3.5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10"
           >
             <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-primary/5 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
 

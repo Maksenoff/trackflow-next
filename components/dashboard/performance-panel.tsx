@@ -30,7 +30,7 @@ export function PerformancePanel({
           {mode === 'mine' && <Badge variant="secondary">Moi</Badge>}
         </h2>
         <div className="flex items-center gap-2">
-          <div className="relative flex rounded-full border border-border/50 bg-card/60 backdrop-blur-sm p-0.5 text-xs shadow-sm">
+          <div className="relative flex rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
             {(['all', 'mine'] as const).map((value) => (
               <button
                 key={value}
