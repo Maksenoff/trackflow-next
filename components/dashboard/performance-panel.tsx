@@ -64,6 +64,7 @@ export function PerformancePanel({
       </div>
 
       <PerformanceList
+        key={mode}
         performances={performances}
         emptyMessage={
           mode === 'mine'

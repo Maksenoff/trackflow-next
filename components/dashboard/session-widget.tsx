@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+import { motion } from 'framer-motion'
 import { ArrowRight, ChevronRight, Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { relativeDayLabel, relativeDayShort, formatShortDate } from '@/lib/date'
@@ -9,6 +12,16 @@ const TONE_CLASS: Record<'today' | 'tomorrow' | 'future', string> = {
   today: 'text-primary',
   tomorrow: 'text-emerald-600 dark:text-emerald-400',
   future: 'text-muted-foreground',
+}
+
+const listVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.05 } },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' as const } },
 }
 
 export function SessionWidget({
@@ -35,97 +48,103 @@ export function SessionWidget({
       </div>
 
       {nextSession ? (
-        <Link
-          href={`/sessions/${nextSession.id}`}
-          className="group relative block overflow-hidden rounded-xl border border-primary/25 bg-gradient-to-br from-primary/15 via-primary/5 to-cyan-400/5 p-5 mb-2.5 shadow-lg shadow-primary/5 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-xl hover:shadow-primary/15"
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
         >
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -top-12 -right-12 size-44 rounded-full bg-primary/25 blur-3xl transition-opacity duration-300 group-hover:opacity-80"
-          />
-          <div className="relative flex items-center gap-1.5 mb-3 text-[10px] font-bold uppercase tracking-wide">
-            <span className="inline-flex items-center justify-center size-5 rounded-full bg-primary/20 text-primary">
-              <Zap className="size-3" fill="currentColor" />
-            </span>
-            <span className="text-primary">Prochaine séance</span>
-            <span className="text-muted-foreground">·</span>
-            <span className={TONE_CLASS[relativeDayLabel(nextSession.date).tone]}>
-              {relativeDayLabel(nextSession.date).label}
-            </span>
-            <span className="text-muted-foreground normal-case font-normal">
-              {formatShortDate(nextSession.date)}
-            </span>
-          </div>
-          <div className="relative flex items-start justify-between gap-3">
-            <div>
-              <div className="text-xl font-extrabold tracking-tight">{nextSession.title}</div>
-              {nextSession.description && (
-                <p className="text-sm text-muted-foreground mt-1.5 line-clamp-2">
-                  {nextSession.description}
-                </p>
-              )}
-              {nextSession.trainingType && (
-                <Badge
-                  className="mt-3 border"
-                  style={{
-                    backgroundColor: `${nextSession.trainingType.color}22`,
-                    color: nextSession.trainingType.color,
-                    borderColor: `${nextSession.trainingType.color}44`,
-                  }}
-                >
-                  {nextSession.trainingType.name}
-                </Badge>
-              )}
+          <Link
+            href={`/sessions/${nextSession.id}`}
+            className="group relative block overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/15 via-primary/5 to-cyan-400/5 p-5 mb-2.5 shadow-lg shadow-primary/5 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-xl hover:shadow-primary/15"
+          >
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -top-12 -right-12 size-44 rounded-full bg-primary/25 blur-3xl transition-opacity duration-300 group-hover:opacity-80"
+            />
+            <div className="relative flex items-center gap-1.5 mb-3 text-[10px] font-bold uppercase tracking-wide">
+              <span className="inline-flex items-center justify-center size-5 rounded-full bg-primary/20 text-primary">
+                <Zap className="size-3" fill="currentColor" />
+              </span>
+              <span className="text-primary">Prochaine séance</span>
+              <span className="text-muted-foreground">·</span>
+              <span className={TONE_CLASS[relativeDayLabel(nextSession.date).tone]}>
+                {relativeDayLabel(nextSession.date).label}
+              </span>
+              <span className="text-muted-foreground normal-case font-normal">
+                {formatShortDate(nextSession.date)}
+              </span>
             </div>
-            <span className="flex items-center justify-center size-8 rounded-full bg-primary/10 shrink-0 mt-1 transition-transform duration-300 group-hover:translate-x-1 group-hover:bg-primary/20">
-              <ChevronRight className="size-4 text-primary" />
-            </span>
-          </div>
-        </Link>
+            <div className="relative flex items-start justify-between gap-3">
+              <div>
+                <div className="text-xl font-extrabold tracking-tight">{nextSession.title}</div>
+                {nextSession.description && (
+                  <p className="text-sm text-muted-foreground mt-1.5 line-clamp-2">
+                    {nextSession.description}
+                  </p>
+                )}
+                {nextSession.trainingType && (
+                  <Badge
+                    className="mt-3 border"
+                    style={{
+                      backgroundColor: `${nextSession.trainingType.color}22`,
+                      color: nextSession.trainingType.color,
+                      borderColor: `${nextSession.trainingType.color}44`,
+                    }}
+                  >
+                    {nextSession.trainingType.name}
+                  </Badge>
+                )}
+              </div>
+              <span className="flex items-center justify-center size-8 rounded-full bg-primary/10 shrink-0 mt-1 transition-transform duration-300 group-hover:translate-x-1 group-hover:bg-primary/20">
+                <ChevronRight className="size-4 text-primary" />
+              </span>
+            </div>
+          </Link>
+        </motion.div>
       ) : null}
 
       {rest.length > 0 ? (
-        <div className="rounded-xl border bg-card overflow-hidden">
-          <div className="px-5 py-3 border-b text-sm font-semibold text-muted-foreground">
-            Séances à venir
-          </div>
+        <motion.div variants={listVariants} initial="hidden" animate="show" className="space-y-2">
           {rest.map((session) => {
             const day = relativeDayShort(session.date)
             const color = session.trainingType?.color ?? 'var(--muted-foreground)'
             return (
-              <Link
-                key={session.id}
-                href={`/sessions/${session.id}`}
-                className="group flex items-center gap-3 px-5 py-3 hover:bg-muted/50 transition-colors border-b last:border-b-0"
-              >
-                <span
-                  className="size-2 rounded-full shrink-0 transition-transform duration-200 group-hover:scale-125"
-                  style={{ background: color, boxShadow: `0 0 0 3px ${color}22` }}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{session.title}</div>
-                  {session.trainingType && (
-                    <div className="text-xs text-muted-foreground">{session.trainingType.name}</div>
-                  )}
-                </div>
-                <span
-                  className={cn(
-                    'text-[11px] font-bold shrink-0 rounded-full px-2 py-1',
-                    day.tone === 'today'
-                      ? 'bg-primary/15 text-primary'
-                      : day.tone === 'tomorrow'
-                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                        : 'bg-muted text-muted-foreground'
-                  )}
+              <motion.div key={session.id} variants={itemVariants}>
+                <Link
+                  href={`/sessions/${session.id}`}
+                  className="group relative flex items-center gap-3 overflow-hidden rounded-2xl border border-border/50 bg-card/60 px-4 py-3 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-card hover:shadow-lg hover:shadow-primary/5"
                 >
-                  {day.label}
-                </span>
-              </Link>
+                  <span
+                    className="relative size-2 rounded-full shrink-0 transition-transform duration-200 group-hover:scale-125"
+                    style={{ background: color, boxShadow: `0 0 0 3px ${color}22` }}
+                  />
+                  <div className="relative flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{session.title}</div>
+                    {session.trainingType && (
+                      <div className="text-xs text-muted-foreground">
+                        {session.trainingType.name}
+                      </div>
+                    )}
+                  </div>
+                  <span
+                    className={cn(
+                      'relative text-[11px] font-bold shrink-0 rounded-full px-2 py-1',
+                      day.tone === 'today'
+                        ? 'bg-primary/15 text-primary'
+                        : day.tone === 'tomorrow'
+                          ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                          : 'bg-muted text-muted-foreground'
+                    )}
+                  >
+                    {day.label}
+                  </span>
+                </Link>
+              </motion.div>
             )
           })}
-        </div>
+        </motion.div>
       ) : !nextSession ? (
-        <div className="rounded-xl border bg-card text-center py-8">
+        <div className="rounded-2xl border border-border/50 bg-card/50 text-center py-8">
           <p className="text-sm text-muted-foreground">Aucune séance planifiée</p>
           <Link
             href="/calendar"
