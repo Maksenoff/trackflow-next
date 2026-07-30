@@ -448,6 +448,25 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."         # exposé côté client pour le SW
 > ref (nécessaire à react-hook-form) ; les autres primitives shadcn ajoutées plus tard devront
 > être vérifiées au même titre si elles sont utilisées avec des refs.
 
+**Session 2 — Dashboard**
+- [x] Agrégation des données dashboard (`lib/dashboard.ts`, portage fidèle de
+      `DashboardController.php` — pas d'API routes séparées : fetch direct
+      côté Server Component, conformément à la règle absolue §2)
+- [x] Widget entraînements + widget compétitions + widget perfs récentes
+- [x] Badges PB/SB + delta coloré (vert/rouge) + unité s/m par discipline
+- [x] Switch Vue coach / Vue athlète
+- [x] Design final + animations
+- [x] `prisma/seed.ts` pour peupler la base de dev (coach/athlète de test)
+
+> **Note technique :** pas de routes `/api/athletes`, `/api/sessions` etc. pour le
+> dashboard — les données sont lues directement depuis Prisma dans le Server
+> Component (`app/(app)/dashboard/page.tsx`) via `lib/dashboard.ts`. Écart assumé
+> par rapport à la liste d'origine en §14, qui mentionnait des "API routes
+> dashboard" : la règle absolue du §2 ("le fetch se fait côté serveur via les
+> Server Components") prime. Des API routes restent prévues pour les actions
+> mutantes (créer/modifier une séance, une inscription, etc.) dans les sessions
+> suivantes.
+
 ### 🔄 En cours
 - [ ] ...
 
@@ -455,13 +474,6 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."         # exposé côté client pour le SW
 
 **Session 1 — Fondations**
 - [ ] Vercel Postgres connecté (reste en SQLite local jusqu'au déploiement)
-
-**Session 2 — Dashboard**
-- [ ] API routes dashboard (séances du jour, compétitions à venir, perfs récentes)
-- [ ] Widget entraînements + widget compétitions + widget perfs récentes
-- [ ] Badges PB/SB + delta coloré (vert/rouge) + unité s/m par discipline
-- [ ] Switch Vue coach / Vue athlète
-- [ ] Design final + animations
 
 **Session 3 — Athlètes (liste + profil + édition)**
 - [ ] API routes athletes (CRUD complet)
@@ -518,7 +530,7 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."         # exposé côté client pour le SW
 | Session | Date | Bloc traité | État |
 |---|---|---|---|
 | 01 | 2026-07-30 | Fondations (Next.js + shadcn + Prisma + Auth + PWA) | ✅ |
-| 02 | - | Dashboard | ⏳ |
+| 02 | 2026-07-30 | Dashboard | ✅ |
 | 03 | - | Athlètes (liste + profil + édition) | ⏳ |
 | 04 | - | Calendriers + Séances + Types | ⏳ |
 | 05 | - | Compétitions | ⏳ |
