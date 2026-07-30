@@ -163,11 +163,14 @@ export function CompetitionWidget({
               <Link
                 key={competition.id}
                 href={`/competitions/${competition.id}`}
-                className="flex items-center gap-3 px-5 py-3 hover:bg-muted/50 transition-colors border-b last:border-b-0"
+                className="group flex items-center gap-3 px-5 py-3 hover:bg-muted/50 transition-colors border-b last:border-b-0"
               >
                 <span
-                  className="w-1 h-9 rounded shrink-0"
-                  style={{ background: competition.colorBg }}
+                  className="w-1 h-9 rounded shrink-0 transition-all duration-200 group-hover:h-10"
+                  style={{
+                    background: competition.colorBg,
+                    boxShadow: `0 0 12px -2px ${competition.colorBg}66`,
+                  }}
                 />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-bold truncate">{competition.title}</div>
@@ -176,7 +179,7 @@ export function CompetitionWidget({
                     {competition.location ? ` · ${competition.location}` : ''}
                   </div>
                 </div>
-                <div className="shrink-0 text-right flex flex-col items-end gap-0.5">
+                <div className="shrink-0 text-right flex flex-col items-end gap-1">
                   <div className="flex items-center gap-1.5">
                     {showLinkedBadge && (
                       <RegisteredDot
@@ -185,10 +188,18 @@ export function CompetitionWidget({
                         size={16}
                       />
                     )}
-                    <span className={cn('text-xs', TONE_CLASS[day.tone])}>{day.label}</span>
-                  </div>
-                  <div className="text-[10px] text-muted-foreground">
-                    {formatShortDate(competition.date)}
+                    <span
+                      className={cn(
+                        'text-[11px] font-bold rounded-full px-2 py-0.5',
+                        day.tone === 'today'
+                          ? 'bg-primary/15 text-primary'
+                          : day.tone === 'tomorrow'
+                            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                            : 'bg-muted text-muted-foreground'
+                      )}
+                    >
+                      {day.label}
+                    </span>
                   </div>
                   <div className="text-[10px] text-muted-foreground flex items-center gap-1">
                     <Users className="size-2.5" />

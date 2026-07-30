@@ -91,15 +91,16 @@ export function SessionWidget({
           </div>
           {rest.map((session) => {
             const day = relativeDayShort(session.date)
+            const color = session.trainingType?.color ?? 'var(--muted-foreground)'
             return (
               <Link
                 key={session.id}
                 href={`/sessions/${session.id}`}
-                className="flex items-center gap-3 px-5 py-3 hover:bg-muted/50 transition-colors border-b last:border-b-0"
+                className="group flex items-center gap-3 px-5 py-3 hover:bg-muted/50 transition-colors border-b last:border-b-0"
               >
                 <span
-                  className="size-2 rounded-full shrink-0"
-                  style={{ background: session.trainingType?.color ?? 'var(--muted-foreground)' }}
+                  className="size-2 rounded-full shrink-0 transition-transform duration-200 group-hover:scale-125"
+                  style={{ background: color, boxShadow: `0 0 0 3px ${color}22` }}
                 />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{session.title}</div>
@@ -107,9 +108,18 @@ export function SessionWidget({
                     <div className="text-xs text-muted-foreground">{session.trainingType.name}</div>
                   )}
                 </div>
-                <div className={cn('text-xs font-semibold shrink-0', TONE_CLASS[day.tone])}>
+                <span
+                  className={cn(
+                    'text-[11px] font-bold shrink-0 rounded-full px-2 py-1',
+                    day.tone === 'today'
+                      ? 'bg-primary/15 text-primary'
+                      : day.tone === 'tomorrow'
+                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                        : 'bg-muted text-muted-foreground'
+                  )}
+                >
                   {day.label}
-                </div>
+                </span>
               </Link>
             )
           })}
