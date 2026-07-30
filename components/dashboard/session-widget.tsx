@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, ChevronRight } from 'lucide-react'
+import { ArrowRight, ChevronRight, Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { relativeDayLabel, relativeDayShort, formatShortDate } from '@/lib/date'
 import type { SessionWidgetItem } from '@/lib/dashboard'
@@ -37,9 +37,16 @@ export function SessionWidget({
       {nextSession ? (
         <Link
           href={`/sessions/${nextSession.id}`}
-          className="block rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 to-cyan-400/5 p-5 mb-2.5 transition-colors hover:border-primary/50"
+          className="group relative block overflow-hidden rounded-xl border border-primary/25 bg-gradient-to-br from-primary/15 via-primary/5 to-cyan-400/5 p-5 mb-2.5 shadow-lg shadow-primary/5 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-xl hover:shadow-primary/15"
         >
-          <div className="flex items-center gap-1.5 mb-2 text-[10px] font-bold uppercase tracking-wide">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -top-12 -right-12 size-44 rounded-full bg-primary/25 blur-3xl transition-opacity duration-300 group-hover:opacity-80"
+          />
+          <div className="relative flex items-center gap-1.5 mb-3 text-[10px] font-bold uppercase tracking-wide">
+            <span className="inline-flex items-center justify-center size-5 rounded-full bg-primary/20 text-primary">
+              <Zap className="size-3" fill="currentColor" />
+            </span>
             <span className="text-primary">Prochaine séance</span>
             <span className="text-muted-foreground">·</span>
             <span className={TONE_CLASS[relativeDayLabel(nextSession.date).tone]}>
@@ -49,17 +56,17 @@ export function SessionWidget({
               {formatShortDate(nextSession.date)}
             </span>
           </div>
-          <div className="flex items-start justify-between gap-3">
+          <div className="relative flex items-start justify-between gap-3">
             <div>
-              <div className="text-lg font-extrabold">{nextSession.title}</div>
+              <div className="text-xl font-extrabold tracking-tight">{nextSession.title}</div>
               {nextSession.description && (
-                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                <p className="text-sm text-muted-foreground mt-1.5 line-clamp-2">
                   {nextSession.description}
                 </p>
               )}
               {nextSession.trainingType && (
                 <Badge
-                  className="mt-2.5 border"
+                  className="mt-3 border"
                   style={{
                     backgroundColor: `${nextSession.trainingType.color}22`,
                     color: nextSession.trainingType.color,
@@ -70,7 +77,9 @@ export function SessionWidget({
                 </Badge>
               )}
             </div>
-            <ChevronRight className="size-4.5 text-primary shrink-0 mt-1" />
+            <span className="flex items-center justify-center size-8 rounded-full bg-primary/10 shrink-0 mt-1 transition-transform duration-300 group-hover:translate-x-1 group-hover:bg-primary/20">
+              <ChevronRight className="size-4 text-primary" />
+            </span>
           </div>
         </Link>
       ) : null}

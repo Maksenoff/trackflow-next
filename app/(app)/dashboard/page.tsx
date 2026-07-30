@@ -31,7 +31,7 @@ export default async function DashboardPage() {
 
   return (
     <PageTransition>
-      <div className="p-4 lg:p-8 max-w-6xl mx-auto space-y-6">
+      <div className="p-4 lg:p-8 xl:p-10 space-y-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold tracking-tight">
@@ -72,8 +72,8 @@ export default async function DashboardPage() {
             athlète. Contacte ton coach.
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+            <div className="lg:col-span-3 space-y-6">
               <SessionWidget
                 nextSession={data.nextSession}
                 upcomingSessions={data.upcomingSessions}
@@ -86,7 +86,7 @@ export default async function DashboardPage() {
               />
             </div>
 
-            <div>
+            <div className="lg:col-span-2">
               {data.view === 'coach' ? (
                 <PerformancePanel
                   allPerformances={data.allPerformances}

@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { ArrowRight, ChevronRight, Users, Check, X } from 'lucide-react'
+import type { CSSProperties } from 'react'
+import { ArrowRight, ChevronRight, Trophy, Users, Check, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { relativeDayLabel, relativeDayShort, formatShortDate } from '@/lib/date'
 import type { CompetitionWidgetItem } from '@/lib/dashboard'
@@ -78,13 +79,31 @@ export function CompetitionWidget({
       {nextCompetition ? (
         <Link
           href={`/competitions/${nextCompetition.id}`}
-          className="block rounded-xl border p-5 mb-2.5 transition-colors"
-          style={{
-            backgroundColor: `${nextCompetition.colorBg}12`,
-            borderColor: `${nextCompetition.colorBg}44`,
-          }}
+          className="group relative block overflow-hidden rounded-xl border p-5 mb-2.5 shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--hover-border)]"
+          style={
+            {
+              backgroundColor: `${nextCompetition.colorBg}12`,
+              borderColor: `${nextCompetition.colorBg}44`,
+              boxShadow: `0 10px 30px -15px ${nextCompetition.colorBg}33`,
+              '--hover-border': `${nextCompetition.colorBg}77`,
+            } as CSSProperties
+          }
         >
-          <div className="flex items-center gap-1.5 mb-2 text-[10px] font-bold uppercase tracking-wide">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -top-12 -right-12 size-44 rounded-full blur-3xl transition-opacity duration-300 opacity-60 group-hover:opacity-90"
+            style={{ background: `${nextCompetition.colorBg}40` }}
+          />
+          <div className="relative flex items-center gap-1.5 mb-3 text-[10px] font-bold uppercase tracking-wide">
+            <span
+              className="inline-flex items-center justify-center size-5 rounded-full"
+              style={{
+                backgroundColor: `${nextCompetition.colorBg}22`,
+                color: nextCompetition.colorBg,
+              }}
+            >
+              <Trophy className="size-3" fill="currentColor" />
+            </span>
             <span style={{ color: nextCompetition.colorBg }}>Prochaine compétition</span>
             <span className="text-muted-foreground">·</span>
             <span className={TONE_CLASS[relativeDayLabel(nextCompetition.date).tone]}>
@@ -106,14 +125,14 @@ export function CompetitionWidget({
               )}
             </div>
           </div>
-          <div className="flex items-start justify-between gap-3">
+          <div className="relative flex items-start justify-between gap-3">
             <div>
-              <div className="text-lg font-extrabold">{nextCompetition.title}</div>
+              <div className="text-xl font-extrabold tracking-tight">{nextCompetition.title}</div>
               {nextCompetition.location && (
-                <p className="text-sm text-muted-foreground mt-1">{nextCompetition.location}</p>
+                <p className="text-sm text-muted-foreground mt-1.5">{nextCompetition.location}</p>
               )}
               <Badge
-                className="mt-2.5 border"
+                className="mt-3 border"
                 style={{
                   backgroundColor: `${nextCompetition.colorBg}22`,
                   color: nextCompetition.colorBg,
@@ -123,10 +142,12 @@ export function CompetitionWidget({
                 {nextCompetition.typeLabel}
               </Badge>
             </div>
-            <ChevronRight
-              className="size-4.5 shrink-0 mt-1"
-              style={{ color: nextCompetition.colorBg }}
-            />
+            <span
+              className="flex items-center justify-center size-8 rounded-full shrink-0 mt-1 transition-transform duration-300 group-hover:translate-x-1"
+              style={{ backgroundColor: `${nextCompetition.colorBg}1a` }}
+            >
+              <ChevronRight className="size-4" style={{ color: nextCompetition.colorBg }} />
+            </span>
           </div>
         </Link>
       ) : null}
