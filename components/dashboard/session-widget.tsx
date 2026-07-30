@@ -36,14 +36,16 @@ export function SessionWidget({
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <h2 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          <Zap className="size-3.5 text-primary" />
           Entraînements
         </h2>
         <Link
           href="/calendar"
-          className="text-sm text-primary font-medium hover:underline flex items-center gap-1"
+          className="group inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-sm text-primary font-medium transition-colors hover:bg-primary/10"
         >
-          Calendrier <ArrowRight className="size-3.5" />
+          Calendrier
+          <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
         </Link>
       </div>
 
