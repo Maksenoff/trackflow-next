@@ -467,6 +467,39 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."         # exposé côté client pour le SW
 > mutantes (créer/modifier une séance, une inscription, etc.) dans les sessions
 > suivantes.
 
+**Session 3 — Athlètes (liste + profil + édition)**
+- [x] API routes athletes (CRUD complet) + notes/goals imbriquées
+- [x] `/athletes` — grid de cards avec recherche
+- [x] `/athletes/new` — création manuelle
+- [x] `/athletes/[id]` — header bannière/avatar + bandeau stats + 6 onglets sans rechargement
+- [x] Onglet Performances : regroupement par discipline, PB/SB (dégradé or/argent), delta coloré
+- [x] Onglets Séances, Compétitions, Objectifs (CRUD léger), Vidéos, Notes (CRUD léger)
+- [x] `/athletes/[id]/edit` — spécialités groupées + couleurs par discipline + bannière (couleur/photo + zoom) + photo profil
+- [x] Design final + animations
+
+> **Notes techniques / écarts assumés :**
+> - **Import FFA sur `/athletes/new`** non implémenté — dépend du scraping
+>   (`lib/ffa-scraper.ts`) prévu en Session 7. Le formulaire ne couvre que la
+>   création manuelle pour l'instant.
+> - **Photo/bannière** stockées en data URL base64 directement dans
+>   `photoUrl`/`bannerUrl` (colonnes déjà prévues en `String` dans le schéma),
+>   en attendant le branchement Vercel Blob (`BLOB_READ_WRITE_TOKEN`) en
+>   Session 9. Fonctionnel en dev, à migrer avant prod pour éviter de gonfler
+>   la base.
+> - **Bannière "Motif"** simplifiée en sélecteur de couleur (dégradé) plutôt
+>   que la bibliothèque de pictogrammes SVG par discipline (Sprint, Haies,
+>   Hauteur...) décrite au §10 — écart de fidélité visuelle, pas de logique.
+> - **Onglet Performances** : pas de filtres saison/indoor-outdoor ni de
+>   "bilan niveau" (barème FFA) ni de sparklines Recharts — remplacé par un
+>   regroupement par discipline dépliable avec historique + delta coloré
+>   (réutilise `lib/performance.ts` de la Session 2). Le detail de la page
+>   `/athletes/{id}/stats` (analytics avancées) du contrôleur Symfony n'a pas
+>   été porté.
+> - **Recherche** athlètes faite en mémoire (fetch complet + filtre JS) plutôt
+>   qu'une requête SQL `contains`, pour éviter les pièges de casse
+>   spécifiques à SQLite — pertinent à l'échelle d'un club, à revoir si le
+>   roster grossit beaucoup.
+
 ### 🔄 En cours
 - [ ] ...
 
@@ -474,17 +507,6 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."         # exposé côté client pour le SW
 
 **Session 1 — Fondations**
 - [ ] Vercel Postgres connecté (reste en SQLite local jusqu'au déploiement)
-
-**Session 3 — Athlètes (liste + profil + édition)**
-- [ ] API routes athletes (CRUD complet)
-- [ ] `/athletes` — grid de cards avec recherche
-- [ ] `/athletes/new` — création manuelle ou import FFA
-- [ ] `/athletes/[id]` — header bannière/avatar + bandeau stats + 6 onglets sans rechargement
-- [ ] Onglet Performances : filtres saison/indoor/outdoor + bilan niveau + sparklines + PB/SB + delta
-- [ ] Onglets Séances, Compétitions, Objectifs, Vidéos, Notes
-- [ ] `/athletes/[id]/edit` — spécialités groupées + couleurs par discipline + bannière (motif SVG/photo + couleur + zoom) + photo profil
-- [ ] Graphiques Recharts (courbes de perf)
-- [ ] Design final + animations
 
 **Session 4 — Calendriers + Séances**
 - [ ] API routes sessions + calendar
@@ -531,7 +553,7 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."         # exposé côté client pour le SW
 |---|---|---|---|
 | 01 | 2026-07-30 | Fondations (Next.js + shadcn + Prisma + Auth + PWA) | ✅ |
 | 02 | 2026-07-30 | Dashboard | ✅ |
-| 03 | - | Athlètes (liste + profil + édition) | ⏳ |
+| 03 | 2026-08-02 | Athlètes (liste + profil + édition) | ✅ |
 | 04 | - | Calendriers + Séances + Types | ⏳ |
 | 05 | - | Compétitions | ⏳ |
 | 06 | - | Notifications + WebPush | ⏳ |

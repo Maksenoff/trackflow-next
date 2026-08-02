@@ -1,0 +1,81 @@
+// Port fidèle de Performance::ATHLETE_SPECIALTIES (repo Symfony, src/Entity/Performance.php)
+
+export const ATHLETE_SPECIALTIES: Record<string, Record<string, string>> = {
+  Sprints: {
+    '50m': '50m',
+    '60m': '60m',
+    '80m': '80m',
+    '100m': '100m',
+    '150m': '150m',
+    '200m': '200m',
+    '300m': '300m',
+    '400m': '400m',
+  },
+  'Demi-fond / Fond': {
+    '600m': '600m',
+    '800m': '800m',
+    '1000m': '1000m',
+    '1500m': '1500m',
+    '2000m': '2000m',
+    '3000m': '3000m',
+    '5000m': '5000m',
+    '10000m': '10000m',
+    'Semi-marathon': 'semi-marathon',
+    Marathon: 'marathon',
+  },
+  Haies: {
+    '50m haies': '50m-haies',
+    '60m haies': '60m-haies',
+    '80m haies': '80m-haies',
+    '100m haies (F)': '100m-haies',
+    '110m haies (H)': '110m-haies',
+    '400m haies': '400m-haies',
+  },
+  Sauts: {
+    'Saut en longueur': 'longueur',
+    'Saut en hauteur': 'hauteur',
+    'Triple saut': 'triple',
+    'Saut à la perche': 'perche',
+  },
+  Lancers: {
+    'Lancer de poids': 'poids',
+    'Lancer du disque': 'disque',
+    'Lancer du javelot': 'javelot',
+    'Lancer du marteau': 'marteau',
+  },
+  'Épreuves combinées': {
+    Décathlon: 'decathlon',
+    Heptathlon: 'heptathlon',
+    Pentathlon: 'pentathlon',
+    Triathlon: 'triathlon',
+  },
+  Autres: {
+    'Cross country': 'cross',
+    Marche: 'marche',
+    'Relais 4x60m': '4x60m',
+    'Relais 4x80m': '4x80m',
+    'Relais 4x100m': '4x100m',
+    'Relais 4x200m': '4x200m',
+    'Relais 4x400m': '4x400m',
+    Autre: 'autre',
+  },
+}
+
+export const DISCIPLINE_LABELS: Record<string, string> = Object.values(ATHLETE_SPECIALTIES).reduce(
+  (acc, group) => {
+    for (const [label, value] of Object.entries(group)) acc[value] = label
+    return acc
+  },
+  {} as Record<string, string>
+)
+
+export const DEFAULT_DISCIPLINE_COLORS = [
+  '#6366f1',
+  '#22d3ee',
+  '#f59e0b',
+  '#ef4444',
+  '#10b981',
+  '#a78bfa',
+  '#ec4899',
+  '#84cc16',
+]

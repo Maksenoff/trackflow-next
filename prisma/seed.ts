@@ -182,6 +182,53 @@ async function main() {
     ],
   })
 
+  await prisma.goal.createMany({
+    data: [
+      {
+        athleteId: athlete1.id,
+        title: 'Passer sous les 12.20 sur 100m',
+        discipline: '100m',
+        targetValue: 12.2,
+        unit: 's',
+        deadline: daysFromNow(60),
+        status: 'in_progress',
+      },
+      {
+        athleteId: athlete1.id,
+        title: 'Qualification championnat régional',
+        status: 'achieved',
+      },
+      {
+        athleteId: athlete2.id,
+        title: 'Franchir les 7m en longueur',
+        discipline: 'longueur',
+        targetValue: 7,
+        unit: 'm',
+        status: 'in_progress',
+      },
+    ],
+  })
+
+  await prisma.athleteNote.create({
+    data: {
+      athleteId: athlete1.id,
+      title: 'Départ blocs',
+      content:
+        'Bien travailler la poussée sur les premiers appuis, tendance à se relever trop tôt.',
+      pinned: true,
+      color: 'amber',
+    },
+  })
+
+  await prisma.athleteVideo.create({
+    data: {
+      athleteId: athlete1.id,
+      title: 'Analyse départ 100m - 20/07',
+      discipline: '100m',
+      url: 'https://example.com/video/depart-100m',
+    },
+  })
+
   console.log('Seed terminé.')
   console.log('Coach: coach@trackflow.app / password')
   console.log('Athlète: athlete@trackflow.app / password')
