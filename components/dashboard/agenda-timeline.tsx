@@ -52,6 +52,15 @@ export function AgendaTimeline({
   const agenda = buildAgenda(sessions, competitions).slice(0, 6)
   const [hero, ...rest] = agenda
 
+  // La compétition la plus proche doit toujours avoir sa propre vitrine, même
+  // quand une séance passe devant elle chronologiquement pour le hero.
+  const spotlightCompetition = hero?.kind === 'session' ? (competitions[0] ?? null) : null
+  const rail = spotlightCompetition
+    ? rest.filter(
+        (e) => !(e.kind === 'competition' && e.competition.id === spotlightCompetition.id)
+      )
+    : rest
+
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
@@ -95,23 +104,87 @@ export function AgendaTimeline({
             <HeroCard entry={hero} showLinkedBadge={showLinkedBadge} />
           </motion.div>
 
-          {rest.length > 0 && (
-            <motion.div
-              variants={listVariants}
-              initial="hidden"
-              animate="show"
-              className="relative border-l border-border py-1 pl-6 lg:col-span-2"
-            >
-              {rest.map((entry) => (
-                <motion.div key={`${entry.kind}-${entry.date.getTime()}`} variants={itemVariants}>
-                  <TimelineRow entry={entry} showLinkedBadge={showLinkedBadge} />
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
+          <div className="lg:col-span-2 space-y-3">
+            {spotlightCompetition && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, ease: 'easeOut', delay: 0.05 }}
+              >
+                <CompetitionSpotlight
+                  competition={spotlightCompetition}
+                  showLinkedBadge={showLinkedBadge}
+                />
+              </motion.div>
+            )}
+
+            {rail.length > 0 && (
+              <motion.div
+                variants={listVariants}
+                initial="hidden"
+                animate="show"
+                className="relative border-l border-border py-1 pl-6"
+              >
+                {rail.map((entry) => (
+                  <motion.div key={`${entry.kind}-${entry.date.getTime()}`} variants={itemVariants}>
+                    <TimelineRow entry={entry} showLinkedBadge={showLinkedBadge} />
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+          </div>
         </div>
       )}
     </div>
+  )
+}
+
+function CompetitionSpotlight({
+  competition,
+  showLinkedBadge,
+}: {
+  competition: CompetitionWidgetItem
+  showLinkedBadge: boolean
+}) {
+  const day = relativeDayLabel(competition.date)
+  return (
+    <Link
+      href={`/competitions/${competition.id}`}
+      className="group relative flex items-center gap-3 overflow-hidden rounded-2xl border p-4 shadow-md transition-all duration-300 hover:-translate-y-0.5"
+      style={{
+        backgroundColor: `${competition.colorBg}14`,
+        borderColor: `${competition.colorBg}4d`,
+        boxShadow: `0 8px 24px -14px ${competition.colorBg}55`,
+      }}
+    >
+      <span
+        className="flex size-10 shrink-0 items-center justify-center rounded-xl"
+        style={{ backgroundColor: `${competition.colorBg}26`, color: competition.colorBg }}
+      >
+        <Trophy className="size-5" fill="currentColor" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-wide uppercase">
+          <span style={{ color: competition.colorBg }}>Prochaine compétition</span>
+          <span className={cn('normal-case', TONE_CLASS[day.tone])}>· {day.label}</span>
+        </div>
+        <div className="truncate text-base font-extrabold">{competition.title}</div>
+        <div className="truncate text-xs text-muted-foreground">
+          {[competition.location, formatShortDate(competition.date)].filter(Boolean).join(' · ')}
+        </div>
+      </div>
+      <div className="flex shrink-0 flex-col items-end gap-1">
+        <span className="inline-flex items-center gap-1 rounded-full border bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+          <Users className="size-2.5" />
+          {competition.registrationCount}
+        </span>
+        {showLinkedBadge && competition.isRegistered && (
+          <span className="text-[10px] font-semibold" style={{ color: competition.colorBg }}>
+            Inscrit·e
+          </span>
+        )}
+      </div>
+    </Link>
   )
 }
 
@@ -254,11 +327,24 @@ function TimelineRow({ entry, showLinkedBadge }: { entry: AgendaEntry; showLinke
       : [entry.competition.typeLabel, entry.competition.location].filter(Boolean).join(' · ')
   const day = relativeDayShort(entry.date)
   const Icon = entry.kind === 'session' ? Zap : Trophy
+  const isCompetition = entry.kind === 'competition'
 
   return (
     <Link
       href={href}
-      className="group relative mb-3 flex items-center gap-3 rounded-2xl border border-border bg-card px-3.5 py-3 shadow-sm transition-all duration-300 last:mb-0 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10"
+      className={cn(
+        'group relative mb-3 flex items-center gap-3 rounded-2xl border px-3.5 py-3 shadow-sm transition-all duration-300 last:mb-0 hover:-translate-y-0.5 hover:shadow-lg',
+        !isCompetition && 'border-border bg-card hover:border-primary/30 hover:shadow-primary/10'
+      )}
+      style={
+        isCompetition
+          ? {
+              backgroundColor: `${color}0d`,
+              borderColor: `${color}33`,
+              boxShadow: `0 6px 16px -12px ${color}55`,
+            }
+          : undefined
+      }
     >
       <span
         aria-hidden
@@ -269,7 +355,7 @@ function TimelineRow({ entry, showLinkedBadge }: { entry: AgendaEntry; showLinke
         className="flex size-8 shrink-0 items-center justify-center rounded-lg"
         style={{ backgroundColor: `${color}1f`, color }}
       >
-        <Icon className="size-3.5" fill={entry.kind === 'competition' ? 'currentColor' : 'none'} />
+        <Icon className="size-3.5" fill={isCompetition ? 'currentColor' : 'none'} />
       </span>
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-semibold">{title}</div>
@@ -288,7 +374,7 @@ function TimelineRow({ entry, showLinkedBadge }: { entry: AgendaEntry; showLinke
         >
           {day.label}
         </span>
-        {showLinkedBadge && entry.kind === 'competition' && entry.competition.isRegistered && (
+        {showLinkedBadge && isCompetition && entry.competition.isRegistered && (
           <div className="mt-1 text-[10px] font-semibold" style={{ color }}>
             Inscrit·e
           </div>

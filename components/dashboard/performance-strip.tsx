@@ -42,26 +42,20 @@ export function PerformanceStrip({
         variants={listVariants}
         initial="hidden"
         animate="show"
-        className="no-scrollbar -mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2"
+        className="no-scrollbar -mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pt-2 pb-3"
       >
         {performances.map((perf) => (
           <motion.div key={perf.id} variants={itemVariants} className="snap-start">
             <Link
               href={`/athletes/${perf.athleteId}`}
-              className="group flex h-full w-[180px] shrink-0 flex-col rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10"
+              className="group flex h-full w-[180px] shrink-0 flex-col rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10"
             >
               <div className="truncate text-sm font-semibold">{perf.athleteName}</div>
-              <div className="mb-3 truncate text-xs text-muted-foreground">
+              <span className="mt-1.5 mb-3 inline-flex w-fit items-center truncate rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold tracking-wide text-muted-foreground uppercase">
                 {formatDiscipline(perf.discipline)}
-              </div>
-              <div
-                className={cn(
-                  'font-mono text-xl font-extrabold',
-                  perf.isPB ? GOLD : perf.isSB ? SILVER : 'text-foreground'
-                )}
-              >
-                {perf.value}
-              </div>
+              </span>
+
+              <div className="font-mono text-xl font-extrabold text-foreground">{perf.value}</div>
               <div className="mt-1.5 flex items-center gap-1.5">
                 {perf.isPB && <span className={cn('text-[10px] font-extrabold', GOLD)}>PB</span>}
                 {!perf.isPB && perf.isSB && (
@@ -91,7 +85,7 @@ export function PerformanceStrip({
       </motion.div>
       <div
         aria-hidden
-        className="pointer-events-none absolute top-0 right-0 h-full w-10 bg-gradient-to-l from-background to-transparent"
+        className="pointer-events-none absolute top-2 right-0 h-[calc(100%-0.5rem)] w-10 bg-gradient-to-l from-background to-transparent"
       />
     </div>
   )
