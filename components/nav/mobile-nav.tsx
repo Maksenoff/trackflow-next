@@ -15,24 +15,39 @@ export function MobileNav({ roles }: { roles: Role[] }) {
   )
 
   return (
-    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 pb-[env(safe-area-inset-bottom)]">
-      <ul className="flex items-stretch justify-around">
+    <nav
+      className="fixed inset-x-3 z-40 rounded-[24px] border border-border bg-card/95 shadow-lg shadow-black/10 backdrop-blur supports-backdrop-filter:bg-card/85 lg:hidden dark:shadow-black/30"
+      style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+    >
+      <ul className="flex items-stretch justify-around px-1 py-1.5">
         {links.map((link) => {
           const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`)
           return (
             <li key={link.href} className="flex-1">
               <Link
                 href={link.href}
-                className="relative flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium text-muted-foreground"
+                className="relative flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-medium text-muted-foreground"
               >
+                {isActive && (
+                  <motion.span
+                    layoutId="mobile-nav-active"
+                    className="absolute inset-0 rounded-2xl bg-primary/10"
+                    transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                  />
+                )}
                 <motion.span
                   animate={{ scale: isActive ? 1.15 : 1 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                  className={cn('flex items-center justify-center', isActive && 'text-primary')}
+                  className={cn(
+                    'relative z-10 flex items-center justify-center',
+                    isActive && 'text-primary'
+                  )}
                 >
                   <link.icon className="size-5" />
                 </motion.span>
-                <span className={cn(isActive && 'text-primary')}>{link.label}</span>
+                <span className={cn('relative z-10', isActive && 'text-primary')}>
+                  {link.label}
+                </span>
               </Link>
             </li>
           )

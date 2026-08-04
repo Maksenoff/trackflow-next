@@ -23,7 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Sidebar roles={roles} name={name} email={email} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar name={name} email={email} roles={roles} />
-        <main className="flex-1 pb-20 lg:pb-0">{children}</main>
+        <main className="flex-1 pb-24 lg:pb-0">{children}</main>
       </div>
       <MobileNav roles={roles} />
     </div>
