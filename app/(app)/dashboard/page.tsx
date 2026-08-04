@@ -23,10 +23,10 @@ export default async function DashboardPage() {
   return (
     <PageTransition>
       <div className="space-y-6 p-4 lg:p-8 xl:p-10">
-        <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card via-card to-primary/[0.06] p-5 shadow-sm lg:p-6">
+        <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card via-card to-primary/[0.1] shadow-sm dark:to-primary/[0.06] p-5 lg:p-6">
           <div
             aria-hidden
-            className="pointer-events-none absolute -top-16 left-1/2 size-56 -translate-x-1/2 rounded-full bg-primary/20 blur-3xl"
+            className="pointer-events-none absolute -top-16 left-1/2 size-56 -translate-x-1/2 rounded-full bg-primary/25 blur-3xl dark:bg-primary/20"
           />
 
           <div className="relative flex flex-col items-center gap-2 text-center">

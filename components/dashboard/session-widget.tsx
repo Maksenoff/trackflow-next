@@ -5,6 +5,8 @@ import { motion } from 'framer-motion'
 import { ArrowRight, ChevronRight, Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { relativeDayLabel, relativeDayShort, formatShortDate } from '@/lib/date'
+import { tint } from '@/lib/color'
+import { useIsLightTheme } from '@/lib/use-is-light-theme'
 import type { SessionWidgetItem } from '@/lib/dashboard'
 import { cn } from '@/lib/utils'
 
@@ -32,6 +34,7 @@ export function SessionWidget({
   upcomingSessions: SessionWidgetItem[]
 }) {
   const rest = upcomingSessions.filter((s) => s.id !== nextSession?.id)
+  const isLight = useIsLightTheme()
 
   return (
     <div>
@@ -57,14 +60,14 @@ export function SessionWidget({
         >
           <Link
             href={`/sessions/${nextSession.id}`}
-            className="group relative block overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/20 via-primary/8 to-cyan-400/10 p-5 mb-2.5 shadow-lg shadow-primary/10 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-xl hover:shadow-primary/20"
+            className="group relative block overflow-hidden rounded-2xl border border-primary/35 bg-gradient-to-br from-primary/25 via-primary/10 to-cyan-400/15 p-5 mb-2.5 shadow-lg shadow-primary/15 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/55 hover:shadow-xl hover:shadow-primary/25 dark:border-primary/30 dark:from-primary/20 dark:via-primary/8 dark:to-cyan-400/10 dark:shadow-primary/10 dark:hover:border-primary/50 dark:hover:shadow-primary/20"
           >
             <div
               aria-hidden
-              className="pointer-events-none absolute -top-12 -right-12 size-44 rounded-full bg-primary/30 blur-3xl transition-opacity duration-300 group-hover:opacity-80"
+              className="pointer-events-none absolute -top-12 -right-12 size-44 rounded-full bg-primary/35 blur-3xl transition-opacity duration-300 group-hover:opacity-80 dark:bg-primary/30"
             />
             <div className="relative flex items-center gap-1.5 mb-3 text-[10px] font-bold uppercase tracking-wide">
-              <span className="inline-flex items-center justify-center size-5 rounded-full bg-primary/25 text-primary">
+              <span className="inline-flex items-center justify-center size-5 rounded-full bg-primary/30 text-primary dark:bg-primary/25">
                 <Zap className="size-3" fill="currentColor" />
               </span>
               <span className="text-primary">Prochaine séance</span>
@@ -88,16 +91,16 @@ export function SessionWidget({
                   <Badge
                     className="mt-3 border"
                     style={{
-                      backgroundColor: `${nextSession.trainingType.color}33`,
+                      backgroundColor: tint(nextSession.trainingType.color, isLight ? 30 : 18),
                       color: nextSession.trainingType.color,
-                      borderColor: `${nextSession.trainingType.color}5c`,
+                      borderColor: tint(nextSession.trainingType.color, isLight ? 55 : 32),
                     }}
                   >
                     {nextSession.trainingType.name}
                   </Badge>
                 )}
               </div>
-              <span className="flex items-center justify-center size-8 rounded-full bg-primary/15 shrink-0 mt-1 transition-transform duration-300 group-hover:translate-x-1 group-hover:bg-primary/25">
+              <span className="flex items-center justify-center size-8 rounded-full bg-primary/20 shrink-0 mt-1 transition-transform duration-300 group-hover:translate-x-1 group-hover:bg-primary/30 dark:bg-primary/15 dark:group-hover:bg-primary/25">
                 <ChevronRight className="size-4 text-primary" />
               </span>
             </div>
@@ -110,6 +113,7 @@ export function SessionWidget({
           {rest.map((session) => {
             const day = relativeDayShort(session.date)
             const color = session.trainingType?.color ?? 'var(--muted-foreground)'
+            const dotColor = session.trainingType?.color
             return (
               <motion.div key={session.id} variants={itemVariants}>
                 <Link
@@ -118,7 +122,12 @@ export function SessionWidget({
                 >
                   <span
                     className="relative size-2 rounded-full shrink-0 transition-transform duration-200 group-hover:scale-125"
-                    style={{ background: color, boxShadow: `0 0 0 3px ${color}33` }}
+                    style={{
+                      background: color,
+                      boxShadow: dotColor
+                        ? `0 0 0 3px ${tint(dotColor, isLight ? 45 : 20)}`
+                        : undefined,
+                    }}
                   />
                   <div className="relative flex-1 min-w-0">
                     <div className="text-sm font-medium truncate">{session.title}</div>
@@ -132,9 +141,9 @@ export function SessionWidget({
                     className={cn(
                       'relative text-[11px] font-bold shrink-0 rounded-full px-2 py-1',
                       day.tone === 'today'
-                        ? 'bg-primary/20 text-primary'
+                        ? 'bg-primary/25 text-primary dark:bg-primary/20'
                         : day.tone === 'tomorrow'
-                          ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                          ? 'bg-emerald-500/25 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400'
                           : 'bg-muted text-muted-foreground'
                     )}
                   >

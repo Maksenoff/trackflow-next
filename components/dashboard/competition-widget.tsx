@@ -6,6 +6,8 @@ import { motion } from 'framer-motion'
 import { ArrowRight, ChevronRight, Trophy, Users, Check, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { relativeDayLabel, relativeDayShort, formatShortDate } from '@/lib/date'
+import { tint } from '@/lib/color'
+import { useIsLightTheme } from '@/lib/use-is-light-theme'
 import type { CompetitionWidgetItem } from '@/lib/dashboard'
 import { cn } from '@/lib/utils'
 
@@ -28,10 +30,12 @@ const itemVariants = {
 function RegisteredDot({
   isRegistered,
   color,
+  isLight,
   size = 22,
 }: {
   isRegistered: boolean
   color: string
+  isLight: boolean
   size?: number
 }) {
   return (
@@ -42,7 +46,7 @@ function RegisteredDot({
         height: size,
         background: isRegistered ? color : 'var(--muted)',
         border: isRegistered ? 'none' : '1.5px solid var(--border)',
-        boxShadow: isRegistered ? `0 0 0 3px ${color}40` : 'none',
+        boxShadow: isRegistered ? `0 0 0 3px ${tint(color, isLight ? 50 : 20)}` : 'none',
       }}
     >
       {isRegistered ? (
@@ -74,6 +78,7 @@ export function CompetitionWidget({
   canCreate: boolean
 }) {
   const rest = upcomingCompetitions.filter((c) => c.id !== nextCompetition?.id)
+  const isLight = useIsLightTheme()
 
   return (
     <div>
@@ -102,23 +107,23 @@ export function CompetitionWidget({
             className="group relative block overflow-hidden rounded-2xl border p-5 mb-2.5 shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--hover-border)]"
             style={
               {
-                backgroundColor: `${nextCompetition.colorBg}1c`,
-                borderColor: `${nextCompetition.colorBg}5c`,
-                boxShadow: `0 10px 30px -15px ${nextCompetition.colorBg}40`,
-                '--hover-border': `${nextCompetition.colorBg}8c`,
+                backgroundColor: tint(nextCompetition.colorBg, isLight ? 22 : 7),
+                borderColor: tint(nextCompetition.colorBg, isLight ? 50 : 27),
+                boxShadow: `0 10px 30px -15px ${tint(nextCompetition.colorBg, isLight ? 45 : 20)}`,
+                '--hover-border': tint(nextCompetition.colorBg, isLight ? 70 : 47),
               } as CSSProperties
             }
           >
             <div
               aria-hidden
               className="pointer-events-none absolute -top-12 -right-12 size-44 rounded-full blur-3xl transition-opacity duration-300 opacity-60 group-hover:opacity-90"
-              style={{ background: `${nextCompetition.colorBg}4d` }}
+              style={{ background: tint(nextCompetition.colorBg, isLight ? 55 : 25) }}
             />
             <div className="relative flex items-center gap-1.5 mb-3 text-[10px] font-bold uppercase tracking-wide">
               <span
                 className="inline-flex items-center justify-center size-5 rounded-full"
                 style={{
-                  backgroundColor: `${nextCompetition.colorBg}33`,
+                  backgroundColor: tint(nextCompetition.colorBg, isLight ? 35 : 13),
                   color: nextCompetition.colorBg,
                 }}
               >
@@ -141,6 +146,7 @@ export function CompetitionWidget({
                   <RegisteredDot
                     isRegistered={nextCompetition.isRegistered}
                     color={nextCompetition.colorBg}
+                    isLight={isLight}
                   />
                 )}
               </div>
@@ -154,9 +160,9 @@ export function CompetitionWidget({
                 <Badge
                   className="mt-3 border"
                   style={{
-                    backgroundColor: `${nextCompetition.colorBg}33`,
+                    backgroundColor: tint(nextCompetition.colorBg, isLight ? 30 : 13),
                     color: nextCompetition.colorBg,
-                    borderColor: `${nextCompetition.colorBg}5c`,
+                    borderColor: tint(nextCompetition.colorBg, isLight ? 55 : 27),
                   }}
                 >
                   {nextCompetition.typeLabel}
@@ -164,7 +170,7 @@ export function CompetitionWidget({
               </div>
               <span
                 className="flex items-center justify-center size-8 rounded-full shrink-0 mt-1 transition-transform duration-300 group-hover:translate-x-1"
-                style={{ backgroundColor: `${nextCompetition.colorBg}26` }}
+                style={{ backgroundColor: tint(nextCompetition.colorBg, isLight ? 24 : 10) }}
               >
                 <ChevronRight className="size-4" style={{ color: nextCompetition.colorBg }} />
               </span>
@@ -187,7 +193,7 @@ export function CompetitionWidget({
                     className="relative w-1 h-9 rounded shrink-0 transition-all duration-200 group-hover:h-10"
                     style={{
                       background: competition.colorBg,
-                      boxShadow: `0 0 12px -2px ${competition.colorBg}80`,
+                      boxShadow: `0 0 12px -2px ${tint(competition.colorBg, isLight ? 60 : 40)}`,
                     }}
                   />
                   <div className="relative flex-1 min-w-0">
@@ -203,6 +209,7 @@ export function CompetitionWidget({
                         <RegisteredDot
                           isRegistered={competition.isRegistered}
                           color={competition.colorBg}
+                          isLight={isLight}
                           size={16}
                         />
                       )}
@@ -210,9 +217,9 @@ export function CompetitionWidget({
                         className={cn(
                           'text-[11px] font-bold rounded-full px-2 py-0.5',
                           day.tone === 'today'
-                            ? 'bg-primary/20 text-primary'
+                            ? 'bg-primary/25 text-primary dark:bg-primary/20'
                             : day.tone === 'tomorrow'
-                              ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                              ? 'bg-emerald-500/25 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400'
                               : 'bg-muted text-muted-foreground'
                         )}
                       >
