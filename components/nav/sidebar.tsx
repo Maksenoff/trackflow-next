@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { NAV_LINKS } from '@/components/nav/nav-links'
 import { Logo } from '@/components/logo'
 import { AccountMenu } from '@/components/nav/account-menu'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { primaryRole, type Role } from '@/lib/roles'
 
 export function Sidebar({ roles, name, email }: { roles: Role[]; name: string; email: string }) {
@@ -62,8 +63,11 @@ export function Sidebar({ roles, name, email }: { roles: Role[]; name: string; e
           })}
         </nav>
 
-        <div className="relative border-t border-border p-3">
-          <AccountMenu name={name} email={email} primaryRole={primaryRole(roles)} />
+        <div className="relative flex items-center gap-2 border-t border-border p-3">
+          <div className="min-w-0 flex-1">
+            <AccountMenu name={name} email={email} primaryRole={primaryRole(roles)} />
+          </div>
+          <ThemeToggle />
         </div>
       </div>
     </aside>
