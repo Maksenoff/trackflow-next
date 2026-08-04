@@ -57,14 +57,14 @@ export function SessionWidget({
         >
           <Link
             href={`/sessions/${nextSession.id}`}
-            className="group relative block overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/15 via-primary/5 to-cyan-400/5 p-5 mb-2.5 shadow-lg shadow-primary/5 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-xl hover:shadow-primary/15"
+            className="group relative block overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/20 via-primary/8 to-cyan-400/10 p-5 mb-2.5 shadow-lg shadow-primary/10 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-xl hover:shadow-primary/20"
           >
             <div
               aria-hidden
-              className="pointer-events-none absolute -top-12 -right-12 size-44 rounded-full bg-primary/25 blur-3xl transition-opacity duration-300 group-hover:opacity-80"
+              className="pointer-events-none absolute -top-12 -right-12 size-44 rounded-full bg-primary/30 blur-3xl transition-opacity duration-300 group-hover:opacity-80"
             />
             <div className="relative flex items-center gap-1.5 mb-3 text-[10px] font-bold uppercase tracking-wide">
-              <span className="inline-flex items-center justify-center size-5 rounded-full bg-primary/20 text-primary">
+              <span className="inline-flex items-center justify-center size-5 rounded-full bg-primary/25 text-primary">
                 <Zap className="size-3" fill="currentColor" />
               </span>
               <span className="text-primary">Prochaine séance</span>
@@ -88,16 +88,16 @@ export function SessionWidget({
                   <Badge
                     className="mt-3 border"
                     style={{
-                      backgroundColor: `${nextSession.trainingType.color}22`,
+                      backgroundColor: `${nextSession.trainingType.color}33`,
                       color: nextSession.trainingType.color,
-                      borderColor: `${nextSession.trainingType.color}44`,
+                      borderColor: `${nextSession.trainingType.color}5c`,
                     }}
                   >
                     {nextSession.trainingType.name}
                   </Badge>
                 )}
               </div>
-              <span className="flex items-center justify-center size-8 rounded-full bg-primary/10 shrink-0 mt-1 transition-transform duration-300 group-hover:translate-x-1 group-hover:bg-primary/20">
+              <span className="flex items-center justify-center size-8 rounded-full bg-primary/15 shrink-0 mt-1 transition-transform duration-300 group-hover:translate-x-1 group-hover:bg-primary/25">
                 <ChevronRight className="size-4 text-primary" />
               </span>
             </div>
@@ -118,7 +118,7 @@ export function SessionWidget({
                 >
                   <span
                     className="relative size-2 rounded-full shrink-0 transition-transform duration-200 group-hover:scale-125"
-                    style={{ background: color, boxShadow: `0 0 0 3px ${color}22` }}
+                    style={{ background: color, boxShadow: `0 0 0 3px ${color}33` }}
                   />
                   <div className="relative flex-1 min-w-0">
                     <div className="text-sm font-medium truncate">{session.title}</div>
@@ -132,9 +132,9 @@ export function SessionWidget({
                     className={cn(
                       'relative text-[11px] font-bold shrink-0 rounded-full px-2 py-1',
                       day.tone === 'today'
-                        ? 'bg-primary/15 text-primary'
+                        ? 'bg-primary/20 text-primary'
                         : day.tone === 'tomorrow'
-                          ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                          ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
                           : 'bg-muted text-muted-foreground'
                     )}
                   >
