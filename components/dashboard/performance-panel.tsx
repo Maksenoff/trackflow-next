@@ -37,7 +37,7 @@ export function PerformancePanel({
               href="/athletes/new"
               title="Nouvel athlète"
               aria-label="Nouvel athlète"
-              className="group inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-sm shadow-primary/25 transition-all duration-300 hover:shadow-md hover:shadow-primary/35"
+              className="group inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-sm shadow-primary/25 transition-all duration-300 hover:shadow-md hover:shadow-primary/35 active:scale-90"
             >
               <Plus className="size-3.5 transition-transform duration-300 group-hover:rotate-90" />
             </Link>
@@ -49,10 +49,10 @@ export function PerformancePanel({
                 type="button"
                 onClick={() => setMode(value)}
                 className={cn(
-                  'relative z-10 flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-medium transition-colors',
+                  'relative z-10 flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-medium transition-all duration-200 active:scale-95',
                   mode === value
                     ? 'text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 )}
               >
                 {mode === value && (
@@ -73,7 +73,7 @@ export function PerformancePanel({
             href="/athletes"
             title="Athlètes"
             aria-label="Athlètes"
-            className="group hidden size-7 shrink-0 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10 sm:inline-flex"
+            className="group hidden size-7 shrink-0 items-center justify-center rounded-full text-primary transition-all duration-200 hover:bg-primary/10 active:scale-90 sm:inline-flex"
           >
             <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
           </Link>

@@ -84,7 +84,7 @@ export function CompetitionWidget({
         </h2>
         <Link
           href="/calendar"
-          className="group inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-sm text-primary font-medium transition-colors hover:bg-primary/10"
+          className="group inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/10 hover:text-primary hover:shadow-md active:translate-y-0 active:scale-95"
         >
           Calendrier
           <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
