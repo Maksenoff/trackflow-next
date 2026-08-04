@@ -15,7 +15,7 @@ export function Sidebar({ roles, name, email }: { roles: Role[]; name: string; e
 
   return (
     <aside className="sticky top-0 hidden h-dvh shrink-0 p-3 lg:block lg:w-[19rem]">
-      <div className="relative flex h-full flex-col overflow-hidden rounded-[28px] border border-border bg-card shadow-lg shadow-black/[0.03] dark:shadow-black/30">
+      <div className="relative flex h-full flex-col overflow-hidden rounded-[28px] border border-border bg-card shadow-lg shadow-black/[0.08] dark:shadow-black/30">
         <div
           aria-hidden
           className="pointer-events-none absolute -top-20 -left-16 size-56 rounded-full bg-primary/10 blur-3xl"
