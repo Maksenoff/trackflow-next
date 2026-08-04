@@ -4,9 +4,8 @@ import { isAdmin, type Role } from '@/lib/roles'
 import { getDashboardData } from '@/lib/dashboard'
 import { PageTransition } from '@/components/motion/page-transition'
 import { RoleBadge } from '@/components/role-badge'
-import { SessionWidget } from '@/components/dashboard/session-widget'
-import { CompetitionWidget } from '@/components/dashboard/competition-widget'
-import { PerformanceList } from '@/components/dashboard/performance-list'
+import { AgendaTimeline } from '@/components/dashboard/agenda-timeline'
+import { PerformanceStrip } from '@/components/dashboard/performance-strip'
 import { PerformancePanel } from '@/components/dashboard/performance-panel'
 
 export default async function DashboardPage() {
@@ -22,15 +21,15 @@ export default async function DashboardPage() {
 
   return (
     <PageTransition>
-      <div className="p-4 lg:p-8 xl:p-10 space-y-6">
-        <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card via-card to-primary/[0.06] p-5 lg:p-6 shadow-sm">
+      <div className="space-y-8 p-4 lg:p-8 xl:p-10">
+        <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card via-card to-primary/[0.06] p-5 shadow-sm lg:p-6">
           <div
             aria-hidden
             className="pointer-events-none absolute -top-16 left-1/2 size-56 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl"
           />
 
           <div className="relative flex flex-col items-center gap-2 text-center">
-            <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tight">
+            <h1 className="text-2xl font-extrabold tracking-tight lg:text-3xl">
               Bienvenue sur{' '}
               <span className="inline-block bg-gradient-to-r from-primary to-cyan-400 bg-clip-text pr-1 text-transparent italic">
                 TrackFlow
@@ -61,42 +60,35 @@ export default async function DashboardPage() {
             athlète. Contacte ton coach.
           </div>
         ) : (
-          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2 xl:grid-cols-3 xl:gap-8">
-            <SessionWidget
-              nextSession={data.nextSession}
-              upcomingSessions={data.upcomingSessions}
-            />
-
-            <CompetitionWidget
-              nextCompetition={data.nextCompetition}
-              upcomingCompetitions={data.upcomingCompetitions}
+          <div className="space-y-8">
+            <AgendaTimeline
+              sessions={data.upcomingSessions}
+              competitions={data.upcomingCompetitions}
               showLinkedBadge={data.hasLinkedAthlete}
               canCreate={isAdmin(roles)}
             />
 
-            <div className="lg:col-span-2 xl:col-span-1">
-              {data.view === 'coach' ? (
-                <PerformancePanel
-                  allPerformances={data.allPerformances}
-                  myPerformances={data.myPerformances}
-                  hasLinkedAthlete={data.hasLinkedAthlete}
-                  canCreateAthlete={isAdmin(roles)}
-                />
-              ) : (
-                <div>
-                  <div className="mb-3 flex items-center justify-between">
-                    <h2 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      <TrendingUp className="size-3.5 text-primary" />
-                      Mes performances
-                    </h2>
-                  </div>
-                  <PerformanceList
-                    performances={data.recentPerformances}
-                    emptyMessage="Aucune performance enregistrée."
-                  />
+            {data.view === 'coach' ? (
+              <PerformancePanel
+                allPerformances={data.allPerformances}
+                myPerformances={data.myPerformances}
+                hasLinkedAthlete={data.hasLinkedAthlete}
+                canCreateAthlete={isAdmin(roles)}
+              />
+            ) : (
+              <div>
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    <TrendingUp className="size-3.5 text-primary" />
+                    Mes performances
+                  </h2>
                 </div>
-              )}
-            </div>
+                <PerformanceStrip
+                  performances={data.recentPerformances}
+                  emptyMessage="Aucune performance enregistrée."
+                />
+              </div>
+            )}
           </div>
         )}
       </div>

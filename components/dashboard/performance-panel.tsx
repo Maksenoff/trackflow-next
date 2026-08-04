@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { ArrowRight, Plus, TrendingUp, Users, User } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { PerformanceList } from '@/components/dashboard/performance-list'
+import { PerformanceStrip } from '@/components/dashboard/performance-strip'
 import type { PerformanceWidgetItem } from '@/lib/dashboard'
 import { cn } from '@/lib/utils'
 
@@ -80,7 +80,7 @@ export function PerformancePanel({
         </div>
       </div>
 
-      <PerformanceList
+      <PerformanceStrip
         key={mode}
         performances={performances}
         emptyMessage={
