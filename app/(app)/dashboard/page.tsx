@@ -4,8 +4,9 @@ import { isAdmin, type Role } from '@/lib/roles'
 import { getDashboardData } from '@/lib/dashboard'
 import { PageTransition } from '@/components/motion/page-transition'
 import { RoleBadge } from '@/components/role-badge'
-import { AgendaClean } from '@/components/dashboard/agenda-clean'
-import { PerformanceCleanList } from '@/components/dashboard/performance-clean-list'
+import { SessionWidget } from '@/components/dashboard/session-widget'
+import { CompetitionWidget } from '@/components/dashboard/competition-widget'
+import { PerformanceList } from '@/components/dashboard/performance-list'
 import { PerformancePanel } from '@/components/dashboard/performance-panel'
 
 export default async function DashboardPage() {
@@ -22,10 +23,27 @@ export default async function DashboardPage() {
   return (
     <PageTransition>
       <div className="space-y-6 p-4 lg:p-8 xl:p-10">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-5">
-          <div className="space-y-1.5">
-            <h1 className="text-xl font-bold tracking-tight lg:text-2xl">Tableau de bord</h1>
-            <p className="text-sm text-muted-foreground capitalize">
+        <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card via-card to-primary/[0.06] p-5 shadow-sm lg:p-6">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -top-16 left-1/2 size-56 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl"
+          />
+
+          <div className="relative flex flex-col items-center gap-2 text-center">
+            <h1 className="text-2xl font-extrabold tracking-tight lg:text-3xl">
+              Bienvenue sur{' '}
+              <span className="inline-block bg-gradient-to-r from-primary to-cyan-400 bg-clip-text pr-1 text-transparent italic">
+                TrackFlow
+              </span>
+            </h1>
+
+            <div className="flex flex-wrap items-center justify-center gap-1.5">
+              {roles.map((r) => (
+                <RoleBadge key={r} role={r} />
+              ))}
+            </div>
+
+            <p className="text-xs text-muted-foreground capitalize">
               {data.view === 'coach' && (
                 <>
                   {data.totalAthletes} athlète{data.totalAthletes > 1 ? 's' : ''} suivi
@@ -35,11 +53,6 @@ export default async function DashboardPage() {
               {today}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {roles.map((r) => (
-              <RoleBadge key={r} role={r} />
-            ))}
-          </div>
         </div>
 
         {data.view === 'athlete' && !data.hasLinkedAthlete ? (
@@ -48,35 +61,43 @@ export default async function DashboardPage() {
             athlète. Contacte ton coach.
           </div>
         ) : (
-          <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
-            <AgendaClean
-              sessions={data.upcomingSessions}
-              competitions={data.upcomingCompetitions}
-              showLinkedBadge={data.hasLinkedAthlete}
-              canCreate={isAdmin(roles)}
-            />
-
-            {data.view === 'coach' ? (
-              <PerformancePanel
-                allPerformances={data.allPerformances}
-                myPerformances={data.myPerformances}
-                hasLinkedAthlete={data.hasLinkedAthlete}
-                canCreateAthlete={isAdmin(roles)}
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-5 lg:gap-8">
+            <div className="space-y-6 lg:col-span-3">
+              <SessionWidget
+                nextSession={data.nextSession}
+                upcomingSessions={data.upcomingSessions}
               />
-            ) : (
-              <div>
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    <TrendingUp className="size-3.5 text-primary" />
-                    Mes performances
-                  </h2>
-                </div>
-                <PerformanceCleanList
-                  performances={data.recentPerformances}
-                  emptyMessage="Aucune performance enregistrée."
+              <CompetitionWidget
+                nextCompetition={data.nextCompetition}
+                upcomingCompetitions={data.upcomingCompetitions}
+                showLinkedBadge={data.hasLinkedAthlete}
+                canCreate={isAdmin(roles)}
+              />
+            </div>
+
+            <div className="lg:col-span-2">
+              {data.view === 'coach' ? (
+                <PerformancePanel
+                  allPerformances={data.allPerformances}
+                  myPerformances={data.myPerformances}
+                  hasLinkedAthlete={data.hasLinkedAthlete}
+                  canCreateAthlete={isAdmin(roles)}
                 />
-              </div>
-            )}
+              ) : (
+                <div>
+                  <div className="mb-3 flex items-center justify-between">
+                    <h2 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      <TrendingUp className="size-3.5 text-primary" />
+                      Mes performances
+                    </h2>
+                  </div>
+                  <PerformanceList
+                    performances={data.recentPerformances}
+                    emptyMessage="Aucune performance enregistrée."
+                  />
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
