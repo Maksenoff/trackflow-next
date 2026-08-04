@@ -33,3 +33,10 @@ export function isAthlete(userRoles: string[] | undefined): boolean {
 export function isCompetitionManager(userRoles: string[] | undefined): boolean {
   return hasRole(userRoles, ROLES.COMPETITION_MANAGER)
 }
+
+const ROLE_PRIORITY: Role[] = [ROLES.ADMIN, ROLES.COACH, ROLES.COMPETITION_MANAGER, ROLES.ATHLETE]
+
+/** Rôle le plus "élevé" à afficher quand un seul doit être montré (ex: carte compte). */
+export function primaryRole(userRoles: string[] | undefined): Role | null {
+  return ROLE_PRIORITY.find((r) => userRoles?.includes(r)) ?? null
+}
