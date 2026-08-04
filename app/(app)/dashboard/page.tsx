@@ -61,21 +61,20 @@ export default async function DashboardPage() {
             athlète. Contacte ton coach.
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
-            <div className="lg:col-span-3 space-y-6">
-              <SessionWidget
-                nextSession={data.nextSession}
-                upcomingSessions={data.upcomingSessions}
-              />
-              <CompetitionWidget
-                nextCompetition={data.nextCompetition}
-                upcomingCompetitions={data.upcomingCompetitions}
-                showLinkedBadge={data.hasLinkedAthlete}
-                canCreate={isAdmin(roles)}
-              />
-            </div>
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2 xl:grid-cols-3 xl:gap-8">
+            <SessionWidget
+              nextSession={data.nextSession}
+              upcomingSessions={data.upcomingSessions}
+            />
 
-            <div className="lg:col-span-2">
+            <CompetitionWidget
+              nextCompetition={data.nextCompetition}
+              upcomingCompetitions={data.upcomingCompetitions}
+              showLinkedBadge={data.hasLinkedAthlete}
+              canCreate={isAdmin(roles)}
+            />
+
+            <div className="lg:col-span-2 xl:col-span-1">
               {data.view === 'coach' ? (
                 <PerformancePanel
                   allPerformances={data.allPerformances}
@@ -85,7 +84,7 @@ export default async function DashboardPage() {
                 />
               ) : (
                 <div>
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="mb-3 flex items-center justify-between">
                     <h2 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                       <TrendingUp className="size-3.5 text-primary" />
                       Mes performances
