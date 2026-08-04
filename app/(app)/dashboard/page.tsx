@@ -4,8 +4,8 @@ import { isAdmin, type Role } from '@/lib/roles'
 import { getDashboardData } from '@/lib/dashboard'
 import { PageTransition } from '@/components/motion/page-transition'
 import { RoleBadge } from '@/components/role-badge'
-import { AgendaTimeline } from '@/components/dashboard/agenda-timeline'
-import { PerformanceStrip } from '@/components/dashboard/performance-strip'
+import { AgendaClean } from '@/components/dashboard/agenda-clean'
+import { PerformanceCleanList } from '@/components/dashboard/performance-clean-list'
 import { PerformancePanel } from '@/components/dashboard/performance-panel'
 
 export default async function DashboardPage() {
@@ -21,28 +21,11 @@ export default async function DashboardPage() {
 
   return (
     <PageTransition>
-      <div className="space-y-8 p-4 lg:p-8 xl:p-10">
-        <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card via-card to-primary/[0.06] p-5 shadow-sm lg:p-6">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -top-16 left-1/2 size-56 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl"
-          />
-
-          <div className="relative flex flex-col items-center gap-2 text-center">
-            <h1 className="text-2xl font-extrabold tracking-tight lg:text-3xl">
-              Bienvenue sur{' '}
-              <span className="inline-block bg-gradient-to-r from-primary to-cyan-400 bg-clip-text pr-1 text-transparent italic">
-                TrackFlow
-              </span>
-            </h1>
-
-            <div className="flex flex-wrap items-center justify-center gap-1.5">
-              {roles.map((r) => (
-                <RoleBadge key={r} role={r} />
-              ))}
-            </div>
-
-            <p className="text-xs text-muted-foreground capitalize">
+      <div className="space-y-6 p-4 lg:p-8 xl:p-10">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-5">
+          <div className="space-y-1.5">
+            <h1 className="text-xl font-bold tracking-tight lg:text-2xl">Tableau de bord</h1>
+            <p className="text-sm text-muted-foreground capitalize">
               {data.view === 'coach' && (
                 <>
                   {data.totalAthletes} athlète{data.totalAthletes > 1 ? 's' : ''} suivi
@@ -52,6 +35,11 @@ export default async function DashboardPage() {
               {today}
             </p>
           </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {roles.map((r) => (
+              <RoleBadge key={r} role={r} />
+            ))}
+          </div>
         </div>
 
         {data.view === 'athlete' && !data.hasLinkedAthlete ? (
@@ -60,8 +48,8 @@ export default async function DashboardPage() {
             athlète. Contacte ton coach.
           </div>
         ) : (
-          <div className="space-y-8">
-            <AgendaTimeline
+          <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
+            <AgendaClean
               sessions={data.upcomingSessions}
               competitions={data.upcomingCompetitions}
               showLinkedBadge={data.hasLinkedAthlete}
@@ -83,7 +71,7 @@ export default async function DashboardPage() {
                     Mes performances
                   </h2>
                 </div>
-                <PerformanceStrip
+                <PerformanceCleanList
                   performances={data.recentPerformances}
                   emptyMessage="Aucune performance enregistrée."
                 />
