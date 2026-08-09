@@ -78,10 +78,19 @@ export function CalendarView({
     startX: number
     startY: number
     pointerId: number | null
+    pointerType: string
     armed: boolean
     session: CalSession | null
     longPressTimer: ReturnType<typeof setTimeout> | null
-  }>({ startX: 0, startY: 0, pointerId: null, armed: false, session: null, longPressTimer: null })
+  }>({
+    startX: 0,
+    startY: 0,
+    pointerId: null,
+    pointerType: 'mouse',
+    armed: false,
+    session: null,
+    longPressTimer: null,
+  })
   const suppressClickRef = useRef(false)
 
   const cells = useMemo(() => buildMonthGrid(year, month), [year, month])
@@ -107,8 +116,20 @@ export function CalendarView({
       if (st.pointerId === null || e.pointerId !== st.pointerId) return
       const dx = e.clientX - st.startX
       const dy = e.clientY - st.startY
+      const moved = Math.hypot(dx, dy)
       if (!st.armed) {
-        if (Math.hypot(dx, dy) > 10) {
+        if (st.pointerType === 'mouse') {
+          // Souris : le mouvement lui-même déclenche le drag (comme un drag natif).
+          if (moved > 4) {
+            st.armed = true
+            suppressClickRef.current = true
+            setDraggingSession(st.session)
+            setDragPos({ x: e.clientX, y: e.clientY })
+          }
+          return
+        }
+        // Tactile : un mouvement avant la fin de l'appui long = scroll, on annule.
+        if (moved > 10) {
           if (st.longPressTimer) clearTimeout(st.longPressTimer)
           st.pointerId = null
         }
@@ -159,8 +180,14 @@ export function CalendarView({
     st.startX = e.clientX
     st.startY = e.clientY
     st.pointerId = e.pointerId
+    st.pointerType = e.pointerType
     st.session = s
     st.armed = false
+
+    // Souris : le drag s'arme dès le premier mouvement (voir onMove). Pas de délai.
+    if (e.pointerType === 'mouse') return
+
+    // Tactile : appui long requis pour distinguer un drag d'un scroll de la page.
     if (st.longPressTimer) clearTimeout(st.longPressTimer)
     st.longPressTimer = setTimeout(() => {
       st.armed = true

@@ -16,14 +16,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { toDateInputValue } from '@/lib/calendar-grid'
+import { cn } from '@/lib/utils'
 
 export type TrainingTypeOption = { id: string; name: string; color: string }
 
@@ -114,29 +108,33 @@ export function SessionFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>{isEdit ? 'Modifier la séance' : 'Nouvelle séance'}</DialogTitle>
+          <DialogTitle className="text-lg">
+            {isEdit ? 'Modifier la séance' : 'Nouvelle séance'}
+          </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-5 py-1">
           <div className="space-y-1.5">
             <Label htmlFor="session-title">Titre</Label>
             <Input
               id="session-title"
               autoFocus
+              className="h-11 text-base"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ex : Séance sprint court"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="space-y-1.5">
               <Label htmlFor="session-date">Date</Label>
               <Input
                 id="session-date"
                 type="date"
+                className="h-11"
                 value={sessionDate}
                 onChange={(e) => setSessionDate(e.target.value)}
               />
@@ -146,48 +144,77 @@ export function SessionFormDialog({
               <Input
                 id="session-time"
                 type="time"
+                className="h-11"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
               />
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="session-duration">Durée (min)</Label>
+              <Input
+                id="session-duration"
+                type="number"
+                min={0}
+                className="h-11"
+                value={durationMinutes}
+                onChange={(e) => setDurationMinutes(e.target.value)}
+              />
+            </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="session-duration">Durée (min)</Label>
-            <Input
-              id="session-duration"
-              type="number"
-              min={0}
-              value={durationMinutes}
-              onChange={(e) => setDurationMinutes(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <Label>Type</Label>
-            <Select value={trainingTypeId} onValueChange={(v) => setTrainingTypeId(v ?? undefined)}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Aucun type">
-                  {(value: string | null) =>
-                    trainingTypes.find((t) => t.id === value)?.name ?? 'Aucun type'
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {trainingTypes.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setTrainingTypeId(undefined)}
+                className={cn(
+                  'rounded-full border px-3.5 py-2 text-sm font-semibold transition-all',
+                  !trainingTypeId
+                    ? 'border-foreground/25 bg-muted text-foreground'
+                    : 'border-border text-muted-foreground hover:bg-muted/50'
+                )}
+              >
+                Aucun type
+              </button>
+              {trainingTypes.map((t) => {
+                const active = trainingTypeId === t.id
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setTrainingTypeId(t.id)}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-semibold transition-all',
+                      active ? 'shadow-sm' : 'border-border text-muted-foreground hover:bg-muted/50'
+                    )}
+                    style={
+                      active
+                        ? {
+                            backgroundColor: `${t.color}22`,
+                            color: t.color,
+                            borderColor: `${t.color}66`,
+                          }
+                        : undefined
+                    }
+                  >
+                    <span
+                      className="size-2.5 shrink-0 rounded-full"
+                      style={{ background: t.color }}
+                    />
                     {t.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="session-description">Programme</Label>
             <Textarea
               id="session-description"
-              rows={3}
+              rows={5}
+              className="resize-none text-base"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Contenu de la séance..."
