@@ -76,7 +76,7 @@ export function RegistrationRow({
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
+    <div className="flex h-full items-center gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-md">
       {registration.athlete.photoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img

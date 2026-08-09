@@ -30,7 +30,7 @@ export default async function CompetitionDetailPage({ params }: { params: { id: 
 
   return (
     <PageTransition>
-      <div className="mx-auto max-w-3xl space-y-6 p-4 lg:p-8 xl:p-10">
+      <div className="mx-auto max-w-7xl space-y-6 p-4 lg:p-8 xl:p-10">
         <BackButton label="Retour au calendrier" />
 
         <CompetitionHeader competition={competition} isPast={isPast} canManage={canManage} />

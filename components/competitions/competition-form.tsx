@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { Loader2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -111,7 +112,7 @@ export function CompetitionForm({
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-4 lg:p-8">
+    <div className="mx-auto max-w-6xl space-y-6 p-4 lg:p-8 xl:p-10">
       <BackButton label="Retour au calendrier" />
 
       <div>
@@ -125,149 +126,163 @@ export function CompetitionForm({
         </p>
       </div>
 
-      <div className="space-y-5 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
-        <div className="space-y-1.5">
-          <Label htmlFor="competition-title">Nom de la compétition *</Label>
-          <Input
-            id="competition-title"
-            autoFocus
-            className="h-11 text-base"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ex : Meeting régional indoor"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1.2fr_1fr]">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className="space-y-5 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6"
+        >
           <div className="space-y-1.5">
-            <Label htmlFor="competition-date">Date *</Label>
+            <Label htmlFor="competition-title">Nom de la compétition *</Label>
             <Input
-              id="competition-date"
-              type="date"
-              className="h-11"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
+              id="competition-title"
+              autoFocus
+              className="h-11 text-base"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Ex : Meeting régional indoor"
             />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="competition-location">Lieu</Label>
-            <Input
-              id="competition-location"
-              className="h-11"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="Ex : Liévin"
-            />
-          </div>
-        </div>
 
-        <TypePillPicker
-          label="Type de compétition"
-          types={competitionTypes}
-          value={competitionTypeId}
-          onChange={setCompetitionTypeId}
-        />
-
-        <div className="space-y-1.5">
-          <Label htmlFor="competition-website">Site officiel</Label>
-          <Input
-            id="competition-website"
-            className="h-11"
-            value={websiteUrl}
-            onChange={(e) => setWebsiteUrl(e.target.value)}
-            placeholder="https://..."
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="competition-document">Circulaire (PDF ou image)</Label>
-            <FileField
-              id="competition-document"
-              value={documentUrl}
-              onFile={(f) => handleFile(f, setDocumentUrl)}
-              onClear={() => setDocumentUrl(null)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="competition-schedules">Horaires (PDF ou image)</Label>
-            <FileField
-              id="competition-schedules"
-              value={schedulesUrl}
-              onFile={(f) => handleFile(f, setSchedulesUrl)}
-              onClear={() => setSchedulesUrl(null)}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="competition-description">Notes</Label>
-          <Textarea
-            id="competition-description"
-            rows={8}
-            className="min-h-40 resize-y text-base"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Informations complémentaires, consignes, programme..."
-          />
-        </div>
-
-        <div className="flex items-center justify-between gap-4 border-t border-border pt-5">
-          <div>
-            <p className="text-sm font-semibold">Performances attendues</p>
-            <p className="text-xs text-muted-foreground">
-              Les athlètes renseignent une performance cible par discipline lors de
-              l&apos;inscription.
-            </p>
-          </div>
-          <Switch checked={requestExpectedPerf} onCheckedChange={setRequestExpectedPerf} />
-        </div>
-
-        <div className="space-y-3 border-t border-border pt-5">
-          <p className="text-sm font-semibold">Disciplines disponibles</p>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setRestricted(false)}
-              className={cn(
-                'flex-1 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors',
-                !restricted
-                  ? 'border-primary/40 bg-primary/10 text-primary'
-                  : 'border-border text-muted-foreground hover:bg-muted/50'
-              )}
-            >
-              Toutes les disciplines
-            </button>
-            <button
-              type="button"
-              onClick={() => setRestricted(true)}
-              className={cn(
-                'flex-1 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors',
-                restricted
-                  ? 'border-primary/40 bg-primary/10 text-primary'
-                  : 'border-border text-muted-foreground hover:bg-muted/50'
-              )}
-            >
-              Sélection manuelle
-            </button>
-          </div>
-
-          {restricted && (
-            <div className="space-y-2">
-              <DisciplinePicker
-                value={availableDisciplines}
-                onChange={setAvailableDisciplines}
-                allowCustom
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="competition-date">Date *</Label>
+              <Input
+                id="competition-date"
+                type="date"
+                className="h-11"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
               />
-              {availableDisciplines.length === 0 && (
-                <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
-                  Sélectionne au moins une discipline ou passe en mode &quot;Toutes les
-                  disciplines&quot;.
-                </p>
-              )}
             </div>
-          )}
-        </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="competition-location">Lieu</Label>
+              <Input
+                id="competition-location"
+                className="h-11"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Ex : Liévin"
+              />
+            </div>
+          </div>
+
+          <TypePillPicker
+            label="Type de compétition"
+            types={competitionTypes}
+            value={competitionTypeId}
+            onChange={setCompetitionTypeId}
+          />
+
+          <div className="space-y-1.5">
+            <Label htmlFor="competition-website">Site officiel</Label>
+            <Input
+              id="competition-website"
+              className="h-11"
+              value={websiteUrl}
+              onChange={(e) => setWebsiteUrl(e.target.value)}
+              placeholder="https://..."
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="competition-document">Circulaire (PDF ou image)</Label>
+              <FileField
+                id="competition-document"
+                value={documentUrl}
+                onFile={(f) => handleFile(f, setDocumentUrl)}
+                onClear={() => setDocumentUrl(null)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="competition-schedules">Horaires (PDF ou image)</Label>
+              <FileField
+                id="competition-schedules"
+                value={schedulesUrl}
+                onFile={(f) => handleFile(f, setSchedulesUrl)}
+                onClear={() => setSchedulesUrl(null)}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="competition-description">Notes</Label>
+            <Textarea
+              id="competition-description"
+              rows={8}
+              className="min-h-40 resize-y text-base"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Informations complémentaires, consignes, programme..."
+            />
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.05, ease: 'easeOut' }}
+          className="space-y-5 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6 lg:sticky lg:top-6"
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold">Performances attendues</p>
+              <p className="text-xs text-muted-foreground">
+                Les athlètes renseignent une performance cible par discipline lors de
+                l&apos;inscription.
+              </p>
+            </div>
+            <Switch checked={requestExpectedPerf} onCheckedChange={setRequestExpectedPerf} />
+          </div>
+
+          <div className="space-y-3 border-t border-border pt-5">
+            <p className="text-sm font-semibold">Disciplines disponibles</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setRestricted(false)}
+                className={cn(
+                  'flex-1 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors',
+                  !restricted
+                    ? 'border-primary/40 bg-primary/10 text-primary'
+                    : 'border-border text-muted-foreground hover:bg-muted/50'
+                )}
+              >
+                Toutes les disciplines
+              </button>
+              <button
+                type="button"
+                onClick={() => setRestricted(true)}
+                className={cn(
+                  'flex-1 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors',
+                  restricted
+                    ? 'border-primary/40 bg-primary/10 text-primary'
+                    : 'border-border text-muted-foreground hover:bg-muted/50'
+                )}
+              >
+                Sélection manuelle
+              </button>
+            </div>
+
+            {restricted && (
+              <div className="max-h-[28rem] space-y-2 overflow-y-auto pr-1">
+                <DisciplinePicker
+                  value={availableDisciplines}
+                  onChange={setAvailableDisciplines}
+                  allowCustom
+                />
+                {availableDisciplines.length === 0 && (
+                  <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+                    Sélectionne au moins une discipline ou passe en mode &quot;Toutes les
+                    disciplines&quot;.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </motion.div>
       </div>
 
       <div className="flex justify-end gap-2">

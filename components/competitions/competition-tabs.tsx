@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { motion } from 'framer-motion'
 import { Clock, FileText, Info, Link as LinkIcon, Plus, Users } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { RegistrationRow } from '@/components/competitions/registration-row'
@@ -12,6 +13,16 @@ import {
 import type { CompetitionDetail } from '@/lib/competitions-data'
 
 type Registration = CompetitionDetail['registrations'][number]
+
+const listVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.05 } },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' as const } },
+}
 
 export function CompetitionTabs({
   competition,
@@ -42,12 +53,18 @@ export function CompetitionTabs({
 
   return (
     <Tabs defaultValue="infos" className="gap-4">
-      <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1">
-        <TabsTrigger value="infos" className="gap-1.5">
+      <TabsList className="h-auto w-full flex-wrap justify-start gap-1 bg-transparent p-0">
+        <TabsTrigger
+          value="infos"
+          className="gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 data-active:border-primary/40 data-active:bg-primary/10"
+        >
           <Info className="size-3.5" />
           Infos pratiques
         </TabsTrigger>
-        <TabsTrigger value="registrations" className="gap-1.5">
+        <TabsTrigger
+          value="registrations"
+          className="gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 data-active:border-primary/40 data-active:bg-primary/10"
+        >
           <Users className="size-3.5" />
           Inscriptions
           <span className="rounded-full bg-muted px-1.5 text-[10px] font-bold">
@@ -56,63 +73,70 @@ export function CompetitionTabs({
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="infos" className="space-y-4">
-        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-          <div className="border-b border-border px-5 py-3">
-            <h2 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
-              Ressources
-            </h2>
+      <TabsContent value="infos">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2"
+        >
+          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+            <div className="border-b border-border px-5 py-3">
+              <h2 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
+                Ressources
+              </h2>
+            </div>
+            <div className="divide-y divide-border">
+              <ResourceRow
+                icon={LinkIcon}
+                label="Site officiel"
+                value={competition.websiteUrl}
+                editHref={`/competitions/${competition.id}/edit`}
+                addLabel="Ajouter un lien"
+                external
+              />
+              <ResourceRow
+                icon={FileText}
+                label="Circulaire"
+                value={competition.documentUrl}
+                editHref={`/competitions/${competition.id}/edit`}
+                addLabel="Ajouter une circulaire"
+              />
+              <ResourceRow
+                icon={Clock}
+                label="Horaires"
+                value={competition.schedulesUrl}
+                editHref={`/competitions/${competition.id}/edit`}
+                addLabel="Ajouter les horaires"
+              />
+            </div>
           </div>
-          <div className="divide-y divide-border">
-            <ResourceRow
-              icon={LinkIcon}
-              label="Site officiel"
-              value={competition.websiteUrl}
-              editHref={`/competitions/${competition.id}/edit`}
-              addLabel="Ajouter un lien"
-              external
-            />
-            <ResourceRow
-              icon={FileText}
-              label="Circulaire"
-              value={competition.documentUrl}
-              editHref={`/competitions/${competition.id}/edit`}
-              addLabel="Ajouter une circulaire"
-            />
-            <ResourceRow
-              icon={Clock}
-              label="Horaires"
-              value={competition.schedulesUrl}
-              editHref={`/competitions/${competition.id}/edit`}
-              addLabel="Ajouter les horaires"
-            />
-          </div>
-        </div>
 
-        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-          <div className="flex items-center justify-between border-b border-border px-5 py-3">
-            <h2 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
-              Notes
-            </h2>
-            {canManage && (
-              <Link
-                href={`/competitions/${competition.id}/edit`}
-                className="text-xs font-semibold text-primary hover:underline"
-              >
-                Modifier
-              </Link>
-            )}
+          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+            <div className="flex items-center justify-between border-b border-border px-5 py-3">
+              <h2 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
+                Notes
+              </h2>
+              {canManage && (
+                <Link
+                  href={`/competitions/${competition.id}/edit`}
+                  className="text-xs font-semibold text-primary hover:underline"
+                >
+                  Modifier
+                </Link>
+              )}
+            </div>
+            <div className="p-5">
+              {competition.description ? (
+                <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
+                  {competition.description}
+                </p>
+              ) : (
+                <p className="py-4 text-center text-sm text-muted-foreground">Aucune note.</p>
+              )}
+            </div>
           </div>
-          <div className="p-5">
-            {competition.description ? (
-              <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
-                {competition.description}
-              </p>
-            ) : (
-              <p className="py-4 text-center text-sm text-muted-foreground">Aucune note.</p>
-            )}
-          </div>
-        </div>
+        </motion.div>
       </TabsContent>
 
       <TabsContent value="registrations" className="space-y-3">
@@ -122,16 +146,24 @@ export function CompetitionTabs({
             <p className="text-sm text-muted-foreground">Aucun inscrit pour l&apos;instant.</p>
           </div>
         ) : (
-          competition.registrations.map((reg) => (
-            <RegistrationRow
-              key={reg.id}
-              registration={reg}
-              competitionId={competition.id}
-              isSelf={reg.athleteId === linkedAthleteId}
-              canManage={canManage}
-              onEdit={() => openEdit(reg)}
-            />
-          ))
+          <motion.div
+            variants={listVariants}
+            initial="hidden"
+            animate="show"
+            className="grid grid-cols-1 gap-3 lg:grid-cols-2"
+          >
+            {competition.registrations.map((reg) => (
+              <motion.div key={reg.id} variants={itemVariants}>
+                <RegistrationRow
+                  registration={reg}
+                  competitionId={competition.id}
+                  isSelf={reg.athleteId === linkedAthleteId}
+                  canManage={canManage}
+                  onEdit={() => openEdit(reg)}
+                />
+              </motion.div>
+            ))}
+          </motion.div>
         )}
 
         {canAddRegistration && (

@@ -1,3 +1,7 @@
+'use client'
+
+import { motion } from 'framer-motion'
+import { CalendarDays, MapPin, Trophy, Users } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { CompetitionActions } from '@/components/competitions/competition-actions'
 import { ATHLETE_SPECIALTIES } from '@/lib/disciplines'
@@ -24,71 +28,102 @@ export function CompetitionHeader({
       : TOTAL_STANDARD_DISCIPLINES
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="h-1.5" style={{ background: color }} />
-      <div className="p-5 sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <div className="mb-2.5 flex flex-wrap items-center gap-1.5">
-              {competition.competitionType && (
-                <Badge
-                  className="border"
-                  style={{
-                    backgroundColor: `${color}22`,
-                    color,
-                    borderColor: `${color}44`,
-                  }}
-                >
-                  {competition.competitionType.name}
-                </Badge>
-              )}
-              <Badge variant={isPast ? 'secondary' : 'default'}>
-                {isPast ? 'Passée' : 'À venir'}
-              </Badge>
-              <Badge variant="outline">{disciplineCount} disciplines</Badge>
-            </div>
-            <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">
-              {competition.title}
-            </h1>
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm"
+    >
+      <div
+        className="relative h-28 sm:h-36"
+        style={{ background: `linear-gradient(135deg, ${color}, ${color}33)` }}
+      >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-10 -right-10 size-48 rounded-full opacity-40 blur-3xl"
+          style={{ background: color }}
+        />
+        <Trophy
+          className="absolute right-6 bottom-4 size-16 opacity-20 sm:size-20"
+          style={{ color: 'white' }}
+          strokeWidth={1.5}
+        />
+        {canManage && (
+          <div className="absolute top-4 right-4">
+            <CompetitionActions competitionId={competition.id} />
           </div>
+        )}
+      </div>
 
-          {canManage && <CompetitionActions competitionId={competition.id} />}
+      <div className="px-5 pb-5 sm:px-8 sm:pb-8">
+        <div className="-mt-8 flex flex-wrap items-end gap-2 sm:-mt-10">
+          <div
+            className="flex size-16 shrink-0 items-center justify-center rounded-2xl text-2xl font-bold text-white ring-4 ring-card sm:size-20"
+            style={{ background: color }}
+          >
+            <Trophy className="size-7 sm:size-9" />
+          </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 divide-x divide-border border-t border-border pt-5 sm:grid-cols-4">
-          <StatCell value={competition.registrations.length} label="Inscrits" />
-          <StatCell
-            value={competition.date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' })}
+        <div className="mt-4 space-y-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {competition.competitionType && (
+              <Badge
+                className="border"
+                style={{ backgroundColor: `${color}22`, color, borderColor: `${color}44` }}
+              >
+                {competition.competitionType.name}
+              </Badge>
+            )}
+            <Badge variant={isPast ? 'secondary' : 'default'}>
+              {isPast ? 'Passée' : 'À venir'}
+            </Badge>
+            <Badge variant="outline">{disciplineCount} disciplines</Badge>
+          </div>
+          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+            {competition.title}
+          </h1>
+        </div>
+
+        <div className="mt-6 grid grid-cols-2 gap-3 border-t border-border pt-5 sm:grid-cols-4">
+          <StatTile icon={Users} label="Inscrits" value={competition.registrations.length} />
+          <StatTile
+            icon={CalendarDays}
             label={String(competition.date.getFullYear())}
+            value={competition.date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' })}
           />
-          <StatCell value={competition.location || '—'} label="Lieu" />
-          <StatCell
-            value={isPast ? 'Terminée' : 'À venir'}
+          <StatTile icon={MapPin} label="Lieu" value={competition.location || '—'} />
+          <StatTile
+            icon={Trophy}
             label="Statut"
-            valueClassName={isPast ? 'text-muted-foreground' : 'text-primary'}
+            value={isPast ? 'Terminée' : 'À venir'}
+            accent={!isPast}
           />
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
-function StatCell({
-  value,
+function StatTile({
+  icon: Icon,
   label,
-  valueClassName,
+  value,
+  accent,
 }: {
-  value: string | number
+  icon: React.ComponentType<{ className?: string }>
   label: string
-  valueClassName?: string
+  value: string | number
+  accent?: boolean
 }) {
   return (
-    <div className="px-2 text-center first:pl-0 sm:px-4">
-      <div className={`truncate text-lg font-extrabold sm:text-xl ${valueClassName ?? ''}`}>
-        {value}
-      </div>
-      <div className="mt-0.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-        {label}
+    <div className="flex items-center gap-2.5 rounded-xl bg-muted/50 px-3 py-2.5">
+      <Icon className={`size-4 shrink-0 ${accent ? 'text-primary' : 'text-muted-foreground'}`} />
+      <div className="min-w-0">
+        <div className={`truncate text-lg leading-none font-bold ${accent ? 'text-primary' : ''}`}>
+          {value}
+        </div>
+        <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{label}</div>
       </div>
     </div>
   )
