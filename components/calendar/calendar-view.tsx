@@ -9,26 +9,13 @@ import {
   ChevronLeft,
   ChevronRight,
   GripVertical,
-  Loader2,
-  Pencil,
   Plus,
   Settings,
-  Trash2,
   Trophy,
   Users,
   Zap,
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import {
   buildMonthGrid,
   monthLabel,
@@ -41,11 +28,7 @@ import {
   SessionFormDialog,
   type TrainingTypeOption,
 } from '@/components/calendar/session-form-dialog'
-import {
-  CompetitionFormDialog,
-  type CompetitionFormInitial,
-  type CompetitionTypeOption,
-} from '@/components/calendar/competition-form-dialog'
+import { type ColorTypeOption } from '@/components/calendar/type-pill-picker'
 
 type CalSession = {
   id: string
@@ -88,7 +71,7 @@ export function CalendarView({
   sessions: CalSession[]
   competitions: CalCompetition[]
   trainingTypes: TrainingTypeOption[]
-  competitionTypes: CompetitionTypeOption[]
+  competitionTypes: ColorTypeOption[]
   canManageSessions: boolean
   canManageCompetitions: boolean
   isAdmin: boolean
@@ -97,9 +80,6 @@ export function CalendarView({
   const [tab, setTab] = useState<Tab>('sessions')
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
-  const [editingCompetition, setEditingCompetition] = useState<CalCompetition | null>(null)
-  const [deletingCompetition, setDeletingCompetition] = useState<CalCompetition | null>(null)
-  const [deleting, setDeleting] = useState(false)
 
   const [draggingItem, setDraggingItem] = useState<DragItem | null>(null)
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null)
@@ -243,18 +223,9 @@ export function CalendarView({
     router.push(`/calendar?year=${now.getFullYear()}&month=${now.getMonth() + 1}`)
   }
 
-  async function handleDeleteCompetition() {
-    if (!deletingCompetition) return
-    setDeleting(true)
-    const res = await fetch(`/api/competitions/${deletingCompetition.id}`, { method: 'DELETE' })
-    setDeleting(false)
-    if (!res.ok) {
-      toast.error('Suppression impossible.')
-      return
-    }
-    toast.success('Compétition supprimée.')
-    setDeletingCompetition(null)
-    router.refresh()
+  function goToNewCompetition() {
+    const date = selectedDay ?? today
+    router.push(`/competitions/new?date=${toDateInputValue(date)}`)
   }
 
   const daySessions = selectedDay ? sessions.filter((s) => sameDay(s.date, selectedDay)) : []
@@ -321,7 +292,7 @@ export function CalendarView({
 
         {canManageActiveTab && (
           <button
-            onClick={() => setCreateOpen(true)}
+            onClick={() => (tab === 'sessions' ? setCreateOpen(true) : goToNewCompetition())}
             className="group inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-primary/80 px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/35"
           >
             <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
@@ -511,9 +482,10 @@ export function CalendarView({
                 </p>
               ) : (
                 dayCompetitions.map((c) => (
-                  <div
+                  <Link
                     key={c.id}
-                    className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5"
+                    href={`/competitions/${c.id}`}
+                    className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5 transition-colors hover:bg-muted/40"
                   >
                     <span
                       className="size-2 shrink-0 rounded-full"
@@ -530,27 +502,7 @@ export function CalendarView({
                       <Users className="size-3" />
                       {c.registrationCount}
                     </span>
-                    {canManageCompetitions && (
-                      <div className="flex shrink-0 items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setEditingCompetition(c)}
-                          className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                          aria-label="Modifier"
-                        >
-                          <Pencil className="size-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDeletingCompetition(c)}
-                          className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                          aria-label="Supprimer"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  </Link>
                 ))
               )}
             </AnimatePresence>
@@ -566,7 +518,7 @@ export function CalendarView({
             )}
             {tab === 'competitions' && canManageCompetitions && (
               <button
-                onClick={() => setCreateOpen(true)}
+                onClick={goToNewCompetition}
                 className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
               >
                 <Plus className="size-4" />
@@ -578,62 +530,11 @@ export function CalendarView({
       </Dialog>
 
       <SessionFormDialog
-        open={createOpen && tab === 'sessions'}
+        open={createOpen}
         onOpenChange={setCreateOpen}
         date={selectedDay ?? today}
         trainingTypes={trainingTypes}
       />
-
-      <CompetitionFormDialog
-        open={createOpen && tab === 'competitions'}
-        onOpenChange={setCreateOpen}
-        date={selectedDay ?? today}
-        competitionTypes={competitionTypes}
-      />
-
-      <CompetitionFormDialog
-        open={!!editingCompetition}
-        onOpenChange={(open) => !open && setEditingCompetition(null)}
-        date={editingCompetition?.date ?? null}
-        competitionTypes={competitionTypes}
-        competitionId={editingCompetition?.id}
-        initialData={
-          editingCompetition
-            ? ({
-                title: editingCompetition.title,
-                date: editingCompetition.date,
-                location: editingCompetition.location,
-                competitionTypeId: editingCompetition.competitionTypeId,
-                description: editingCompetition.description,
-              } satisfies CompetitionFormInitial)
-            : undefined
-        }
-      />
-
-      <AlertDialog
-        open={!!deletingCompetition}
-        onOpenChange={(open) => !open && setDeletingCompetition(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer cette compétition ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cette action est irréversible et supprimera aussi les inscriptions associées.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteCompetition}
-              disabled={deleting}
-              className="bg-destructive text-white hover:bg-destructive/90"
-            >
-              {deleting && <Loader2 className="size-4 animate-spin" />}
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

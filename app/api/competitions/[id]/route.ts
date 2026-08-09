@@ -32,6 +32,15 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         competitionTypeId: data.competitionTypeId || null,
       }),
       ...(data.description !== undefined && { description: data.description || null }),
+      ...(data.websiteUrl !== undefined && { websiteUrl: data.websiteUrl || null }),
+      ...(data.documentUrl !== undefined && { documentUrl: data.documentUrl || null }),
+      ...(data.schedulesUrl !== undefined && { schedulesUrl: data.schedulesUrl || null }),
+      ...(data.availableDisciplines !== undefined && {
+        availableDisciplines: JSON.stringify(data.availableDisciplines),
+      }),
+      ...(data.requestExpectedPerf !== undefined && {
+        requestExpectedPerf: data.requestExpectedPerf,
+      }),
     },
   })
 

@@ -516,9 +516,6 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."         # exposé côté client pour le SW
       création/édition unifié)
 - [x] Glisser-déposer des séances et compétitions dans la grille mensuelle (souris :
       drag classique ; tactile : appui long) pour changer leur date en un geste
-- [x] CRUD compétitions depuis le calendrier (création/édition/suppression via
-      `CompetitionFormDialog`, API `/api/competitions`), gated `ROLE_ADMIN` /
-      `ROLE_COACH` / `ROLE_COMPETITION_MANAGER`
 - [x] Nav renommée "Calendriers" (pluriel) ; l'entrée "Compétitions" retirée de la
       nav (tout passe par l'onglet Compétitions du calendrier désormais)
 
@@ -529,14 +526,45 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."         # exposé côté client pour le SW
 > - **Export PDF retiré** — jugé non utile à l'usage, retiré de `/sessions/[id]`
 >   (composant `PdfButton` supprimé). Les classes `print:hidden` restent sur la nav
 >   par précaution (impression navigateur manuelle), sans bouton dédié.
-> - **Pas de page `/competitions/[id]`** — l'édition/suppression d'une compétition se
->   fait directement depuis la modal jour du calendrier (`CompetitionFormDialog` en
->   mode édition), faute de détail de compétition (prévu Session 5, cf. §10). Les
->   liens vers `/competitions/[id]` déjà présents ailleurs (dashboard, onglet
->   Compétitions d'un athlète) restent des renvois vers une route à construire.
 > - **RPE "non effectuée"** : un athlète peut marquer une séance comme non faite
 >   (`skipped: true`, `difficulty: null`) plutôt que de laisser un ressenti — géré côté
 >   `RpeLogForm` par une checkbox qui masque le slider.
+> - **Création/édition de compétition** : d'abord un `CompetitionFormDialog` compact
+>   dans le calendrier (Session 4), puis remplacé en Session 5 par un formulaire pleine
+>   page (`/competitions/new`, `/competitions/[id]/edit`) une fois les champs Session 5
+>   ajoutés (ressources, disciplines, performances attendues) — trop riche pour un
+>   dialog, même pattern que `/athletes/new`. Le composant `CompetitionFormDialog` a
+>   été supprimé.
+
+**Session 5 — Compétitions**
+- [x] API routes competitions (CRUD complet : titre/date/lieu/type/site/circulaire/
+      horaires/notes/disciplines disponibles/performances attendues)
+- [x] API routes inscriptions (`POST` upsert, `PATCH`, `DELETE` sur
+      `/api/competitions/[id]/registrations`), FFA réservé coach/admin/gest. compét.
+- [x] `/competitions/[id]` — header (type + statut + nb disciplines) + bandeau 4 stats
+      (inscrits/date/lieu/statut) + onglet Infos pratiques (ressources : site officiel,
+      circulaire, horaires, notes) + onglet Inscriptions (liste avec FFA✓, badge Toi,
+      disciplines + perf attendue, actions modifier/retirer)
+- [x] `/competitions/new` et `/competitions/[id]/edit` — formulaire complet (type en
+      pastilles, upload circulaire/horaires en data URL, toggle "Performances
+      attendues", sélecteur de disciplines "Toutes" / "Sélection manuelle" avec
+      épreuves personnalisées)
+- [x] Design final + animations
+
+> **Notes techniques / écarts assumés :**
+> - **Logique métier portée du Symfony d'origine** (`Competition`,
+>   `CompetitionRegistration`, `CompetitionController`) : `availableDisciplines` vide =
+>   toutes les disciplines ; épreuves hors référentiel standard regroupées sous
+>   "Personnalisées" ; auto-inscription par l'athlète lié, upsert idempotent ; badge FFA
+>   réservé au coach/admin ; statut passé/à venir en comparaison de date seule (un jour
+>   J n'est jamais "passé" avant le lendemain).
+> - **Debrief post-compétition non implémenté** — le modèle `CompetitionDebrief`
+>   (ressenti, notes, "non disputée") existe déjà en base et dans le schéma Prisma,
+>   mais aucune UI n'a été construite (équivalent RPE côté compétitions). À faire dans
+>   une session ultérieure si besoin.
+> - **Fichiers (circulaire/horaires) en data URL** dans `documentUrl`/`schedulesUrl`,
+>   même précédent que les photos/bannières athlète (Session 3) — à migrer vers Vercel
+>   Blob avant la prod. Garde-fou côté formulaire : 8 Mo max par fichier.
 
 ### 🔄 En cours
 - [ ] ...
@@ -545,13 +573,6 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."         # exposé côté client pour le SW
 
 **Session 1 — Fondations**
 - [ ] Vercel Postgres connecté (reste en SQLite local jusqu'au déploiement)
-
-**Session 5 — Compétitions**
-- [x] API routes competitions (CRUD titre/date/lieu/type/notes, via le calendrier —
-      voir Session 4)
-- [ ] API routes inscriptions + debrief
-- [ ] `/competitions/[id]` — onglet Infos pratiques (ressources : lien, PDF, horaires, notes) + onglet Inscriptions (liste avec FFA✓, badge Toi, actions)
-- [ ] Design final + animations
 
 **Session 6 — Notifications + WebPush**
 - [ ] Notifications in-app (polling / SSE)
@@ -584,7 +605,7 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."         # exposé côté client pour le SW
 | 02 | 2026-07-30 | Dashboard | ✅ |
 | 03 | 2026-08-02 | Athlètes (liste + profil + édition) | ✅ |
 | 04 | 2026-08-09 | Calendriers + Séances + Types | ✅ |
-| 05 | - | Compétitions | ⏳ |
+| 05 | 2026-08-12 | Compétitions | ✅ |
 | 06 | - | Notifications + WebPush | ⏳ |
 | 07 | - | Scraping FFA | ⏳ |
 | 08 | - | Admin + Feedback | ⏳ |

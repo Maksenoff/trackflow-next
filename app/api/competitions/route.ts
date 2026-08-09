@@ -29,6 +29,11 @@ export async function POST(request: Request) {
       location: data.location || null,
       competitionTypeId: data.competitionTypeId || null,
       description: data.description || null,
+      websiteUrl: data.websiteUrl || null,
+      documentUrl: data.documentUrl || null,
+      schedulesUrl: data.schedulesUrl || null,
+      availableDisciplines: JSON.stringify(data.availableDisciplines ?? []),
+      requestExpectedPerf: data.requestExpectedPerf ?? false,
     },
   })
 

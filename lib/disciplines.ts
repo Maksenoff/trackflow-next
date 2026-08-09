@@ -69,6 +69,34 @@ export const DISCIPLINE_LABELS: Record<string, string> = Object.values(ATHLETE_S
   {} as Record<string, string>
 )
 
+/**
+ * Filtre les groupes de disciplines standard pour ne garder que les codes fournis
+ * (restriction `Competition.availableDisciplines`), et regroupe les codes inconnus
+ * (épreuves personnalisées) sous "Personnalisées" — reproduit
+ * `CompetitionController::show()` (repo Symfony).
+ */
+export function filterDisciplineGroups(codes: string[]): Record<string, Record<string, string>> {
+  if (codes.length === 0) return ATHLETE_SPECIALTIES
+
+  const codeSet = new Set(codes)
+  const groups: Record<string, Record<string, string>> = {}
+
+  for (const [groupLabel, entries] of Object.entries(ATHLETE_SPECIALTIES)) {
+    const filtered = Object.fromEntries(
+      Object.entries(entries).filter(([, code]) => codeSet.has(code))
+    )
+    if (Object.keys(filtered).length > 0) groups[groupLabel] = filtered
+  }
+
+  const knownCodes = new Set(Object.values(ATHLETE_SPECIALTIES).flatMap((g) => Object.values(g)))
+  const customCodes = codes.filter((c) => !knownCodes.has(c))
+  if (customCodes.length > 0) {
+    groups['Personnalisées'] = Object.fromEntries(customCodes.map((c) => [c, c]))
+  }
+
+  return groups
+}
+
 export const DEFAULT_DISCIPLINE_COLORS = [
   '#6366f1',
   '#22d3ee',
