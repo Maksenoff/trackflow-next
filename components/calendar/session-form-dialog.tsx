@@ -213,8 +213,8 @@ export function SessionFormDialog({
             <Label htmlFor="session-description">Programme</Label>
             <Textarea
               id="session-description"
-              rows={9}
-              className="resize-y text-base"
+              rows={16}
+              className="min-h-64 resize-y text-base"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Contenu de la séance..."
