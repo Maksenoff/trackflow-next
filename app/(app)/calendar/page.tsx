@@ -1,6 +1,6 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isAdmin, isCoach, type Role } from '@/lib/roles'
+import { isAdmin, isCoach, isCompetitionManager, type Role } from '@/lib/roles'
 import {
   getMonthSessions,
   getMonthCompetitions,
@@ -22,6 +22,7 @@ export default async function CalendarPage({
   const session = await auth()
   const roles = (session?.user.roles ?? []) as Role[]
   const canManageSessions = isAdmin(roles) || isCoach(roles)
+  const canManageCompetitions = isAdmin(roles) || isCoach(roles) || isCompetitionManager(roles)
 
   let linkedAthleteId: string | null = null
   if (session) {
@@ -60,13 +61,16 @@ export default async function CalendarPage({
             title: c.title,
             date: c.date,
             location: c.location,
+            competitionTypeId: c.competitionTypeId,
             competitionType: c.competitionType,
+            description: c.description,
             registrationCount: c.registrationCount,
             isRegistered: c.isRegistered,
           }))}
           trainingTypes={trainingTypes}
           competitionTypes={competitionTypes}
           canManageSessions={canManageSessions}
+          canManageCompetitions={canManageCompetitions}
           isAdmin={isAdmin(roles)}
         />
       </div>

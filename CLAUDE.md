@@ -512,21 +512,28 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."         # exposé côté client pour le SW
       calendrier via onglet plutôt que route séparée — voir écart ci-dessous)
 - [x] `/admin/session-types` et `/admin/competition-types` — composant `TypeManager`
       partagé (liste + formulaire inline, palette 16 couleurs)
-- [x] Bouton download PDF sur séance via `window.print()` + `print:hidden` sur toute
-      la nav (sidebar, topbar, mobile-nav) et sur les boutons d'action
 - [x] Design final + animations (cards arrondies, jauges RPE colorées, dialog de
       création/édition unifié)
+- [x] Glisser-déposer des séances et compétitions dans la grille mensuelle (souris :
+      drag classique ; tactile : appui long) pour changer leur date en un geste
+- [x] CRUD compétitions depuis le calendrier (création/édition/suppression via
+      `CompetitionFormDialog`, API `/api/competitions`), gated `ROLE_ADMIN` /
+      `ROLE_COACH` / `ROLE_COMPETITION_MANAGER`
+- [x] Nav renommée "Calendriers" (pluriel) ; l'entrée "Compétitions" retirée de la
+      nav (tout passe par l'onglet Compétitions du calendrier désormais)
 
 > **Notes techniques / écarts assumés :**
 > - **Un seul `/calendar`** avec onglets animés Entraînements/Compétitions, plutôt que
->   deux routes distinctes — plus cohérent avec la nav à une seule entrée "Calendrier"
+>   deux routes distinctes — plus cohérent avec la nav à une seule entrée "Calendriers"
 >   et évite de dupliquer la logique de grille mensuelle (`lib/calendar-grid.ts`).
-> - **PDF via `window.print()`** plutôt qu'une lib dédiée (jsPDF, react-pdf) — suffisant
->   pour un export propre d'une fiche séance, évite une dépendance lourde. Les composants
->   d'action (`SessionActions`, `PdfButton`) et toute la nav portent `print:hidden`.
-> - **Création de compétition** depuis la modal jour du calendrier renvoie vers
->   `/competitions/new` (pas encore implémenté, prévu Session 5) — précédent déjà posé
->   en Session 3 pour les renvois vers des routes futures.
+> - **Export PDF retiré** — jugé non utile à l'usage, retiré de `/sessions/[id]`
+>   (composant `PdfButton` supprimé). Les classes `print:hidden` restent sur la nav
+>   par précaution (impression navigateur manuelle), sans bouton dédié.
+> - **Pas de page `/competitions/[id]`** — l'édition/suppression d'une compétition se
+>   fait directement depuis la modal jour du calendrier (`CompetitionFormDialog` en
+>   mode édition), faute de détail de compétition (prévu Session 5, cf. §10). Les
+>   liens vers `/competitions/[id]` déjà présents ailleurs (dashboard, onglet
+>   Compétitions d'un athlète) restent des renvois vers une route à construire.
 > - **RPE "non effectuée"** : un athlète peut marquer une séance comme non faite
 >   (`skipped: true`, `difficulty: null`) plutôt que de laisser un ressenti — géré côté
 >   `RpeLogForm` par une checkbox qui masque le slider.
@@ -540,9 +547,10 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."         # exposé côté client pour le SW
 - [ ] Vercel Postgres connecté (reste en SQLite local jusqu'au déploiement)
 
 **Session 5 — Compétitions**
-- [ ] API routes competitions (CRUD, inscriptions, debrief)
+- [x] API routes competitions (CRUD titre/date/lieu/type/notes, via le calendrier —
+      voir Session 4)
+- [ ] API routes inscriptions + debrief
 - [ ] `/competitions/[id]` — onglet Infos pratiques (ressources : lien, PDF, horaires, notes) + onglet Inscriptions (liste avec FFA✓, badge Toi, actions)
-- [ ] Bouton download PDF sur compétition
 - [ ] Design final + animations
 
 **Session 6 — Notifications + WebPush**

@@ -9,13 +9,26 @@ import {
   ChevronLeft,
   ChevronRight,
   GripVertical,
+  Loader2,
+  Pencil,
   Plus,
   Settings,
+  Trash2,
   Trophy,
   Users,
   Zap,
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import {
   buildMonthGrid,
   monthLabel,
@@ -28,6 +41,11 @@ import {
   SessionFormDialog,
   type TrainingTypeOption,
 } from '@/components/calendar/session-form-dialog'
+import {
+  CompetitionFormDialog,
+  type CompetitionFormInitial,
+  type CompetitionTypeOption,
+} from '@/components/calendar/competition-form-dialog'
 
 type CalSession = {
   id: string
@@ -43,10 +61,16 @@ type CalCompetition = {
   title: string
   date: Date
   location: string | null
+  competitionTypeId: string | null
   competitionType: { id: string; name: string; color: string } | null
+  description: string | null
   registrationCount: number
   isRegistered: boolean
 }
+
+type Tab = 'sessions' | 'competitions'
+
+type DragItem = { id: string; title: string; color: string; kind: Tab }
 
 export function CalendarView({
   year,
@@ -56,6 +80,7 @@ export function CalendarView({
   trainingTypes,
   competitionTypes,
   canManageSessions,
+  canManageCompetitions,
   isAdmin,
 }: {
   year: number
@@ -63,15 +88,20 @@ export function CalendarView({
   sessions: CalSession[]
   competitions: CalCompetition[]
   trainingTypes: TrainingTypeOption[]
-  competitionTypes: TrainingTypeOption[]
+  competitionTypes: CompetitionTypeOption[]
   canManageSessions: boolean
+  canManageCompetitions: boolean
   isAdmin: boolean
 }) {
   const router = useRouter()
-  const [tab, setTab] = useState<'sessions' | 'competitions'>('sessions')
+  const [tab, setTab] = useState<Tab>('sessions')
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
-  const [draggingSession, setDraggingSession] = useState<CalSession | null>(null)
+  const [editingCompetition, setEditingCompetition] = useState<CalCompetition | null>(null)
+  const [deletingCompetition, setDeletingCompetition] = useState<CalCompetition | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const [draggingItem, setDraggingItem] = useState<DragItem | null>(null)
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null)
   const [dragOverDate, setDragOverDate] = useState<string | null>(null)
   const dragStateRef = useRef<{
@@ -80,7 +110,7 @@ export function CalendarView({
     pointerId: number | null
     pointerType: string
     armed: boolean
-    session: CalSession | null
+    item: DragItem | null
     longPressTimer: ReturnType<typeof setTimeout> | null
   }>({
     startX: 0,
@@ -88,27 +118,33 @@ export function CalendarView({
     pointerId: null,
     pointerType: 'mouse',
     armed: false,
-    session: null,
+    item: null,
     longPressTimer: null,
   })
   const suppressClickRef = useRef(false)
 
   const cells = useMemo(() => buildMonthGrid(year, month), [year, month])
   const today = new Date()
+  const canManageActiveTab = tab === 'sessions' ? canManageSessions : canManageCompetitions
 
-  async function moveSession(sessionId: string, newDate: string) {
-    const res = await fetch(`/api/sessions/${sessionId}`, {
+  async function moveItem(kind: Tab, id: string, newDate: string) {
+    const url = kind === 'sessions' ? `/api/sessions/${id}` : `/api/competitions/${id}`
+    const res = await fetch(url, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ date: newDate }),
     })
     if (res.ok) {
-      toast.success('Séance déplacée.')
+      toast.success(kind === 'sessions' ? 'Séance déplacée.' : 'Compétition déplacée.')
       router.refresh()
     } else {
       const body = await res.json().catch(() => null)
-      console.error('Échec du déplacement de séance', res.status, body)
-      toast.error('Impossible de déplacer la séance.')
+      console.error('Échec du déplacement', kind, res.status, body)
+      toast.error(
+        kind === 'sessions'
+          ? 'Impossible de déplacer la séance.'
+          : 'Impossible de déplacer la compétition.'
+      )
     }
   }
 
@@ -121,16 +157,14 @@ export function CalendarView({
       const moved = Math.hypot(dx, dy)
       if (!st.armed) {
         if (st.pointerType === 'mouse') {
-          // Souris : le mouvement lui-même déclenche le drag (comme un drag natif).
           if (moved > 4) {
             st.armed = true
             suppressClickRef.current = true
-            setDraggingSession(st.session)
+            setDraggingItem(st.item)
             setDragPos({ x: e.clientX, y: e.clientY })
           }
           return
         }
-        // Tactile : un mouvement avant la fin de l'appui long = scroll, on annule.
         if (moved > 10) {
           if (st.longPressTimer) clearTimeout(st.longPressTimer)
           st.pointerId = null
@@ -147,19 +181,19 @@ export function CalendarView({
       const st = dragStateRef.current
       if (st.pointerId === null || e.pointerId !== st.pointerId) return
       if (st.longPressTimer) clearTimeout(st.longPressTimer)
-      if (st.armed && st.session) {
+      if (st.armed && st.item) {
         const el = document.elementFromPoint(e.clientX, e.clientY)
         const cell = el?.closest<HTMLElement>('[data-cell-date]')
         const newDate = cell?.dataset.cellDate
-        if (newDate) moveSession(st.session.id, newDate)
+        if (newDate) moveItem(st.item.kind, st.item.id, newDate)
         setTimeout(() => {
           suppressClickRef.current = false
         }, 50)
       }
       st.pointerId = null
       st.armed = false
-      st.session = null
-      setDraggingSession(null)
+      st.item = null
+      setDraggingItem(null)
       setDragPos(null)
       setDragOverDate(null)
     }
@@ -175,26 +209,25 @@ export function CalendarView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function handlePillPointerDown(e: ReactPointerEvent, s: CalSession) {
-    if (!canManageSessions) return
+  function handlePillPointerDown(e: ReactPointerEvent, item: DragItem) {
+    const allowed = item.kind === 'sessions' ? canManageSessions : canManageCompetitions
+    if (!allowed) return
     e.stopPropagation()
     const st = dragStateRef.current
     st.startX = e.clientX
     st.startY = e.clientY
     st.pointerId = e.pointerId
     st.pointerType = e.pointerType
-    st.session = s
+    st.item = item
     st.armed = false
 
-    // Souris : le drag s'arme dès le premier mouvement (voir onMove). Pas de délai.
     if (e.pointerType === 'mouse') return
 
-    // Tactile : appui long requis pour distinguer un drag d'un scroll de la page.
     if (st.longPressTimer) clearTimeout(st.longPressTimer)
     st.longPressTimer = setTimeout(() => {
       st.armed = true
       suppressClickRef.current = true
-      setDraggingSession(s)
+      setDraggingItem(item)
       setDragPos({ x: e.clientX, y: e.clientY })
       if (navigator.vibrate) navigator.vibrate(10)
     }, 280)
@@ -208,6 +241,20 @@ export function CalendarView({
   function goToday() {
     const now = new Date()
     router.push(`/calendar?year=${now.getFullYear()}&month=${now.getMonth() + 1}`)
+  }
+
+  async function handleDeleteCompetition() {
+    if (!deletingCompetition) return
+    setDeleting(true)
+    const res = await fetch(`/api/competitions/${deletingCompetition.id}`, { method: 'DELETE' })
+    setDeleting(false)
+    if (!res.ok) {
+      toast.error('Suppression impossible.')
+      return
+    }
+    toast.success('Compétition supprimée.')
+    setDeletingCompetition(null)
+    router.refresh()
   }
 
   const daySessions = selectedDay ? sessions.filter((s) => sameDay(s.date, selectedDay)) : []
@@ -272,13 +319,13 @@ export function CalendarView({
           </button>
         </div>
 
-        {tab === 'sessions' && canManageSessions && (
+        {canManageActiveTab && (
           <button
             onClick={() => setCreateOpen(true)}
             className="group inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-primary/80 px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/35"
           >
             <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
-            Nouvelle séance
+            {tab === 'sessions' ? 'Nouvelle séance' : 'Nouvelle compétition'}
           </button>
         )}
       </div>
@@ -325,7 +372,7 @@ export function CalendarView({
                 : competitions.filter((c) => sameDay(c.date, cell.date))
             const visible = items.slice(0, 3)
             const overflow = items.length - visible.length
-            const isDropTarget = tab === 'sessions' && dragOverDate === cellDateKey
+            const isDropTarget = canManageActiveTab && dragOverDate === cellDateKey
 
             return (
               <button
@@ -358,18 +405,21 @@ export function CalendarView({
                       tab === 'sessions'
                         ? (item as CalSession).trainingType?.color
                         : (item as CalCompetition).competitionType?.color
-                    const isBeingDragged = tab === 'sessions' && draggingSession?.id === item.id
+                    const isBeingDragged = draggingItem?.id === item.id && draggingItem.kind === tab
                     return (
                       <span
                         key={item.id}
-                        onPointerDown={
-                          tab === 'sessions'
-                            ? (e) => handlePillPointerDown(e, item as CalSession)
-                            : undefined
+                        onPointerDown={(e) =>
+                          handlePillPointerDown(e, {
+                            id: item.id,
+                            title: item.title,
+                            color: color ?? '#94a3b8',
+                            kind: tab,
+                          })
                         }
                         className={cn(
                           'flex items-center gap-0.5 truncate rounded px-1.5 py-0.5 text-[10px] font-semibold',
-                          tab === 'sessions' && canManageSessions && 'touch-none select-none',
+                          canManageActiveTab && 'touch-none select-none',
                           isBeingDragged && 'opacity-30'
                         )}
                         style={{
@@ -377,7 +427,7 @@ export function CalendarView({
                           color: color ?? '#64748b',
                         }}
                       >
-                        {tab === 'sessions' && canManageSessions && (
+                        {canManageActiveTab && (
                           <GripVertical className="size-2.5 shrink-0 opacity-60" />
                         )}
                         <span className="truncate">{item.title}</span>
@@ -397,16 +447,16 @@ export function CalendarView({
       </div>
 
       {/* Ghost flottant pendant le drag */}
-      {draggingSession && dragPos && (
+      {draggingItem && dragPos && (
         <div
           className="pointer-events-none fixed z-50 flex items-center gap-1 rounded-lg bg-card px-3 py-2 text-xs font-semibold shadow-xl ring-1 ring-border"
           style={{ left: dragPos.x, top: dragPos.y, transform: 'translate(-50%, -120%)' }}
         >
           <span
             className="size-2 shrink-0 rounded-full"
-            style={{ background: draggingSession.trainingType?.color ?? '#94a3b8' }}
+            style={{ background: draggingItem.color }}
           />
-          {draggingSession.title}
+          {draggingItem.title}
         </div>
       )}
 
@@ -461,10 +511,9 @@ export function CalendarView({
                 </p>
               ) : (
                 dayCompetitions.map((c) => (
-                  <Link
+                  <div
                     key={c.id}
-                    href={`/competitions/${c.id}`}
-                    className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5 transition-colors hover:bg-muted/40"
+                    className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5"
                   >
                     <span
                       className="size-2 shrink-0 rounded-full"
@@ -481,7 +530,27 @@ export function CalendarView({
                       <Users className="size-3" />
                       {c.registrationCount}
                     </span>
-                  </Link>
+                    {canManageCompetitions && (
+                      <div className="flex shrink-0 items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setEditingCompetition(c)}
+                          className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          aria-label="Modifier"
+                        >
+                          <Pencil className="size-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeletingCompetition(c)}
+                          className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                          aria-label="Supprimer"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 ))
               )}
             </AnimatePresence>
@@ -495,25 +564,76 @@ export function CalendarView({
                 Ajouter une séance ce jour
               </button>
             )}
-            {tab === 'competitions' && isAdmin && (
-              <Link
-                href="/competitions/new"
+            {tab === 'competitions' && canManageCompetitions && (
+              <button
+                onClick={() => setCreateOpen(true)}
                 className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
               >
                 <Plus className="size-4" />
-                Ajouter une compétition
-              </Link>
+                Ajouter une compétition ce jour
+              </button>
             )}
           </div>
         </DialogContent>
       </Dialog>
 
       <SessionFormDialog
-        open={createOpen}
+        open={createOpen && tab === 'sessions'}
         onOpenChange={setCreateOpen}
         date={selectedDay ?? today}
         trainingTypes={trainingTypes}
       />
+
+      <CompetitionFormDialog
+        open={createOpen && tab === 'competitions'}
+        onOpenChange={setCreateOpen}
+        date={selectedDay ?? today}
+        competitionTypes={competitionTypes}
+      />
+
+      <CompetitionFormDialog
+        open={!!editingCompetition}
+        onOpenChange={(open) => !open && setEditingCompetition(null)}
+        date={editingCompetition?.date ?? null}
+        competitionTypes={competitionTypes}
+        competitionId={editingCompetition?.id}
+        initialData={
+          editingCompetition
+            ? ({
+                title: editingCompetition.title,
+                date: editingCompetition.date,
+                location: editingCompetition.location,
+                competitionTypeId: editingCompetition.competitionTypeId,
+                description: editingCompetition.description,
+              } satisfies CompetitionFormInitial)
+            : undefined
+        }
+      />
+
+      <AlertDialog
+        open={!!deletingCompetition}
+        onOpenChange={(open) => !open && setDeletingCompetition(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette compétition ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible et supprimera aussi les inscriptions associées.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCompetition}
+              disabled={deleting}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              {deleting && <Loader2 className="size-4 animate-spin" />}
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

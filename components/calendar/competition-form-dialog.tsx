@@ -19,44 +19,37 @@ import { Textarea } from '@/components/ui/textarea'
 import { toDateInputValue } from '@/lib/calendar-grid'
 import { TypePillPicker } from '@/components/calendar/type-pill-picker'
 
-export type TrainingTypeOption = { id: string; name: string; color: string }
+export type CompetitionTypeOption = { id: string; name: string; color: string }
 
-export type SessionFormInitial = {
+export type CompetitionFormInitial = {
   title: string
   date: Date
-  startTime: Date | null
-  durationMinutes: number | null
-  trainingTypeId: string | null
+  location: string | null
+  competitionTypeId: string | null
   description: string | null
 }
 
-function toTimeInputValue(date: Date | null) {
-  if (!date) return ''
-  return date.toISOString().slice(11, 16)
-}
-
-export function SessionFormDialog({
+export function CompetitionFormDialog({
   open,
   onOpenChange,
   date,
-  trainingTypes,
-  sessionId,
+  competitionTypes,
+  competitionId,
   initialData,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   date: Date | null
-  trainingTypes: TrainingTypeOption[]
-  sessionId?: string
-  initialData?: SessionFormInitial
+  competitionTypes: CompetitionTypeOption[]
+  competitionId?: string
+  initialData?: CompetitionFormInitial
 }) {
   const router = useRouter()
-  const isEdit = !!sessionId
+  const isEdit = !!competitionId
   const [title, setTitle] = useState('')
-  const [sessionDate, setSessionDate] = useState('')
-  const [startTime, setStartTime] = useState('')
-  const [durationMinutes, setDurationMinutes] = useState('')
-  const [trainingTypeId, setTrainingTypeId] = useState<string | undefined>(undefined)
+  const [competitionDate, setCompetitionDate] = useState('')
+  const [location, setLocation] = useState('')
+  const [competitionTypeId, setCompetitionTypeId] = useState<string | undefined>(undefined)
   const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -64,44 +57,43 @@ export function SessionFormDialog({
     if (!open) return
     if (initialData) {
       setTitle(initialData.title)
-      setSessionDate(toDateInputValue(initialData.date))
-      setStartTime(toTimeInputValue(initialData.startTime))
-      setDurationMinutes(initialData.durationMinutes ? String(initialData.durationMinutes) : '')
-      setTrainingTypeId(initialData.trainingTypeId ?? undefined)
+      setCompetitionDate(toDateInputValue(initialData.date))
+      setLocation(initialData.location ?? '')
+      setCompetitionTypeId(initialData.competitionTypeId ?? undefined)
       setDescription(initialData.description ?? '')
     } else {
       setTitle('')
-      setSessionDate(toDateInputValue(date ?? new Date()))
-      setStartTime('')
-      setDurationMinutes('')
-      setTrainingTypeId(undefined)
+      setCompetitionDate(toDateInputValue(date ?? new Date()))
+      setLocation('')
+      setCompetitionTypeId(undefined)
       setDescription('')
     }
   }, [open, initialData, date])
 
   async function handleSubmit() {
-    if (!title.trim() || !sessionDate) return
+    if (!title.trim() || !competitionDate) return
     setLoading(true)
-    const res = await fetch(isEdit ? `/api/sessions/${sessionId}` : '/api/sessions', {
+    const res = await fetch(isEdit ? `/api/competitions/${competitionId}` : '/api/competitions', {
       method: isEdit ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title,
-        date: sessionDate,
-        startTime: startTime || null,
-        durationMinutes: durationMinutes ? Number(durationMinutes) : null,
-        trainingTypeId: trainingTypeId ?? null,
+        date: competitionDate,
+        location: location || null,
+        competitionTypeId: competitionTypeId ?? null,
         description: description || null,
       }),
     })
     setLoading(false)
     if (!res.ok) {
       toast.error(
-        isEdit ? 'Impossible de mettre à jour la séance.' : 'Impossible de créer la séance.'
+        isEdit
+          ? 'Impossible de mettre à jour la compétition.'
+          : 'Impossible de créer la compétition.'
       )
       return
     }
-    toast.success(isEdit ? 'Séance mise à jour.' : 'Séance créée.')
+    toast.success(isEdit ? 'Compétition mise à jour.' : 'Compétition créée.')
     onOpenChange(false)
     router.refresh()
   }
@@ -111,73 +103,62 @@ export function SessionFormDialog({
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle className="text-lg">
-            {isEdit ? 'Modifier la séance' : 'Nouvelle séance'}
+            {isEdit ? 'Modifier la compétition' : 'Nouvelle compétition'}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-5 py-1">
           <div className="space-y-1.5">
-            <Label htmlFor="session-title">Titre</Label>
+            <Label htmlFor="competition-title">Titre</Label>
             <Input
-              id="session-title"
+              id="competition-title"
               autoFocus
               className="h-11 text-base"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex : Séance sprint court"
+              placeholder="Ex : Meeting régional indoor"
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="session-date">Date</Label>
+              <Label htmlFor="competition-date">Date</Label>
               <Input
-                id="session-date"
+                id="competition-date"
                 type="date"
                 className="h-11"
-                value={sessionDate}
-                onChange={(e) => setSessionDate(e.target.value)}
+                value={competitionDate}
+                onChange={(e) => setCompetitionDate(e.target.value)}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="session-time">Heure</Label>
+              <Label htmlFor="competition-location">Lieu</Label>
               <Input
-                id="session-time"
-                type="time"
+                id="competition-location"
                 className="h-11"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="session-duration">Durée (min)</Label>
-              <Input
-                id="session-duration"
-                type="number"
-                min={0}
-                className="h-11"
-                value={durationMinutes}
-                onChange={(e) => setDurationMinutes(e.target.value)}
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Ex : Liévin"
               />
             </div>
           </div>
 
           <TypePillPicker
             label="Type"
-            types={trainingTypes}
-            value={trainingTypeId}
-            onChange={setTrainingTypeId}
+            types={competitionTypes}
+            value={competitionTypeId}
+            onChange={setCompetitionTypeId}
           />
 
           <div className="space-y-1.5">
-            <Label htmlFor="session-description">Programme</Label>
+            <Label htmlFor="competition-description">Notes</Label>
             <Textarea
-              id="session-description"
+              id="competition-description"
               rows={16}
               className="min-h-64 resize-y text-base"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Contenu de la séance..."
+              placeholder="Notes libres sur la compétition..."
             />
           </div>
         </div>
