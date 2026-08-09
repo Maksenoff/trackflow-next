@@ -105,6 +105,33 @@ async function main() {
     },
   })
 
+  const sessionPast = await prisma.session.create({
+    data: {
+      title: 'Séance seuil',
+      date: daysFromNow(-3),
+      startTime: daysFromNow(-3),
+      trainingTypeId: enduranceType.id,
+      description: '6x1000m allure seuil, récup 2min',
+      durationMinutes: 75,
+    },
+  })
+  await prisma.athleteSession.create({
+    data: {
+      athleteId: athlete1.id,
+      sessionId: sessionPast.id,
+      difficulty: 8,
+      comment: 'Dur mais tenu le rythme jusqu’au bout',
+    },
+  })
+  await prisma.athleteSession.create({
+    data: {
+      athleteId: athlete2.id,
+      sessionId: sessionPast.id,
+      skipped: true,
+      comment: 'Absent, blessure légère',
+    },
+  })
+
   const comp1 = await prisma.competition.create({
     data: {
       title: 'Meeting régional indoor',

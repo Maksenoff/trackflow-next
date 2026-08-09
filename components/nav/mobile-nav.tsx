@@ -16,7 +16,7 @@ export function MobileNav({ roles }: { roles: Role[] }) {
 
   return (
     <nav
-      className="fixed inset-x-3 z-40 rounded-[24px] border border-border bg-card/95 shadow-lg shadow-black/10 backdrop-blur supports-backdrop-filter:bg-card/85 lg:hidden dark:shadow-black/30"
+      className="fixed inset-x-3 z-40 rounded-[24px] border border-border bg-card/95 shadow-lg shadow-black/10 backdrop-blur supports-backdrop-filter:bg-card/85 print:hidden lg:hidden dark:shadow-black/30"
       style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
     >
       <ul className="flex items-stretch justify-around px-1 py-1.5">

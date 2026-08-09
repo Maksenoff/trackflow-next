@@ -15,7 +15,7 @@ export function Sidebar({ roles, name, email }: { roles: Role[]; name: string; e
   const links = NAV_LINKS.filter((l) => !l.roles || l.roles.some((r) => roles.includes(r)))
 
   return (
-    <aside className="sticky top-0 hidden h-dvh shrink-0 p-3 lg:block lg:w-[19rem]">
+    <aside className="sticky top-0 hidden h-dvh shrink-0 p-3 print:hidden lg:block lg:w-[19rem]">
       <div className="relative flex h-full flex-col overflow-hidden rounded-[28px] border border-border bg-card shadow-lg shadow-black/[0.08] dark:shadow-black/30">
         <div
           aria-hidden
