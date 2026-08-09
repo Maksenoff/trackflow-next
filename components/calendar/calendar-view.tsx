@@ -1,12 +1,28 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Plus, Settings, Trophy, Users, Zap } from 'lucide-react'
+import { toast } from 'sonner'
+import {
+  ChevronLeft,
+  ChevronRight,
+  GripVertical,
+  Plus,
+  Settings,
+  Trophy,
+  Users,
+  Zap,
+} from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { buildMonthGrid, monthLabel, sameDay, addMonths } from '@/lib/calendar-grid'
+import {
+  buildMonthGrid,
+  monthLabel,
+  sameDay,
+  addMonths,
+  toDateInputValue,
+} from '@/lib/calendar-grid'
 import { cn } from '@/lib/utils'
 import {
   SessionFormDialog,
@@ -55,9 +71,105 @@ export function CalendarView({
   const [tab, setTab] = useState<'sessions' | 'competitions'>('sessions')
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
+  const [draggingSession, setDraggingSession] = useState<CalSession | null>(null)
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null)
+  const [dragOverDate, setDragOverDate] = useState<string | null>(null)
+  const dragStateRef = useRef<{
+    startX: number
+    startY: number
+    pointerId: number | null
+    armed: boolean
+    session: CalSession | null
+    longPressTimer: ReturnType<typeof setTimeout> | null
+  }>({ startX: 0, startY: 0, pointerId: null, armed: false, session: null, longPressTimer: null })
+  const suppressClickRef = useRef(false)
 
   const cells = useMemo(() => buildMonthGrid(year, month), [year, month])
   const today = new Date()
+
+  async function moveSession(sessionId: string, newDate: string) {
+    const res = await fetch(`/api/sessions/${sessionId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: newDate }),
+    })
+    if (res.ok) {
+      toast.success('Séance déplacée.')
+      router.refresh()
+    } else {
+      toast.error('Impossible de déplacer la séance.')
+    }
+  }
+
+  useEffect(() => {
+    function onMove(e: PointerEvent) {
+      const st = dragStateRef.current
+      if (st.pointerId === null || e.pointerId !== st.pointerId) return
+      const dx = e.clientX - st.startX
+      const dy = e.clientY - st.startY
+      if (!st.armed) {
+        if (Math.hypot(dx, dy) > 10) {
+          if (st.longPressTimer) clearTimeout(st.longPressTimer)
+          st.pointerId = null
+        }
+        return
+      }
+      setDragPos({ x: e.clientX, y: e.clientY })
+      const el = document.elementFromPoint(e.clientX, e.clientY)
+      const cell = el?.closest<HTMLElement>('[data-cell-date]')
+      setDragOverDate(cell?.dataset.cellDate ?? null)
+    }
+
+    function onUp(e: PointerEvent) {
+      const st = dragStateRef.current
+      if (st.pointerId === null || e.pointerId !== st.pointerId) return
+      if (st.longPressTimer) clearTimeout(st.longPressTimer)
+      if (st.armed && st.session) {
+        const el = document.elementFromPoint(e.clientX, e.clientY)
+        const cell = el?.closest<HTMLElement>('[data-cell-date]')
+        const newDate = cell?.dataset.cellDate
+        if (newDate) moveSession(st.session.id, newDate)
+        setTimeout(() => {
+          suppressClickRef.current = false
+        }, 50)
+      }
+      st.pointerId = null
+      st.armed = false
+      st.session = null
+      setDraggingSession(null)
+      setDragPos(null)
+      setDragOverDate(null)
+    }
+
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function handlePillPointerDown(e: ReactPointerEvent, s: CalSession) {
+    if (!canManageSessions) return
+    e.stopPropagation()
+    const st = dragStateRef.current
+    st.startX = e.clientX
+    st.startY = e.clientY
+    st.pointerId = e.pointerId
+    st.session = s
+    st.armed = false
+    if (st.longPressTimer) clearTimeout(st.longPressTimer)
+    st.longPressTimer = setTimeout(() => {
+      st.armed = true
+      suppressClickRef.current = true
+      setDraggingSession(s)
+      setDragPos({ x: e.clientX, y: e.clientY })
+      if (navigator.vibrate) navigator.vibrate(10)
+    }, 280)
+  }
 
   function go(delta: number) {
     const { year: y, month: m } = addMonths(year, month, delta)
@@ -177,20 +289,30 @@ export function CalendarView({
         <div className="grid grid-cols-7">
           {cells.map((cell) => {
             const isToday = sameDay(cell.date, today)
+            const cellDateKey = toDateInputValue(cell.date)
             const items =
               tab === 'sessions'
                 ? sessions.filter((s) => sameDay(s.date, cell.date))
                 : competitions.filter((c) => sameDay(c.date, cell.date))
             const visible = items.slice(0, 3)
             const overflow = items.length - visible.length
+            const isDropTarget = tab === 'sessions' && dragOverDate === cellDateKey
 
             return (
               <button
                 key={cell.date.toISOString()}
-                onClick={() => setSelectedDay(cell.date)}
+                data-cell-date={cellDateKey}
+                onClick={(e) => {
+                  if (suppressClickRef.current) {
+                    e.preventDefault()
+                    return
+                  }
+                  setSelectedDay(cell.date)
+                }}
                 className={cn(
                   'flex min-h-20 flex-col gap-1 border-r border-b border-border p-1.5 text-left transition-colors last:border-r-0 hover:bg-muted/40 sm:min-h-24',
-                  !cell.inMonth && 'bg-muted/20 text-muted-foreground/50'
+                  !cell.inMonth && 'bg-muted/20 text-muted-foreground/50',
+                  isDropTarget && 'bg-primary/10 ring-2 ring-inset ring-primary/50'
                 )}
               >
                 <span
@@ -207,16 +329,29 @@ export function CalendarView({
                       tab === 'sessions'
                         ? (item as CalSession).trainingType?.color
                         : (item as CalCompetition).competitionType?.color
+                    const isBeingDragged = tab === 'sessions' && draggingSession?.id === item.id
                     return (
                       <span
                         key={item.id}
-                        className="truncate rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                        onPointerDown={
+                          tab === 'sessions'
+                            ? (e) => handlePillPointerDown(e, item as CalSession)
+                            : undefined
+                        }
+                        className={cn(
+                          'flex items-center gap-0.5 truncate rounded px-1.5 py-0.5 text-[10px] font-semibold',
+                          tab === 'sessions' && canManageSessions && 'touch-none select-none',
+                          isBeingDragged && 'opacity-30'
+                        )}
                         style={{
                           backgroundColor: `${color ?? '#94a3b8'}22`,
                           color: color ?? '#64748b',
                         }}
                       >
-                        {item.title}
+                        {tab === 'sessions' && canManageSessions && (
+                          <GripVertical className="size-2.5 shrink-0 opacity-60" />
+                        )}
+                        <span className="truncate">{item.title}</span>
                       </span>
                     )
                   })}
@@ -231,6 +366,20 @@ export function CalendarView({
           })}
         </div>
       </div>
+
+      {/* Ghost flottant pendant le drag */}
+      {draggingSession && dragPos && (
+        <div
+          className="pointer-events-none fixed z-50 flex items-center gap-1 rounded-lg bg-card px-3 py-2 text-xs font-semibold shadow-xl ring-1 ring-border"
+          style={{ left: dragPos.x, top: dragPos.y, transform: 'translate(-50%, -120%)' }}
+        >
+          <span
+            className="size-2 shrink-0 rounded-full"
+            style={{ background: draggingSession.trainingType?.color ?? '#94a3b8' }}
+          />
+          {draggingSession.title}
+        </div>
+      )}
 
       {/* Modal du jour */}
       <Dialog open={!!selectedDay} onOpenChange={(open) => !open && setSelectedDay(null)}>
