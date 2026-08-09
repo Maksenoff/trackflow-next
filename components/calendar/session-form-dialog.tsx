@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { toDateInputValue } from '@/lib/calendar-grid'
 
 export type TrainingTypeOption = { id: string; name: string; color: string }
 
@@ -33,11 +34,6 @@ export type SessionFormInitial = {
   durationMinutes: number | null
   trainingTypeId: string | null
   description: string | null
-}
-
-function toDateInputValue(date: Date) {
-  const tz = date.getTimezoneOffset() * 60000
-  return new Date(date.getTime() - tz).toISOString().slice(0, 10)
 }
 
 function toTimeInputValue(date: Date | null) {
@@ -63,6 +59,7 @@ export function SessionFormDialog({
   const router = useRouter()
   const isEdit = !!sessionId
   const [title, setTitle] = useState('')
+  const [sessionDate, setSessionDate] = useState('')
   const [startTime, setStartTime] = useState('')
   const [durationMinutes, setDurationMinutes] = useState('')
   const [trainingTypeId, setTrainingTypeId] = useState<string | undefined>(undefined)
@@ -73,29 +70,30 @@ export function SessionFormDialog({
     if (!open) return
     if (initialData) {
       setTitle(initialData.title)
+      setSessionDate(toDateInputValue(initialData.date))
       setStartTime(toTimeInputValue(initialData.startTime))
       setDurationMinutes(initialData.durationMinutes ? String(initialData.durationMinutes) : '')
       setTrainingTypeId(initialData.trainingTypeId ?? undefined)
       setDescription(initialData.description ?? '')
     } else {
       setTitle('')
+      setSessionDate(toDateInputValue(date ?? new Date()))
       setStartTime('')
       setDurationMinutes('')
       setTrainingTypeId(undefined)
       setDescription('')
     }
-  }, [open, initialData])
+  }, [open, initialData, date])
 
   async function handleSubmit() {
-    const effectiveDate = initialData?.date ?? date
-    if (!title.trim() || !effectiveDate) return
+    if (!title.trim() || !sessionDate) return
     setLoading(true)
     const res = await fetch(isEdit ? `/api/sessions/${sessionId}` : '/api/sessions', {
       method: isEdit ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title,
-        date: toDateInputValue(effectiveDate),
+        date: sessionDate,
         startTime: startTime || null,
         durationMinutes: durationMinutes ? Number(durationMinutes) : null,
         trainingTypeId: trainingTypeId ?? null,
@@ -118,11 +116,7 @@ export function SessionFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {isEdit
-              ? 'Modifier la séance'
-              : `Nouvelle séance${date ? ` · ${date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}` : ''}`}
-          </DialogTitle>
+          <DialogTitle>{isEdit ? 'Modifier la séance' : 'Nouvelle séance'}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -139,6 +133,15 @@ export function SessionFormDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
+              <Label htmlFor="session-date">Date</Label>
+              <Input
+                id="session-date"
+                type="date"
+                value={sessionDate}
+                onChange={(e) => setSessionDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor="session-time">Heure</Label>
               <Input
                 id="session-time"
@@ -147,23 +150,28 @@ export function SessionFormDialog({
                 onChange={(e) => setStartTime(e.target.value)}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="session-duration">Durée (min)</Label>
-              <Input
-                id="session-duration"
-                type="number"
-                min={0}
-                value={durationMinutes}
-                onChange={(e) => setDurationMinutes(e.target.value)}
-              />
-            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="session-duration">Durée (min)</Label>
+            <Input
+              id="session-duration"
+              type="number"
+              min={0}
+              value={durationMinutes}
+              onChange={(e) => setDurationMinutes(e.target.value)}
+            />
           </div>
 
           <div className="space-y-1.5">
             <Label>Type</Label>
             <Select value={trainingTypeId} onValueChange={(v) => setTrainingTypeId(v ?? undefined)}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Aucun type" />
+                <SelectValue placeholder="Aucun type">
+                  {(value: string | null) =>
+                    trainingTypes.find((t) => t.id === value)?.name ?? 'Aucun type'
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {trainingTypes.map((t) => (

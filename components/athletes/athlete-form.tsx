@@ -164,7 +164,11 @@ export function AthleteForm({
               onValueChange={(v) => setValue('gender', v as AthleteFormValues['gender'])}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Non spécifié" />
+                <SelectValue placeholder="Non spécifié">
+                  {(value: string | null) =>
+                    ({ M: 'Homme', F: 'Femme', X: 'Autre' })[value ?? ''] ?? 'Non spécifié'
+                  }
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="M">Homme</SelectItem>

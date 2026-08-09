@@ -1,5 +1,11 @@
 export type CalendarCell = { date: Date; day: number; inMonth: boolean }
 
+/** Date locale au format YYYY-MM-DD, sans décalage de fuseau horaire (pour <input type="date">). */
+export function toDateInputValue(date: Date): string {
+  const tz = date.getTimezoneOffset() * 60000
+  return new Date(date.getTime() - tz).toISOString().slice(0, 10)
+}
+
 /** Grille de semaines (lundi -> dimanche) couvrant le mois donné, avec débordement des mois voisins. */
 export function buildMonthGrid(year: number, month: number): CalendarCell[] {
   const first = new Date(year, month - 1, 1)
