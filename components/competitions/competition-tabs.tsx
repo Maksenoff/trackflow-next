@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Clock, FileText, Info, Link as LinkIcon, Plus, Users } from 'lucide-react'
@@ -40,6 +40,7 @@ export function CompetitionTabs({
 
   const canRegisterSelf = !canManage && !!linkedAthleteId
   const canAddRegistration = canManage || (canRegisterSelf && !editingRegistration)
+  const color = competition.competitionType?.color ?? '#f59e0b'
 
   function openCreate() {
     setEditingRegistration(null)
@@ -93,6 +94,7 @@ export function CompetitionTabs({
                 value={competition.websiteUrl}
                 editHref={`/competitions/${competition.id}/edit`}
                 addLabel="Ajouter un lien"
+                color={color}
                 external
               />
               <ResourceRow
@@ -101,6 +103,7 @@ export function CompetitionTabs({
                 value={competition.documentUrl}
                 editHref={`/competitions/${competition.id}/edit`}
                 addLabel="Ajouter une circulaire"
+                color={color}
               />
               <ResourceRow
                 icon={Clock}
@@ -108,6 +111,7 @@ export function CompetitionTabs({
                 value={competition.schedulesUrl}
                 editHref={`/competitions/${competition.id}/edit`}
                 addLabel="Ajouter les horaires"
+                color={color}
               />
             </div>
           </div>
@@ -170,7 +174,10 @@ export function CompetitionTabs({
           <button
             type="button"
             onClick={openCreate}
-            className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+            className="group flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-[var(--accent)]"
+            style={{ '--accent': color } as CSSProperties}
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = `${color}66`)}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = '')}
           >
             <Plus className="size-4" />
             Ajouter une inscription
@@ -217,6 +224,7 @@ function ResourceRow({
   value,
   editHref,
   addLabel,
+  color,
   external,
 }: {
   icon: React.ComponentType<{ className?: string }>
@@ -224,11 +232,15 @@ function ResourceRow({
   value: string | null
   editHref: string
   addLabel: string
+  color: string
   external?: boolean
 }) {
   return (
     <div className="flex items-start gap-3 px-5 py-4">
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+      <div
+        className="flex size-8 shrink-0 items-center justify-center rounded-lg"
+        style={{ backgroundColor: `${color}18`, color }}
+      >
         <Icon className="size-4" />
       </div>
       <div className="min-w-0 flex-1">

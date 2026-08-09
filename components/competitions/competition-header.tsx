@@ -32,71 +32,59 @@ export function CompetitionHeader({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
-      className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm"
+      className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
     >
       <div
-        className="relative h-28 sm:h-36"
-        style={{ background: `linear-gradient(135deg, ${color}, ${color}33)` }}
-      >
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -top-10 -right-10 size-48 rounded-full opacity-40 blur-3xl"
-          style={{ background: color }}
-        />
-        <Trophy
-          className="absolute right-6 bottom-4 size-16 opacity-20 sm:size-20"
-          style={{ color: 'white' }}
-          strokeWidth={1.5}
-        />
-        {canManage && (
-          <div className="absolute top-4 right-4">
-            <CompetitionActions competitionId={competition.id} />
-          </div>
-        )}
-      </div>
+        aria-hidden
+        className="pointer-events-none absolute -top-16 -right-16 size-56 rounded-full opacity-[0.12] blur-3xl"
+        style={{ background: color }}
+      />
+      <div className="h-1.5" style={{ background: color }} />
 
-      <div className="px-5 pb-5 sm:px-8 sm:pb-8">
-        <div className="-mt-8 flex flex-wrap items-end gap-2 sm:-mt-10">
-          <div
-            className="flex size-16 shrink-0 items-center justify-center rounded-2xl text-2xl font-bold text-white ring-4 ring-card sm:size-20"
-            style={{ background: color }}
-          >
-            <Trophy className="size-7 sm:size-9" />
-          </div>
-        </div>
-
-        <div className="mt-4 space-y-2">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {competition.competitionType && (
-              <Badge
-                className="border"
-                style={{ backgroundColor: `${color}22`, color, borderColor: `${color}44` }}
-              >
-                {competition.competitionType.name}
+      <div className="relative p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="mb-2.5 flex flex-wrap items-center gap-1.5">
+              {competition.competitionType && (
+                <Badge
+                  className="border"
+                  style={{ backgroundColor: `${color}22`, color, borderColor: `${color}44` }}
+                >
+                  {competition.competitionType.name}
+                </Badge>
+              )}
+              <Badge variant={isPast ? 'secondary' : 'default'}>
+                {isPast ? 'Passée' : 'À venir'}
               </Badge>
-            )}
-            <Badge variant={isPast ? 'secondary' : 'default'}>
-              {isPast ? 'Passée' : 'À venir'}
-            </Badge>
-            <Badge variant="outline">{disciplineCount} disciplines</Badge>
+              <Badge variant="outline">{disciplineCount} disciplines</Badge>
+            </div>
+            <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">
+              {competition.title}
+            </h1>
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
-            {competition.title}
-          </h1>
+
+          {canManage && <CompetitionActions competitionId={competition.id} />}
         </div>
 
         <div className="mt-6 grid grid-cols-2 gap-3 border-t border-border pt-5 sm:grid-cols-4">
-          <StatTile icon={Users} label="Inscrits" value={competition.registrations.length} />
+          <StatTile
+            icon={Users}
+            label="Inscrits"
+            value={competition.registrations.length}
+            color={color}
+          />
           <StatTile
             icon={CalendarDays}
             label={String(competition.date.getFullYear())}
             value={competition.date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' })}
+            color={color}
           />
-          <StatTile icon={MapPin} label="Lieu" value={competition.location || '—'} />
+          <StatTile icon={MapPin} label="Lieu" value={competition.location || '—'} color={color} />
           <StatTile
             icon={Trophy}
             label="Statut"
             value={isPast ? 'Terminée' : 'À venir'}
+            color={color}
             accent={!isPast}
           />
         </div>
@@ -109,18 +97,26 @@ function StatTile({
   icon: Icon,
   label,
   value,
+  color,
   accent,
 }: {
-  icon: React.ComponentType<{ className?: string }>
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>
   label: string
   value: string | number
+  color: string
   accent?: boolean
 }) {
   return (
-    <div className="flex items-center gap-2.5 rounded-xl bg-muted/50 px-3 py-2.5">
-      <Icon className={`size-4 shrink-0 ${accent ? 'text-primary' : 'text-muted-foreground'}`} />
+    <div
+      className="flex items-center gap-2.5 rounded-xl px-3 py-2.5"
+      style={{ backgroundColor: `${color}0f` }}
+    >
+      <Icon className="size-4 shrink-0" style={{ color }} />
       <div className="min-w-0">
-        <div className={`truncate text-lg leading-none font-bold ${accent ? 'text-primary' : ''}`}>
+        <div
+          className="truncate text-lg leading-none font-bold"
+          style={accent ? { color } : undefined}
+        >
           {value}
         </div>
         <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{label}</div>
