@@ -106,6 +106,8 @@ export function CalendarView({
       toast.success('Séance déplacée.')
       router.refresh()
     } else {
+      const body = await res.json().catch(() => null)
+      console.error('Échec du déplacement de séance', res.status, body)
       toast.error('Impossible de déplacer la séance.')
     }
   }
