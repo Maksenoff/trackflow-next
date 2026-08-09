@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { isAdmin, isCoach, type Role } from '@/lib/roles'
 import { getAthleteDetail } from '@/lib/athletes-data'
 import { PageTransition } from '@/components/motion/page-transition'
+import { BackButton } from '@/components/ui/back-button'
 import { ProfileHeader } from '@/components/athletes/profile-header'
 import { ProfileTabs } from '@/components/athletes/profile-tabs'
 
@@ -24,6 +25,7 @@ export default async function AthleteProfilePage({ params }: { params: { id: str
   return (
     <PageTransition>
       <div className="mx-auto max-w-5xl space-y-6 p-4 lg:p-8 xl:p-10">
+        <BackButton label="Retour aux athlètes" />
         <ProfileHeader athlete={athlete} canEdit={canEdit} />
         <ProfileTabs athlete={athlete} canEdit={canEdit} />
       </div>

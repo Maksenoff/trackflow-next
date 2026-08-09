@@ -6,8 +6,8 @@ import { isAdmin, isCoach, type Role } from '@/lib/roles'
 import { getSessionDetail, getTrainingTypes } from '@/lib/calendar-data'
 import { PageTransition } from '@/components/motion/page-transition'
 import { Badge } from '@/components/ui/badge'
+import { BackButton } from '@/components/ui/back-button'
 import { SessionActions } from '@/components/sessions/session-actions'
-import { PdfButton } from '@/components/sessions/pdf-button'
 import { RpePanel } from '@/components/sessions/rpe-panel'
 import { RpeLogForm } from '@/components/sessions/rpe-log-form'
 
@@ -36,6 +36,8 @@ export default async function SessionDetailPage({ params }: { params: { id: stri
   return (
     <PageTransition>
       <div className="mx-auto max-w-3xl space-y-6 p-4 lg:p-8 xl:p-10">
+        <BackButton label="Retour au calendrier" />
+
         {/* Header */}
         <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           <div className="h-1.5" style={{ background: color }} />
@@ -86,7 +88,6 @@ export default async function SessionDetailPage({ params }: { params: { id: stri
               </div>
 
               <div className="flex shrink-0 items-center gap-2">
-                <PdfButton />
                 {canEdit && (
                   <SessionActions
                     sessionId={detail.id}
