@@ -500,6 +500,37 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."         # exposé côté client pour le SW
 >   spécifiques à SQLite — pertinent à l'échelle d'un club, à revoir si le
 >   roster grossit beaucoup.
 
+**Session 4 — Calendriers + Séances**
+- [x] API routes sessions (`POST`/`PATCH`/`DELETE`) + RPE (`POST` upsert sur `athleteId_sessionId`)
+- [x] API routes training-types + competition-types (CRUD, admin uniquement)
+- [x] `/calendar` — vue mensuelle unique avec onglets Entraînements/Compétitions animés
+      (`layoutId`), légende couleurs + lien "Gérer", modal jour, navigation mois
+- [x] `/sessions/[id]` — header (type + statut + date/heure/durée), programme, RPE moyen
+      (grande jauge + barre 10 segments) + liste individuelle (avatar, disciplines,
+      commentaire, RPE ou "Non effectuée"), édition/suppression pour coach/admin
+- [x] Calendrier compétitions (pastilles propres par `CompetitionType`, dans le même
+      calendrier via onglet plutôt que route séparée — voir écart ci-dessous)
+- [x] `/admin/session-types` et `/admin/competition-types` — composant `TypeManager`
+      partagé (liste + formulaire inline, palette 16 couleurs)
+- [x] Bouton download PDF sur séance via `window.print()` + `print:hidden` sur toute
+      la nav (sidebar, topbar, mobile-nav) et sur les boutons d'action
+- [x] Design final + animations (cards arrondies, jauges RPE colorées, dialog de
+      création/édition unifié)
+
+> **Notes techniques / écarts assumés :**
+> - **Un seul `/calendar`** avec onglets animés Entraînements/Compétitions, plutôt que
+>   deux routes distinctes — plus cohérent avec la nav à une seule entrée "Calendrier"
+>   et évite de dupliquer la logique de grille mensuelle (`lib/calendar-grid.ts`).
+> - **PDF via `window.print()`** plutôt qu'une lib dédiée (jsPDF, react-pdf) — suffisant
+>   pour un export propre d'une fiche séance, évite une dépendance lourde. Les composants
+>   d'action (`SessionActions`, `PdfButton`) et toute la nav portent `print:hidden`.
+> - **Création de compétition** depuis la modal jour du calendrier renvoie vers
+>   `/competitions/new` (pas encore implémenté, prévu Session 5) — précédent déjà posé
+>   en Session 3 pour les renvois vers des routes futures.
+> - **RPE "non effectuée"** : un athlète peut marquer une séance comme non faite
+>   (`skipped: true`, `difficulty: null`) plutôt que de laisser un ressenti — géré côté
+>   `RpeLogForm` par une checkbox qui masque le slider.
+
 ### 🔄 En cours
 - [ ] ...
 
@@ -507,16 +538,6 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."         # exposé côté client pour le SW
 
 **Session 1 — Fondations**
 - [ ] Vercel Postgres connecté (reste en SQLite local jusqu'au déploiement)
-
-**Session 4 — Calendriers + Séances**
-- [ ] API routes sessions + calendar
-- [ ] `/calendar` — vue mensuelle + légende types + modal jour + navigation
-- [ ] `/sessions/[id]` — détail séance avec programme + RPE athlètes (moyen + individuel + commentaires)
-- [ ] Calendrier compétitions (pastilles propres)
-- [ ] `/admin/session-types` — gestion types + palette couleurs
-- [ ] `/admin/competition-types` — gestion types compétitions
-- [ ] Bouton download PDF sur séance
-- [ ] Design final + animations
 
 **Session 5 — Compétitions**
 - [ ] API routes competitions (CRUD, inscriptions, debrief)
@@ -554,7 +575,7 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."         # exposé côté client pour le SW
 | 01 | 2026-07-30 | Fondations (Next.js + shadcn + Prisma + Auth + PWA) | ✅ |
 | 02 | 2026-07-30 | Dashboard | ✅ |
 | 03 | 2026-08-02 | Athlètes (liste + profil + édition) | ✅ |
-| 04 | - | Calendriers + Séances + Types | ⏳ |
+| 04 | 2026-08-09 | Calendriers + Séances + Types | ✅ |
 | 05 | - | Compétitions | ⏳ |
 | 06 | - | Notifications + WebPush | ⏳ |
 | 07 | - | Scraping FFA | ⏳ |
