@@ -54,17 +54,17 @@ export function CompetitionTabs({
 
   return (
     <Tabs defaultValue="infos" className="gap-4">
-      <TabsList className="h-auto w-full flex-wrap justify-start gap-1 bg-transparent p-0">
+      <TabsList className="h-auto flex-wrap justify-start gap-1 bg-transparent p-0">
         <TabsTrigger
           value="infos"
-          className="gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 data-active:border-primary/40 data-active:bg-primary/10"
+          className="flex-none gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 data-active:border-primary/40 data-active:bg-primary/10"
         >
           <Info className="size-3.5" />
           Infos pratiques
         </TabsTrigger>
         <TabsTrigger
           value="registrations"
-          className="gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 data-active:border-primary/40 data-active:bg-primary/10"
+          className="flex-none gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 data-active:border-primary/40 data-active:bg-primary/10"
         >
           <Users className="size-3.5" />
           Inscriptions
