@@ -354,6 +354,14 @@ export function CalendarView({
                     e.preventDefault()
                     return
                   }
+                  if (items.length === 1) {
+                    router.push(
+                      tab === 'sessions'
+                        ? `/sessions/${items[0].id}`
+                        : `/competitions/${items[0].id}`
+                    )
+                    return
+                  }
                   setSelectedDay(cell.date)
                 }}
                 className={cn(
