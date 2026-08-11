@@ -14,12 +14,15 @@ export async function getAthletesList(query?: string) {
     firstName: a.firstName,
     lastName: a.lastName,
     photoUrl: a.photoUrl,
+    photoConfig: JSON.parse(a.photoConfig) as { zoom?: number; x?: number; y?: number },
     bannerUrl: a.bannerUrl,
     bannerConfig: JSON.parse(a.bannerConfig) as {
       mode?: 'pattern' | 'photo'
       pattern?: string
       color?: string
       zoom?: number
+      x?: number
+      y?: number
     },
     birthDate: a.birthDate,
     gender: a.gender,

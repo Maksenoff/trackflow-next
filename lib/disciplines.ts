@@ -97,13 +97,5 @@ export function filterDisciplineGroups(codes: string[]): Record<string, Record<s
   return groups
 }
 
-export const DEFAULT_DISCIPLINE_COLORS = [
-  '#6366f1',
-  '#22d3ee',
-  '#f59e0b',
-  '#ef4444',
-  '#10b981',
-  '#a78bfa',
-  '#ec4899',
-  '#84cc16',
-]
+/** Palette de couleurs vives pour les pastilles de discipline (choix Maksen). */
+export const DEFAULT_DISCIPLINE_COLORS = ['#f97316', '#10b981', '#3b82f6', '#8b5cf6', '#f43f5e']

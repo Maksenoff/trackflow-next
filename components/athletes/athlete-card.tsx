@@ -11,8 +11,16 @@ export type AthleteCardData = {
   firstName: string
   lastName: string
   photoUrl: string | null
+  photoConfig: { zoom?: number; x?: number; y?: number }
   bannerUrl: string | null
-  bannerConfig: { mode?: 'pattern' | 'photo'; pattern?: string; color?: string; zoom?: number }
+  bannerConfig: {
+    mode?: 'pattern' | 'photo'
+    pattern?: string
+    color?: string
+    zoom?: number
+    x?: number
+    y?: number
+  }
   birthDate: Date | null
   gender: string | null
   disciplines: string[]
@@ -45,7 +53,7 @@ export function AthleteCard({ athlete, index = 0 }: { athlete: AthleteCardData; 
                 ? {
                     backgroundImage: `url(${athlete.bannerUrl})`,
                     backgroundSize: `${(athlete.bannerConfig.zoom ?? 1) * 100}%`,
-                    backgroundPosition: 'center',
+                    backgroundPosition: `${athlete.bannerConfig.x ?? 50}% ${athlete.bannerConfig.y ?? 50}%`,
                   }
                 : {
                     background: `linear-gradient(135deg, ${bannerColor}, ${bannerColor}33)`,
@@ -67,6 +75,11 @@ export function AthleteCard({ athlete, index = 0 }: { athlete: AthleteCardData; 
                 src={athlete.photoUrl}
                 alt=""
                 className="size-14 shrink-0 rounded-full object-cover ring-4 ring-card shadow-md"
+                style={{
+                  objectPosition: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
+                  transform: `scale(${athlete.photoConfig.zoom ?? 1})`,
+                  transformOrigin: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
+                }}
               />
             ) : (
               <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-lg font-bold text-primary-foreground ring-4 ring-card shadow-md">
