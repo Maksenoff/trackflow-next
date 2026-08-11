@@ -183,7 +183,7 @@ export function RegistrationDialog({
             </div>
           )}
 
-          {canManage && (
+          {(canManage || !isEdit) && (
             <div className="flex items-center gap-2">
               <Checkbox
                 id="reg-ffa"
