@@ -322,7 +322,7 @@ export function CalendarView({
         ))}
         {isAdmin && (
           <Link
-            href={tab === 'sessions' ? '/admin/session-types' : '/admin/competition-types'}
+            href={tab === 'sessions' ? '/settings?tab=sessions' : '/settings?tab=competitions'}
             className="ml-auto inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
           >
             <Settings className="size-3" />
