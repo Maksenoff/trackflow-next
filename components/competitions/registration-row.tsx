@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Check, ExternalLink, Loader2, Pencil, X } from 'lucide-react'
+import { Check, Loader2, Pencil, X } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { initials, fullName } from '@/lib/athlete'
 import { DISCIPLINE_LABELS } from '@/lib/disciplines'
 import { cn } from '@/lib/utils'
@@ -46,12 +47,12 @@ export function RegistrationRow({
     ? (JSON.parse(registration.expectedPerformances) as Record<string, string>)
     : null
 
-  async function toggleFfa() {
+  async function setFfa(next: boolean) {
     setTogglingFfa(true)
     const res = await fetch(`/api/competitions/${competitionId}/registrations/${registration.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ffaRegistered: !registration.ffaRegistered }),
+      body: JSON.stringify({ ffaRegistered: next }),
     })
     setTogglingFfa(false)
     if (!res.ok) {
@@ -76,7 +77,14 @@ export function RegistrationRow({
   }
 
   return (
-    <div className="flex h-full items-center gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-md">
+    <div
+      className={cn(
+        'flex h-full items-center gap-3 rounded-2xl border p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+        registration.ffaRegistered
+          ? 'border-emerald-500/25 bg-emerald-500/[0.05] hover:border-emerald-500/40 dark:bg-emerald-500/[0.07]'
+          : 'border-border bg-card hover:border-primary/20'
+      )}
+    >
       {registration.athlete.photoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -124,24 +132,27 @@ export function RegistrationRow({
 
       <div className="flex shrink-0 items-center gap-1.5">
         {canManage && (
-          <button
-            type="button"
-            onClick={toggleFfa}
-            disabled={togglingFfa}
+          <label
             className={cn(
-              'inline-flex h-7 items-center gap-1 rounded-full border px-2.5 text-[11px] font-bold transition-colors',
+              'inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-bold transition-colors',
               registration.ffaRegistered
                 ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                : 'border-border text-muted-foreground hover:bg-muted/50'
+                : 'border-border text-muted-foreground hover:bg-muted/50',
+              togglingFfa && 'opacity-60'
             )}
           >
             {togglingFfa ? (
               <Loader2 className="size-3 animate-spin" />
             ) : (
-              <ExternalLink className="size-3" />
+              <Checkbox
+                checked={registration.ffaRegistered}
+                onCheckedChange={(checked) => setFfa(checked === true)}
+                disabled={togglingFfa}
+                className="size-3.5 data-checked:border-emerald-500 data-checked:bg-emerald-500"
+              />
             )}
             FFA
-          </button>
+          </label>
         )}
         {(canManage || isSelf) && (
           <>
