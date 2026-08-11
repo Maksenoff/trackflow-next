@@ -37,7 +37,7 @@ export function AthleteCard({ athlete, index = 0 }: { athlete: AthleteCardData; 
         href={`/athletes/${athlete.id}`}
         className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10"
       >
-        <div className="relative h-24 overflow-hidden">
+        <div className="relative z-0 h-24 overflow-hidden">
           <div
             className="absolute inset-0 scale-100 transition-transform duration-500 ease-out group-hover:scale-110"
             style={
@@ -60,16 +60,16 @@ export function AthleteCard({ athlete, index = 0 }: { athlete: AthleteCardData; 
         </div>
 
         <div className="flex-1 px-5 pt-0 pb-5">
-          <div className="-mt-7 mb-2 flex justify-start">
+          <div className="relative z-10 -mt-7 mb-2 flex justify-start">
             {athlete.photoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={athlete.photoUrl}
                 alt=""
-                className="size-14 shrink-0 rounded-full object-cover ring-4 ring-card"
+                className="size-14 shrink-0 rounded-full object-cover ring-4 ring-card shadow-md"
               />
             ) : (
-              <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-lg font-bold text-primary-foreground ring-4 ring-card">
+              <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-lg font-bold text-primary-foreground ring-4 ring-card shadow-md">
                 {initials(athlete.firstName, athlete.lastName)}
               </div>
             )}
