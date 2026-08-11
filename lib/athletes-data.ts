@@ -14,9 +14,17 @@ export async function getAthletesList(query?: string) {
     firstName: a.firstName,
     lastName: a.lastName,
     photoUrl: a.photoUrl,
+    bannerUrl: a.bannerUrl,
+    bannerConfig: JSON.parse(a.bannerConfig) as {
+      mode?: 'pattern' | 'photo'
+      pattern?: string
+      color?: string
+      zoom?: number
+    },
     birthDate: a.birthDate,
     gender: a.gender,
     disciplines: JSON.parse(a.disciplines) as string[],
+    disciplineColors: JSON.parse(a.disciplineColors) as Record<string, string>,
     sessionsCount: a._count.athleteSessions,
     performancesCount: a._count.performances,
     goalsCount: a._count.goals,
@@ -59,6 +67,13 @@ export async function getAthleteDetail(id: string) {
       pattern?: string
       color?: string
       zoom?: number
+      x?: number
+      y?: number
+    },
+    photoConfig: JSON.parse(athlete.photoConfig) as {
+      zoom?: number
+      x?: number
+      y?: number
     },
   }
 }
