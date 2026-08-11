@@ -222,9 +222,49 @@ Implémenter via NextAuth + middleware Next.js (`middleware.ts` à la racine).
 - **Entrées de page :** fade + slide-up léger (`y: 20 → 0`, `opacity: 0 → 1`, durée 0.3s)
 - **Modals :** scale + fade (`scale: 0.95 → 1`)
 - **Listes :** stagger sur les items (`delayChildren: 0.05s`)
-- **Transitions de tabs :** slide horizontal
+- **Transitions de tabs :** slide horizontal (voir pattern exact ci-dessous)
 - **Pastilles calendrier :** pop au hover (`scale: 1.15`)
 - Pas d'animations > 0.4s — fluidité avant tout, jamais de lourdeur
+
+### Composants UI standards — à réutiliser tel quel
+
+> Ces patterns sont apparus indépendamment sur plusieurs pages (calendrier, profil
+> athlète, détail compétition) avec des variantes légèrement différentes, ce qui casse
+> l'homogénéité visuelle. **Règle : ne jamais réinventer un pattern ci-dessous —
+> copier la structure et les classes exactement, seuls le contenu et les
+> `layoutId`/valeurs de state changent.** Si un nouveau composant a besoin d'un
+> pattern proche d'un de ceux-ci, partir de l'implémentation existante plutôt que
+> d'en écrire une variante.
+
+**Switcher à onglets (pill bar avec indicateur animé)** — utilisé pour tout choix
+binaire ou multiple entre vues (onglets calendrier Entraînements/Compétitions,
+onglets profil athlète, onglets détail compétition Infos pratiques/Inscriptions) :
+
+- Conteneur : `flex items-center gap-1 overflow-x-auto rounded-full border border-border bg-card p-1 shadow-sm`
+  (si le switcher partage sa ligne avec d'autres contrôles — ex. nav mois du calendrier
+  — utiliser `inline-flex` au lieu de `flex` pour ne pas s'étirer en pleine largeur)
+- Chaque bouton : `relative z-10 flex flex-1 items-center justify-center gap-1.5
+  rounded-full px-3.5 py-2 text-sm font-medium whitespace-nowrap transition-colors`,
+  texte `text-primary-foreground` si actif sinon `text-muted-foreground
+  hover:text-foreground`
+- Indicateur actif : `<motion.span layoutId="<nom-unique>" className="absolute inset-0
+  -z-10 rounded-full bg-gradient-to-r from-primary to-primary/80 shadow-sm
+  shadow-primary/30" transition={{ duration: 0.25, ease: 'easeOut' }} />` — un
+  `layoutId` différent par instance de switcher sur la page pour éviter les
+  collisions d'animation partagée
+- Badge de compteur optionnel : `rounded-full px-1.5 text-[10px] font-bold`,
+  `bg-white/20` si l'onglet est actif sinon `bg-muted`
+- Contenu associé : `<AnimatePresence mode="wait" custom={direction} initial={false}>`
+  avec un `motion.div` keyé sur l'onglet actif, `initial={{ x: direction * 16, opacity:
+  0 }}`, `animate={{ x: 0, opacity: 1 }}`, `exit={{ x: direction * -16, opacity: 0 }}`,
+  `transition={{ duration: 0.22, ease: 'easeOut' }}` — `direction` calculée en
+  comparant l'index de l'onglet précédent et du nouveau (1 si on avance, -1 si on
+  recule) pour que le slide aille dans le bon sens
+- Ne pas utiliser le composant `Tabs`/`TabsList`/`TabsTrigger` de `components/ui/tabs.tsx`
+  pour ce pattern : son `TabsTrigger` a `flex-1` par défaut, ce qui étire chaque
+  onglet en blocs égaux dès qu'il y en a peu (2-3) — correct visuellement avec
+  beaucoup d'onglets, moche avec deux. Le pattern ci-dessus (boutons + state manuel)
+  donne un résultat identique quel que soit le nombre d'onglets.
 
 ### shadcn/ui
 - Initialiser avec `npx shadcn-ui@latest init` en début de projet
@@ -396,6 +436,34 @@ Deux calendriers distincts, vue mensuelle, navigation mois par mois.
 - **Langue de l'UI :** français
 - **Imports :** toujours utiliser les alias `@/` (ex: `@/lib/prisma`)
 - **Pas de `any`** en TypeScript sauf exception justifiée en commentaire
+
+---
+
+## 12bis. Environnement de dev local (Windows / OneDrive)
+
+> Le repo local vit sous `OneDrive\Bureau\Trackflow`. OneDrive resynchronise en continu
+> tout ce qui change dans ce dossier — y compris `node_modules/` et `.next/`, qui sont
+> réécrits en permanence pendant `npm run dev`. Ça provoque des verrous de fichiers
+> Windows et corrompt le cache webpack : le serveur dev se met à 404/500 sur des routes
+> après une simple sauvegarde de fichier, sans rapport avec le code changé.
+
+**Fix en place :** `node_modules/` et `.next/` sont des **jonctions NTFS** (`mklink /J`)
+qui pointent vers `C:\Users\<user>\.trackflow-cache\` (hors OneDrive). Le chemin du
+projet ne change pas — `ls`/`git status` les voient comme des dossiers normaux — mais
+leur contenu réel n'est jamais synchronisé par OneDrive, donc plus de corruption.
+
+- Ne jamais `rm -rf node_modules` en pensant réinstaller proprement sans vérifier que la
+  jonction reste intacte ensuite (`npm install` réécrit à travers la jonction sans
+  problème, mais un outil qui *supprime puis recrée* le dossier peut casser le lien —
+  dans ce cas, recréer la jonction avec `mklink /J`).
+- Si le serveur dev déraille quand même après une modif : d'abord vérifier qu'aucun
+  ancien process `node.exe` ne traîne (`tasklist`), sinon `.next`/le client Prisma
+  peuvent rester verrouillés. Toujours arrêter le serveur dev avant `prisma migrate`/
+  `prisma generate` (Windows ne permet pas de réécrire un `.dll` en cours d'utilisation).
+- Ce setup est spécifique à cette machine — rien à committer, `next.config.mjs` ne doit
+  pas repartir sur un `distDir` custom (testé : ça casse la résolution de `node_modules`
+  depuis les fichiers compilés, car Node résout les paquets en remontant l'arborescence
+  depuis l'emplacement du fichier compilé).
 
 ---
 

@@ -57,6 +57,17 @@ plutôt que patcher par petites touches, et si possible s'ancrer sur une référ
 visuelle concrète (ex: Linear, Vercel — esthétique épurée, dense en information mais
 respirable) plutôt que de rester vague sur l'intention de style.
 
+## Patterns UI réutilisables — ne pas réinventer
+
+Le §7 "Design system & animations" de `CLAUDE.md` (racine du repo) documente les
+patterns UI concrets déjà établis (ex : le switcher à onglets en pill bar avec
+indicateur animé, utilisé sur calendrier / profil athlète / détail compétition).
+**Toujours vérifier ce fichier avant de construire un composant d'interaction qui
+existe peut-être déjà ailleurs** (onglets, toggles, modals de confirmation, dialogs
+de création/édition, drag-and-drop) — copier le pattern existant plutôt que d'en
+écrire une variante légèrement différente. Les divergences entre pages sur un même
+pattern sont ce que Maksen signale le plus souvent comme incohérence visuelle.
+
 ## Système de rôles à garder en tête pour l'UI
 
 Quatre rôles existent : `ROLE_ADMIN`, `ROLE_COACH`, `ROLE_COMPETITION_MANAGER`,
