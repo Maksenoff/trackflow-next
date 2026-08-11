@@ -54,6 +54,7 @@ export default async function CalendarPage({
             date: s.date,
             startTime: s.startTime,
             durationMinutes: s.durationMinutes,
+            description: s.description,
             trainingType: s.trainingType,
           }))}
           competitions={competitions.map((c) => ({
@@ -65,6 +66,7 @@ export default async function CalendarPage({
             competitionType: c.competitionType,
             description: c.description,
             registrationCount: c.registrationCount,
+            ffaRegisteredCount: c.ffaRegisteredCount,
             isRegistered: c.isRegistered,
           }))}
           trainingTypes={trainingTypes}

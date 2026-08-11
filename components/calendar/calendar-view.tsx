@@ -6,9 +6,11 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import {
+  Check,
   ChevronLeft,
   ChevronRight,
   GripVertical,
+  MapPin,
   Plus,
   Settings,
   Trophy,
@@ -36,6 +38,7 @@ type CalSession = {
   date: Date
   startTime: Date | null
   durationMinutes: number | null
+  description: string | null
   trainingType: { id: string; name: string; color: string } | null
 }
 
@@ -48,6 +51,7 @@ type CalCompetition = {
   competitionType: { id: string; name: string; color: string } | null
   description: string | null
   registrationCount: number
+  ffaRegisteredCount: number
   isRegistered: boolean
 }
 
@@ -102,6 +106,9 @@ export function CalendarView({
     longPressTimer: null,
   })
   const suppressClickRef = useRef(false)
+
+  const [hoverItem, setHoverItem] = useState<{ kind: Tab; id: string } | null>(null)
+  const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null)
 
   const cells = useMemo(() => buildMonthGrid(year, month), [year, month])
   const today = new Date()
@@ -396,6 +403,12 @@ export function CalendarView({
                             kind: tab,
                           })
                         }
+                        onMouseEnter={(e) => {
+                          setHoverItem({ kind: tab, id: item.id })
+                          setHoverPos({ x: e.clientX, y: e.clientY })
+                        }}
+                        onMouseMove={(e) => setHoverPos({ x: e.clientX, y: e.clientY })}
+                        onMouseLeave={() => setHoverItem(null)}
                         className={cn(
                           'flex items-center gap-0.5 truncate rounded px-1.5 py-0.5 text-[10px] font-semibold',
                           canManageActiveTab && 'touch-none select-none',
@@ -437,6 +450,16 @@ export function CalendarView({
           />
           {draggingItem.title}
         </div>
+      )}
+
+      {/* Aperçu au survol (souris uniquement) */}
+      {hoverItem && hoverPos && !draggingItem && (
+        <HoverPreview
+          hoverItem={hoverItem}
+          pos={hoverPos}
+          sessions={sessions}
+          competitions={competitions}
+        />
       )}
 
       {/* Modal du jour */}
@@ -543,6 +566,70 @@ export function CalendarView({
         date={selectedDay ?? today}
         trainingTypes={trainingTypes}
       />
+    </div>
+  )
+}
+
+function HoverPreview({
+  hoverItem,
+  pos,
+  sessions,
+  competitions,
+}: {
+  hoverItem: { kind: Tab; id: string }
+  pos: { x: number; y: number }
+  sessions: CalSession[]
+  competitions: CalCompetition[]
+}) {
+  const width = 260
+  const left =
+    typeof window !== 'undefined'
+      ? Math.min(pos.x + 16, window.innerWidth - width - 12)
+      : pos.x + 16
+  const top =
+    typeof window !== 'undefined' ? Math.min(pos.y + 16, window.innerHeight - 140) : pos.y + 16
+
+  if (hoverItem.kind === 'sessions') {
+    const session = sessions.find((s) => s.id === hoverItem.id)
+    if (!session) return null
+    return (
+      <div
+        className="pointer-events-none fixed z-50 rounded-xl border border-border bg-card p-3 text-xs shadow-xl"
+        style={{ left, top, width }}
+      >
+        <div className="mb-1 truncate text-sm font-semibold">{session.title}</div>
+        <p className="line-clamp-3 text-muted-foreground">
+          {session.description || 'Aucun programme renseigné.'}
+        </p>
+      </div>
+    )
+  }
+
+  const competition = competitions.find((c) => c.id === hoverItem.id)
+  if (!competition) return null
+  return (
+    <div
+      className="pointer-events-none fixed z-50 rounded-xl border border-border bg-card p-3 text-xs shadow-xl"
+      style={{ left, top, width }}
+    >
+      <div className="mb-1.5 truncate text-sm font-semibold">{competition.title}</div>
+      <div className="space-y-1 text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <Users className="size-3 shrink-0" />
+          {competition.registrationCount} inscrit{competition.registrationCount > 1 ? 's' : ''}
+        </div>
+        <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+          <Check className="size-3 shrink-0" />
+          {competition.ffaRegisteredCount} inscrit{competition.ffaRegisteredCount > 1 ? 's' : ''}{' '}
+          FFA
+        </div>
+        {competition.location && (
+          <div className="flex items-center gap-1.5">
+            <MapPin className="size-3 shrink-0" />
+            {competition.location}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

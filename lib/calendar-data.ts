@@ -42,6 +42,13 @@ export async function getMonthCompetitions(year: number, month: number, athleteI
   })
   const countMap = new Map(counts.map((c) => [c.competitionId, c._count]))
 
+  const ffaCounts = await prisma.competitionRegistration.groupBy({
+    by: ['competitionId'],
+    where: { competitionId: { in: ids }, ffaRegistered: true },
+    _count: true,
+  })
+  const ffaCountMap = new Map(ffaCounts.map((c) => [c.competitionId, c._count]))
+
   let registeredIds = new Set<string>()
   if (athleteId) {
     const regs = await prisma.competitionRegistration.findMany({
@@ -54,6 +61,7 @@ export async function getMonthCompetitions(year: number, month: number, athleteI
   return competitions.map((c) => ({
     ...c,
     registrationCount: countMap.get(c.id) ?? 0,
+    ffaRegisteredCount: ffaCountMap.get(c.id) ?? 0,
     isRegistered: registeredIds.has(c.id),
   }))
 }
