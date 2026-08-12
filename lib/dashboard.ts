@@ -45,6 +45,8 @@ export type PerformanceWidgetItem = {
   isPB: boolean
   isSB: boolean
   trend: Trend | null
+  /** Couleur choisie par l'athlète pour cette discipline (null si non spécialiste). */
+  color: string | null
 }
 
 async function getUpcomingSessions(limit = 4): Promise<SessionWidgetItem[]> {
@@ -149,7 +151,8 @@ function toWidgetPerf(
   perf: PerfRow,
   athleteName: string,
   sbIds: Set<string>,
-  trends: Map<string, Trend>
+  trends: Map<string, Trend>,
+  disciplineColors: Record<string, string>
 ): PerformanceWidgetItem {
   return {
     id: perf.id,
@@ -161,6 +164,7 @@ function toWidgetPerf(
     isPB: perf.isPersonalBest,
     isSB: sbIds.has(perf.id),
     trend: trends.get(perf.id) ?? null,
+    color: disciplineColors[perf.discipline] ?? null,
   }
 }
 
@@ -227,6 +231,7 @@ export async function getDashboardData(
       buildPerfTrends(perfs),
     ])
     const athleteName = `${linkedAthlete.firstName} ${linkedAthlete.lastName}`
+    const disciplineColors = JSON.parse(linkedAthlete.disciplineColors) as Record<string, string>
 
     return {
       view: 'athlete',
@@ -235,7 +240,9 @@ export async function getDashboardData(
       upcomingSessions,
       nextCompetition: upcomingCompetitions[0] ?? null,
       upcomingCompetitions,
-      recentPerformances: perfs.map((p) => toWidgetPerf(p, athleteName, sbIds, trends)),
+      recentPerformances: perfs.map((p) =>
+        toWidgetPerf(p, athleteName, sbIds, trends, disciplineColors)
+      ),
     }
   }
 
@@ -263,7 +270,8 @@ export async function getDashboardData(
         perf,
         `${perf.athlete.firstName} ${perf.athlete.lastName}`,
         sbCache.get(perf.athleteId)!,
-        coachTrends
+        coachTrends,
+        JSON.parse(perf.athlete.disciplineColors) as Record<string, string>
       )
     )
   }
@@ -280,7 +288,10 @@ export async function getDashboardData(
       buildPerfTrends(myPerfs),
     ])
     const athleteName = `${linkedAthlete.firstName} ${linkedAthlete.lastName}`
-    myPerformances = myPerfs.map((p) => toWidgetPerf(p, athleteName, mySbIds, myTrends))
+    const disciplineColors = JSON.parse(linkedAthlete.disciplineColors) as Record<string, string>
+    myPerformances = myPerfs.map((p) =>
+      toWidgetPerf(p, athleteName, mySbIds, myTrends, disciplineColors)
+    )
   }
 
   return {
