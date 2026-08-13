@@ -130,7 +130,7 @@ export function RegistrationRow({
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-1.5">
         {canManage && (
           <label
             className={cn(
@@ -156,13 +156,24 @@ export function RegistrationRow({
         )}
         {(canManage || isSelf) && (
           <>
-            <Button variant="ghost" size="icon-sm" onClick={onEdit} aria-label="Modifier">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={onEdit}
+              aria-label="Modifier"
+              className="size-8 sm:size-7"
+            >
               <Pencil className="size-3.5" />
             </Button>
             <AlertDialog>
               <AlertDialogTrigger
                 render={
-                  <Button variant="ghost" size="icon-sm" aria-label="Retirer">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Retirer"
+                    className="size-8 sm:size-7"
+                  >
                     <X className="size-3.5" />
                   </Button>
                 }

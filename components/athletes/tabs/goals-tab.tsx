@@ -72,20 +72,27 @@ export function GoalsTab({
       {canEdit && (
         <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
           {showForm ? (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <Input
                 autoFocus
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Titre de l'objectif..."
                 onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                className="sm:flex-1"
               />
-              <Button onClick={handleCreate} disabled={loading}>
-                {loading ? <Loader2 className="size-4 animate-spin" /> : 'Ajouter'}
-              </Button>
-              <Button variant="ghost" onClick={() => setShowForm(false)}>
-                Annuler
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button onClick={handleCreate} disabled={loading} className="flex-1 sm:flex-none">
+                  {loading ? <Loader2 className="size-4 animate-spin" /> : 'Ajouter'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowForm(false)}
+                  className="flex-1 sm:flex-none"
+                >
+                  Annuler
+                </Button>
+              </div>
             </div>
           ) : (
             <button

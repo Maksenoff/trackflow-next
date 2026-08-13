@@ -25,7 +25,7 @@ export default async function AthletesPage({ searchParams }: { searchParams: { q
               {athletes.length > 1 ? 's' : ''}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
             <AthleteSearch />
             {canManage && (
               <Link
