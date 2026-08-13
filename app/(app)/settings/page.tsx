@@ -24,7 +24,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: { t
   return (
     <PageTransition>
       <div className="mx-auto max-w-4xl space-y-6 p-4 lg:p-8 xl:p-10">
-        <div>
+        <div className="text-center">
           <h1 className="text-2xl font-bold tracking-tight">Paramètres</h1>
           <p className="text-sm text-muted-foreground">
             Gère les catégories (couleur + nom) utilisées dans les calendriers.
