@@ -2,16 +2,11 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Settings, ShieldCheck } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { MobileAccountSheet } from '@/components/nav/mobile-account-sheet'
 import { cn } from '@/lib/utils'
 import { NAV_LINKS } from '@/components/nav/nav-links'
@@ -39,8 +34,8 @@ export function MobileNav({
   linkedAthleteId: string | null
 }) {
   const pathname = usePathname()
-  const router = useRouter()
   const [accountOpen, setAccountOpen] = useState(false)
+  const [systemOpen, setSystemOpen] = useState(false)
   const links = NAV_LINKS.filter((l) => !l.roles || l.roles.some((r) => roles.includes(r)))
 
   return (
@@ -83,28 +78,13 @@ export function MobileNav({
           if (link.href === '/settings') {
             return (
               <li key={link.href} className="flex-1">
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    render={
-                      <button
-                        type="button"
-                        className="relative flex w-full flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-medium text-muted-foreground"
-                      >
-                        {content}
-                      </button>
-                    }
-                  />
-                  <DropdownMenuContent side="top" align="center" sideOffset={10}>
-                    <DropdownMenuItem onClick={() => router.push('/settings')}>
-                      <Settings className="size-4" />
-                      Paramètres
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => router.push('/admin')}>
-                      <ShieldCheck className="size-4" />
-                      Admin
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <button
+                  type="button"
+                  onClick={() => setSystemOpen(true)}
+                  className="relative flex w-full flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-medium text-muted-foreground"
+                >
+                  {content}
+                </button>
               </li>
             )
           }
@@ -144,6 +124,36 @@ export function MobileNav({
         primaryRole={primaryRole(roles)}
         linkedAthleteId={linkedAthleteId}
       />
+
+      <Sheet open={systemOpen} onOpenChange={setSystemOpen}>
+        <SheetContent
+          side="bottom"
+          className="rounded-t-[28px] border-border pb-[max(1rem,env(safe-area-inset-bottom))]"
+          showCloseButton={false}
+        >
+          <SheetTitle className="sr-only">Système</SheetTitle>
+          <div className="mx-auto mt-1 h-1 w-9 shrink-0 rounded-full bg-muted" />
+
+          <div className="space-y-1 px-2 pt-2 pb-2">
+            <Link
+              href="/settings"
+              onClick={() => setSystemOpen(false)}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors hover:bg-muted/60"
+            >
+              <Settings className="size-4 text-muted-foreground" />
+              Paramètres
+            </Link>
+            <Link
+              href="/admin"
+              onClick={() => setSystemOpen(false)}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors hover:bg-muted/60"
+            >
+              <ShieldCheck className="size-4 text-muted-foreground" />
+              Admin
+            </Link>
+          </div>
+        </SheetContent>
+      </Sheet>
     </nav>
   )
 }
