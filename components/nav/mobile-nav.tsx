@@ -36,7 +36,14 @@ export function MobileNav({
   const pathname = usePathname()
   const [accountOpen, setAccountOpen] = useState(false)
   const [systemOpen, setSystemOpen] = useState(false)
-  const links = NAV_LINKS.filter((l) => !l.roles || l.roles.some((r) => roles.includes(r)))
+  const allowed = NAV_LINKS.filter((l) => !l.roles || l.roles.some((r) => roles.includes(r)))
+  const links = allowed.filter((l) => l.href !== '/settings' && l.href !== '/admin')
+  const hasSystem = allowed.some((l) => l.href === '/settings' || l.href === '/admin')
+  const systemActive =
+    pathname === '/settings' ||
+    pathname.startsWith('/settings/') ||
+    pathname === '/admin' ||
+    pathname.startsWith('/admin/')
 
   return (
     <nav
@@ -45,16 +52,45 @@ export function MobileNav({
     >
       <ul className="flex items-stretch justify-around px-1 py-1.5">
         {links.map((link) => {
-          const isActive =
-            link.href === '/settings'
-              ? pathname === '/settings' ||
-                pathname.startsWith('/settings/') ||
-                pathname === '/admin' ||
-                pathname.startsWith('/admin/')
-              : pathname === link.href || pathname.startsWith(`${link.href}/`)
-          const content = (
-            <>
-              {isActive && (
+          const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`)
+          return (
+            <li key={link.href} className="flex-1">
+              <Link
+                href={link.href}
+                className="relative flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-medium text-muted-foreground"
+              >
+                {isActive && (
+                  <motion.span
+                    layoutId="mobile-nav-active"
+                    className="absolute inset-0 rounded-2xl bg-primary/10"
+                    transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                  />
+                )}
+                <motion.span
+                  animate={{ scale: isActive ? 1.15 : 1 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                  className={cn(
+                    'relative z-10 flex items-center justify-center',
+                    isActive && 'text-primary'
+                  )}
+                >
+                  <link.icon className="size-5" />
+                </motion.span>
+                <span className={cn('relative z-10', isActive && 'text-primary')}>
+                  {link.label}
+                </span>
+              </Link>
+            </li>
+          )
+        })}
+        {hasSystem && (
+          <li className="flex-1">
+            <button
+              type="button"
+              onClick={() => setSystemOpen(true)}
+              className="relative flex w-full flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-medium text-muted-foreground"
+            >
+              {systemActive && (
                 <motion.span
                   layoutId="mobile-nav-active"
                   className="absolute inset-0 rounded-2xl bg-primary/10"
@@ -62,44 +98,19 @@ export function MobileNav({
                 />
               )}
               <motion.span
-                animate={{ scale: isActive ? 1.15 : 1 }}
+                animate={{ scale: systemActive ? 1.15 : 1 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                 className={cn(
                   'relative z-10 flex items-center justify-center',
-                  isActive && 'text-primary'
+                  systemActive && 'text-primary'
                 )}
               >
-                <link.icon className="size-5" />
+                <Settings className="size-5" />
               </motion.span>
-              <span className={cn('relative z-10', isActive && 'text-primary')}>{link.label}</span>
-            </>
-          )
-
-          if (link.href === '/settings') {
-            return (
-              <li key={link.href} className="flex-1">
-                <button
-                  type="button"
-                  onClick={() => setSystemOpen(true)}
-                  className="relative flex w-full flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-medium text-muted-foreground"
-                >
-                  {content}
-                </button>
-              </li>
-            )
-          }
-
-          return (
-            <li key={link.href} className="flex-1">
-              <Link
-                href={link.href}
-                className="relative flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-medium text-muted-foreground"
-              >
-                {content}
-              </Link>
-            </li>
-          )
-        })}
+              <span className={cn('relative z-10', systemActive && 'text-primary')}>Système</span>
+            </button>
+          </li>
+        )}
         <li className="flex-1">
           <button
             type="button"

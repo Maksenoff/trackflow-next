@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { LayoutDashboard, Users, CalendarDays, Settings } from 'lucide-react'
+import { LayoutDashboard, Users, CalendarDays, Settings, ShieldCheck } from 'lucide-react'
 import { ROLES, type Role } from '@/lib/roles'
 
 export interface NavLink {
@@ -15,8 +15,14 @@ export const NAV_LINKS: NavLink[] = [
   { href: '/calendar', label: 'Calendriers', icon: CalendarDays },
   {
     href: '/settings',
-    label: 'Système',
+    label: 'Paramètres',
     icon: Settings,
+    roles: [ROLES.ADMIN],
+  },
+  {
+    href: '/admin',
+    label: 'Admin',
+    icon: ShieldCheck,
     roles: [ROLES.ADMIN],
   },
 ]
