@@ -2,9 +2,16 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
+import { Settings, ShieldCheck } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { MobileAccountSheet } from '@/components/nav/mobile-account-sheet'
 import { cn } from '@/lib/utils'
 import { NAV_LINKS } from '@/components/nav/nav-links'
@@ -32,6 +39,7 @@ export function MobileNav({
   linkedAthleteId: string | null
 }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [accountOpen, setAccountOpen] = useState(false)
   const links = NAV_LINKS.filter((l) => !l.roles || l.roles.some((r) => roles.includes(r)))
 
@@ -42,33 +50,72 @@ export function MobileNav({
     >
       <ul className="flex items-stretch justify-around px-1 py-1.5">
         {links.map((link) => {
-          const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`)
+          const isActive =
+            link.href === '/settings'
+              ? pathname === '/settings' ||
+                pathname.startsWith('/settings/') ||
+                pathname === '/admin' ||
+                pathname.startsWith('/admin/')
+              : pathname === link.href || pathname.startsWith(`${link.href}/`)
+          const content = (
+            <>
+              {isActive && (
+                <motion.span
+                  layoutId="mobile-nav-active"
+                  className="absolute inset-0 rounded-2xl bg-primary/10"
+                  transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                />
+              )}
+              <motion.span
+                animate={{ scale: isActive ? 1.15 : 1 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                className={cn(
+                  'relative z-10 flex items-center justify-center',
+                  isActive && 'text-primary'
+                )}
+              >
+                <link.icon className="size-5" />
+              </motion.span>
+              <span className={cn('relative z-10', isActive && 'text-primary')}>{link.label}</span>
+            </>
+          )
+
+          if (link.href === '/settings') {
+            return (
+              <li key={link.href} className="flex-1">
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <button
+                        type="button"
+                        className="relative flex w-full flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-medium text-muted-foreground"
+                      >
+                        {content}
+                      </button>
+                    }
+                  />
+                  <DropdownMenuContent side="top" align="center" sideOffset={10}>
+                    <DropdownMenuItem onClick={() => router.push('/settings')}>
+                      <Settings className="size-4" />
+                      Paramètres
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push('/admin')}>
+                      <ShieldCheck className="size-4" />
+                      Admin
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </li>
+            )
+          }
+
           return (
             <li key={link.href} className="flex-1">
               <Link
                 href={link.href}
                 className="relative flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-medium text-muted-foreground"
               >
-                {isActive && (
-                  <motion.span
-                    layoutId="mobile-nav-active"
-                    className="absolute inset-0 rounded-2xl bg-primary/10"
-                    transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-                  />
-                )}
-                <motion.span
-                  animate={{ scale: isActive ? 1.15 : 1 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                  className={cn(
-                    'relative z-10 flex items-center justify-center',
-                    isActive && 'text-primary'
-                  )}
-                >
-                  <link.icon className="size-5" />
-                </motion.span>
-                <span className={cn('relative z-10', isActive && 'text-primary')}>
-                  {link.label}
-                </span>
+                {content}
               </Link>
             </li>
           )
