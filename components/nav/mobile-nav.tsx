@@ -1,18 +1,39 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { MobileAccountSheet } from '@/components/nav/mobile-account-sheet'
 import { cn } from '@/lib/utils'
 import { NAV_LINKS } from '@/components/nav/nav-links'
-import type { Role } from '@/lib/roles'
+import { primaryRole, type Role } from '@/lib/roles'
 
-export function MobileNav({ roles }: { roles: Role[] }) {
+function initials(name: string) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+}
+
+export function MobileNav({
+  roles,
+  name,
+  email,
+  linkedAthleteId,
+}: {
+  roles: Role[]
+  name: string
+  email: string
+  linkedAthleteId: string | null
+}) {
   const pathname = usePathname()
-  const links = NAV_LINKS.filter((l) => !l.roles || l.roles.some((r) => roles.includes(r))).slice(
-    0,
-    5
-  )
+  const [accountOpen, setAccountOpen] = useState(false)
+  const links = NAV_LINKS.filter((l) => !l.roles || l.roles.some((r) => roles.includes(r)))
 
   return (
     <nav
@@ -52,7 +73,30 @@ export function MobileNav({ roles }: { roles: Role[] }) {
             </li>
           )
         })}
+        <li className="flex-1">
+          <button
+            type="button"
+            onClick={() => setAccountOpen(true)}
+            className="flex w-full flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-medium text-muted-foreground"
+          >
+            <Avatar className="size-5">
+              <AvatarFallback className="bg-gradient-to-br from-primary to-primary/60 text-[9px] font-bold text-primary-foreground">
+                {initials(name)}
+              </AvatarFallback>
+            </Avatar>
+            <span>Profil</span>
+          </button>
+        </li>
       </ul>
+
+      <MobileAccountSheet
+        open={accountOpen}
+        onOpenChange={setAccountOpen}
+        name={name}
+        email={email}
+        primaryRole={primaryRole(roles)}
+        linkedAthleteId={linkedAthleteId}
+      />
     </nav>
   )
 }

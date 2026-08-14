@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 import { Sidebar } from '@/components/nav/sidebar'
 import { MobileNav } from '@/components/nav/mobile-nav'
-import { Topbar } from '@/components/nav/topbar'
 import type { Role } from '@/lib/roles'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -9,6 +9,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const roles = (session?.user.roles ?? []) as Role[]
   const name = session?.user.name ?? ''
   const email = session?.user.email ?? ''
+
+  const user = session?.user.id
+    ? await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { linkedAthlete: { select: { id: true } } },
+      })
+    : null
+  const linkedAthleteId = user?.linkedAthlete?.id ?? null
 
   return (
     <div className="relative flex min-h-dvh">
@@ -22,10 +30,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       />
       <Sidebar roles={roles} name={name} email={email} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar name={name} email={email} roles={roles} />
         <main className="flex-1 pb-24 lg:pb-0">{children}</main>
       </div>
-      <MobileNav roles={roles} />
+      <MobileNav roles={roles} name={name} email={email} linkedAthleteId={linkedAthleteId} />
     </div>
   )
 }
