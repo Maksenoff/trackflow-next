@@ -14,6 +14,20 @@ export const ROLE_LABELS: Record<Role, string> = {
   [ROLES.ATHLETE]: 'Athlète',
 }
 
+export const ROLE_DESCRIPTIONS: Record<Role, string> = {
+  [ROLES.ADMIN]: 'Tout (panel admin, gestion des utilisateurs, feedbacks)',
+  [ROLES.COACH]: 'Gestion des athlètes, séances, calendriers et compétitions',
+  [ROLES.COMPETITION_MANAGER]: 'Ajout, modification et suppression des compétitions uniquement',
+  [ROLES.ATHLETE]: 'Consultation de ses propres données uniquement',
+}
+
+export const ALL_ROLES: Role[] = [
+  ROLES.ADMIN,
+  ROLES.COACH,
+  ROLES.COMPETITION_MANAGER,
+  ROLES.ATHLETE,
+]
+
 export function hasRole(userRoles: string[] | undefined, role: Role): boolean {
   return !!userRoles?.includes(role)
 }
