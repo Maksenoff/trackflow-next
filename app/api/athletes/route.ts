@@ -30,6 +30,7 @@ export async function POST(request: Request) {
       disciplines: JSON.stringify(data.disciplines),
       disciplineColors: JSON.stringify(data.disciplineColors),
       photoUrl: data.photoUrl ?? null,
+      photoConfig: JSON.stringify(data.photoConfig),
       bannerUrl: data.bannerUrl ?? null,
       bannerConfig: JSON.stringify(data.bannerConfig),
     },

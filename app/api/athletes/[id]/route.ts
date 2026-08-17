@@ -1,14 +1,16 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isCoach, isAdmin } from '@/lib/roles'
+import { isAdmin } from '@/lib/roles'
 import { athleteInputSchema } from '@/lib/validations/athlete'
 
+// Modifier un profil athlète est réservé à l'admin, ou à l'athlète lui-même pour
+// son propre profil — un coach gère séances/compétitions mais pas les profils.
 async function canEdit(athleteId: string) {
   const session = await auth()
   if (!session) return false
   const roles = session.user.roles ?? []
-  if (isCoach(roles) || isAdmin(roles)) return true
+  if (isAdmin(roles)) return true
   const user = await prisma.user.findUnique({ where: { id: session.user.id } })
   return user?.linkedAthleteId === athleteId
 }
@@ -25,6 +27,14 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
   const data = parsed.data
 
+  // L'activation de l'onglet Vidéos est réservée aux admins.
+  if (data.videosEnabled !== undefined) {
+    const session = await auth()
+    if (!isAdmin(session?.user.roles ?? [])) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+    }
+  }
+
   const athlete = await prisma.athlete.update({
     where: { id: params.id },
     data: {
@@ -36,14 +46,17 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       ...(data.gender !== undefined && { gender: data.gender }),
       ...(data.licenseNumber !== undefined && { licenseNumber: data.licenseNumber }),
       ...(data.ffaProfileUrl !== undefined && { ffaProfileUrl: data.ffaProfileUrl }),
+      ...(data.ffaSyncSinceYear !== undefined && { ffaSyncSinceYear: data.ffaSyncSinceYear }),
       ...(data.notes !== undefined && { notes: data.notes }),
       ...(data.disciplines !== undefined && { disciplines: JSON.stringify(data.disciplines) }),
       ...(data.disciplineColors !== undefined && {
         disciplineColors: JSON.stringify(data.disciplineColors),
       }),
       ...(data.photoUrl !== undefined && { photoUrl: data.photoUrl }),
+      ...(data.photoConfig !== undefined && { photoConfig: JSON.stringify(data.photoConfig) }),
       ...(data.bannerUrl !== undefined && { bannerUrl: data.bannerUrl }),
       ...(data.bannerConfig !== undefined && { bannerConfig: JSON.stringify(data.bannerConfig) }),
+      ...(data.videosEnabled !== undefined && { videosEnabled: data.videosEnabled }),
     },
   })
 

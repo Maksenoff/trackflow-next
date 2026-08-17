@@ -37,13 +37,14 @@ export function AthleteCard({ athlete, index = 0 }: { athlete: AthleteCardData; 
 
   return (
     <motion.div
+      className="h-full"
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index, 10) * 0.04, ease: 'easeOut' }}
     >
       <Link
         href={`/athletes/${athlete.id}`}
-        className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10"
+        className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/10"
       >
         <div className="relative z-0 h-24 overflow-hidden">
           <div
@@ -67,7 +68,7 @@ export function AthleteCard({ athlete, index = 0 }: { athlete: AthleteCardData; 
           />
         </div>
 
-        <div className="flex-1 px-5 pt-0 pb-5">
+        <div className="flex flex-1 flex-col px-5 pt-0 pb-5">
           <div className="relative z-10 -mt-7 mb-2 flex justify-start">
             {athlete.photoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -99,23 +100,15 @@ export function AthleteCard({ athlete, index = 0 }: { athlete: AthleteCardData; 
           </div>
 
           {athlete.disciplines.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {athlete.disciplines.slice(0, 4).map((d) => {
-                const color = athlete.disciplineColors[d] ?? '#6366f1'
-                return (
-                  <span
-                    key={d}
-                    className="rounded-full border px-2 py-0.5 text-[11px] font-semibold"
-                    style={{
-                      backgroundColor: `${color}18`,
-                      color,
-                      borderColor: `${color}40`,
-                    }}
-                  >
-                    {DISCIPLINE_LABELS[d] ?? d}
-                  </span>
-                )
-              })}
+            <div className="mt-3 mb-3 flex flex-wrap gap-1.5">
+              {athlete.disciplines.slice(0, 4).map((d) => (
+                <span
+                  key={d}
+                  className="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                >
+                  {DISCIPLINE_LABELS[d] ?? d}
+                </span>
+              ))}
               {athlete.disciplines.length > 4 && (
                 <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                   +{athlete.disciplines.length - 4}
@@ -124,7 +117,7 @@ export function AthleteCard({ athlete, index = 0 }: { athlete: AthleteCardData; 
             </div>
           )}
 
-          <div className="mt-4 grid grid-cols-3 divide-x divide-border border-t border-border pt-3">
+          <div className="mt-auto grid grid-cols-3 divide-x divide-border border-t border-border pt-3">
             <StatCell icon={CalendarDays} value={athlete.sessionsCount} label="Séances" />
             <StatCell icon={TrendingUp} value={athlete.performancesCount} label="Perfs" />
             <StatCell icon={Target} value={athlete.goalsCount} label="Objectifs" />

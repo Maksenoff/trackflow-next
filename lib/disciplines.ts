@@ -39,9 +39,9 @@ export const ATHLETE_SPECIALTIES: Record<string, Record<string, string>> = {
   },
   Lancers: {
     'Lancer de poids': 'poids',
-    'Lancer du disque': 'disque',
-    'Lancer du javelot': 'javelot',
-    'Lancer du marteau': 'marteau',
+    'Lancer de disque': 'disque',
+    'Lancer de javelot': 'javelot',
+    'Lancer de marteau': 'marteau',
   },
   'Épreuves combinées': {
     Décathlon: 'decathlon',
@@ -52,11 +52,11 @@ export const ATHLETE_SPECIALTIES: Record<string, Record<string, string>> = {
   Autres: {
     'Cross country': 'cross',
     Marche: 'marche',
-    'Relais 4x60m': '4x60m',
-    'Relais 4x80m': '4x80m',
-    'Relais 4x100m': '4x100m',
-    'Relais 4x200m': '4x200m',
-    'Relais 4x400m': '4x400m',
+    'Relais 4x60': '4x60m',
+    'Relais 4x80': '4x80m',
+    'Relais 4x100': '4x100m',
+    'Relais 4x200': '4x200m',
+    'Relais 4x400': '4x400m',
     Autre: 'autre',
   },
 }
@@ -68,6 +68,45 @@ export const DISCIPLINE_LABELS: Record<string, string> = Object.values(ATHLETE_S
   },
   {} as Record<string, string>
 )
+
+/**
+ * Variantes de poids/hauteur de haies dérivées par `refineByCategory` (lib/ffa-scraper.ts)
+ * selon la catégorie d'âge FFA — pas des disciplines sélectionnables dans le formulaire
+ * athlète, mais des codes réels importés depuis athle.fr qui doivent s'afficher proprement.
+ */
+const DISCIPLINE_VARIANT_LABELS: Record<string, string> = {
+  'poids-7kg': 'Lancer de poids (7kg)',
+  'poids-6kg': 'Lancer de poids (6kg)',
+  'poids-5kg': 'Lancer de poids (5kg)',
+  'poids-4kg': 'Lancer de poids (4kg)',
+  'poids-3kg': 'Lancer de poids (3kg)',
+  'poids-2kg': 'Lancer de poids (2kg)',
+  'disque-2kg': 'Lancer de disque (2kg)',
+  'disque-1.5kg': 'Lancer de disque (1,5kg)',
+  'disque-1kg': 'Lancer de disque (1kg)',
+  'disque-750g': 'Lancer de disque (750g)',
+  'disque-500g': 'Lancer de disque (500g)',
+  'javelot-800g': 'Lancer de javelot (800g)',
+  'javelot-700g': 'Lancer de javelot (700g)',
+  'javelot-600g': 'Lancer de javelot (600g)',
+  'javelot-500g': 'Lancer de javelot (500g)',
+  'marteau-7kg': 'Lancer de marteau (7kg)',
+  'marteau-6kg': 'Lancer de marteau (6kg)',
+  'marteau-5kg': 'Lancer de marteau (5kg)',
+  'marteau-4kg': 'Lancer de marteau (4kg)',
+  'marteau-3kg': 'Lancer de marteau (3kg)',
+  '60m-haies-107cm': '60m haies (107cm)',
+  '60m-haies-99cm': '60m haies (99cm)',
+  '60m-haies-91cm': '60m haies (91cm)',
+  '60m-haies-84cm': '60m haies (84cm)',
+  '60m-haies-76cm': '60m haies (76cm)',
+  '110m-haies-107cm': '110m haies (107cm)',
+  '100m-haies-84cm': '100m haies (84cm)',
+  '400m-haies-91cm': '400m haies (91cm)',
+  '400m-haies-76cm': '400m haies (76cm)',
+  '80m-haies-76cm': '80m haies (76cm)',
+}
+Object.assign(DISCIPLINE_LABELS, DISCIPLINE_VARIANT_LABELS)
 
 /**
  * Filtre les groupes de disciplines standard pour ne garder que les codes fournis

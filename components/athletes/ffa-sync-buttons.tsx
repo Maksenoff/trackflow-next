@@ -29,11 +29,16 @@ export function FfaSyncButtons({
       toast.error(data.error ?? 'Impossible de synchroniser avec la FFA.')
       return
     }
-    toast.success(
-      data.imported > 0
-        ? `${data.imported} performance${data.imported > 1 ? 's' : ''} importée${data.imported > 1 ? 's' : ''}.`
-        : 'Déjà à jour, aucune nouvelle performance.'
-    )
+    const parts: string[] = []
+    if (data.imported > 0) {
+      parts.push(
+        `${data.imported} performance${data.imported > 1 ? 's' : ''} importée${data.imported > 1 ? 's' : ''}`
+      )
+    }
+    if (data.podiumsImported > 0) {
+      parts.push(`${data.podiumsImported} podium${data.podiumsImported > 1 ? 's' : ''}`)
+    }
+    toast.success(parts.length > 0 ? parts.join(', ') + '.' : 'Déjà à jour, aucune nouveauté.')
     router.refresh()
   }
 
@@ -47,7 +52,9 @@ export function FfaSyncButtons({
       toast.error(data.error ?? 'Impossible de resynchroniser avec la FFA.')
       return
     }
-    toast.success(`Resynchronisation complète : ${data.imported} performance(s) réimportée(s).`)
+    toast.success(
+      `Resynchronisation complète : ${data.imported} performance(s), ${data.podiumsImported} podium(s) réimporté(s).`
+    )
     router.refresh()
   }
 
