@@ -5,12 +5,14 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Settings, ShieldCheck } from 'lucide-react'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { MobileAccountSheet } from '@/components/nav/mobile-account-sheet'
+import { NotificationBell } from '@/components/notifications/notification-bell'
 import { cn } from '@/lib/utils'
 import { NAV_LINKS } from '@/components/nav/nav-links'
 import { primaryRole, type Role } from '@/lib/roles'
+import type { LinkedAthleteInfo } from '@/lib/athlete'
 
 function initials(name: string) {
   return name
@@ -26,12 +28,12 @@ export function MobileNav({
   roles,
   name,
   email,
-  linkedAthleteId,
+  linkedAthlete,
 }: {
   roles: Role[]
   name: string
   email: string
-  linkedAthleteId: string | null
+  linkedAthlete: LinkedAthleteInfo | null
 }) {
   const pathname = usePathname()
   const [accountOpen, setAccountOpen] = useState(false)
@@ -83,6 +85,12 @@ export function MobileNav({
             </li>
           )
         })}
+        <li className="flex-1">
+          <NotificationBell
+            label="Alertes"
+            className="mx-auto size-auto w-full flex-col gap-1 rounded-2xl py-2 text-[11px] font-medium [&_svg]:size-5"
+          />
+        </li>
         {hasSystem && (
           <li className="flex-1">
             <button
@@ -118,6 +126,17 @@ export function MobileNav({
             className="flex w-full flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-medium text-muted-foreground"
           >
             <Avatar className="size-5">
+              {linkedAthlete?.photoUrl && (
+                <AvatarImage
+                  src={linkedAthlete.photoUrl}
+                  alt=""
+                  style={{
+                    objectPosition: `${linkedAthlete.photoConfig.x ?? 50}% ${linkedAthlete.photoConfig.y ?? 50}%`,
+                    transform: `scale(${linkedAthlete.photoConfig.zoom ?? 1})`,
+                    transformOrigin: `${linkedAthlete.photoConfig.x ?? 50}% ${linkedAthlete.photoConfig.y ?? 50}%`,
+                  }}
+                />
+              )}
               <AvatarFallback className="bg-gradient-to-br from-primary to-primary/60 text-[9px] font-bold text-primary-foreground">
                 {initials(name)}
               </AvatarFallback>
@@ -133,7 +152,7 @@ export function MobileNav({
         name={name}
         email={email}
         primaryRole={primaryRole(roles)}
-        linkedAthleteId={linkedAthleteId}
+        linkedAthlete={linkedAthlete}
       />
 
       <Sheet open={systemOpen} onOpenChange={setSystemOpen}>
@@ -146,22 +165,26 @@ export function MobileNav({
           <div className="mx-auto mt-1 h-1 w-9 shrink-0 rounded-full bg-muted" />
 
           <div className="space-y-1 px-2 pt-2 pb-2">
-            <Link
-              href="/settings"
-              onClick={() => setSystemOpen(false)}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors hover:bg-muted/60"
-            >
-              <Settings className="size-4 text-muted-foreground" />
-              Paramètres
-            </Link>
-            <Link
-              href="/admin"
-              onClick={() => setSystemOpen(false)}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors hover:bg-muted/60"
-            >
-              <ShieldCheck className="size-4 text-muted-foreground" />
-              Admin
-            </Link>
+            {allowed.some((l) => l.href === '/settings') && (
+              <Link
+                href="/settings"
+                onClick={() => setSystemOpen(false)}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors hover:bg-muted/60"
+              >
+                <Settings className="size-4 text-muted-foreground" />
+                Paramètres
+              </Link>
+            )}
+            {allowed.some((l) => l.href === '/admin') && (
+              <Link
+                href="/admin"
+                onClick={() => setSystemOpen(false)}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors hover:bg-muted/60"
+              >
+                <ShieldCheck className="size-4 text-muted-foreground" />
+                Admin
+              </Link>
+            )}
           </div>
         </SheetContent>
       </Sheet>

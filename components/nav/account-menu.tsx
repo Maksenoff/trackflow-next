@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { signOut } from 'next-auth/react'
-import { ChevronsUpDown, LogOut, Moon, Sun } from 'lucide-react'
+import { ChevronsUpDown, LogOut, Moon, Sun, UserRound } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,9 +13,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { AppVersion } from '@/components/ui/AppVersion'
 import { ROLE_LABELS, type Role } from '@/lib/roles'
+import type { LinkedAthleteInfo } from '@/lib/athlete'
 
 function initials(name: string) {
   return name
@@ -31,16 +33,31 @@ export function AccountMenu({
   email,
   primaryRole,
   compact = false,
+  linkedAthlete,
 }: {
   name: string
   email: string
   primaryRole: Role | null
   compact?: boolean
+  linkedAthlete?: LinkedAthleteInfo | null
 }) {
+  const router = useRouter()
   const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
   const isDark = mounted && resolvedTheme === 'dark'
+
+  const avatarImage = linkedAthlete?.photoUrl && (
+    <AvatarImage
+      src={linkedAthlete.photoUrl}
+      alt=""
+      style={{
+        objectPosition: `${linkedAthlete.photoConfig.x ?? 50}% ${linkedAthlete.photoConfig.y ?? 50}%`,
+        transform: `scale(${linkedAthlete.photoConfig.zoom ?? 1})`,
+        transformOrigin: `${linkedAthlete.photoConfig.x ?? 50}% ${linkedAthlete.photoConfig.y ?? 50}%`,
+      }}
+    />
+  )
 
   return (
     <DropdownMenu>
@@ -49,6 +66,7 @@ export function AccountMenu({
           compact ? (
             <button type="button" aria-label="Compte">
               <Avatar className="size-8">
+                {avatarImage}
                 <AvatarFallback className="bg-gradient-to-br from-primary to-primary/60 text-xs font-bold text-primary-foreground">
                   {initials(name)}
                 </AvatarFallback>
@@ -60,6 +78,7 @@ export function AccountMenu({
               className="group flex w-full items-center gap-2.5 rounded-xl p-2 text-left transition-colors hover:bg-sidebar-accent/60"
             >
               <Avatar className="size-9">
+                {avatarImage}
                 <AvatarFallback className="bg-gradient-to-br from-primary to-primary/60 text-xs font-bold text-primary-foreground">
                   {initials(name)}
                 </AvatarFallback>
@@ -88,6 +107,15 @@ export function AccountMenu({
           <div className="truncate text-xs text-muted-foreground">{email}</div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {linkedAthlete && (
+          <>
+            <DropdownMenuItem onClick={() => router.push(`/athletes/${linkedAthlete.id}`)}>
+              <UserRound className="size-4" />
+              Mon profil
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem onClick={() => setTheme(isDark ? 'light' : 'dark')}>
           {isDark ? <Moon className="size-4" /> : <Sun className="size-4" />}
           {isDark ? 'Thème sombre' : 'Thème clair'}

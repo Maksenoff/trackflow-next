@@ -6,9 +6,10 @@ import { useTheme } from 'next-themes'
 import { signOut } from 'next-auth/react'
 import { LogOut, Moon, Sun, UserRound } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { AppVersion } from '@/components/ui/AppVersion'
 import { ROLE_LABELS, type Role } from '@/lib/roles'
+import type { LinkedAthleteInfo } from '@/lib/athlete'
 
 function initials(name: string) {
   return name
@@ -26,14 +27,14 @@ export function MobileAccountSheet({
   name,
   email,
   primaryRole,
-  linkedAthleteId,
+  linkedAthlete,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   name: string
   email: string
   primaryRole: Role | null
-  linkedAthleteId: string | null
+  linkedAthlete: LinkedAthleteInfo | null
 }) {
   const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -52,6 +53,17 @@ export function MobileAccountSheet({
 
         <div className="flex items-center gap-3 px-4 pt-2">
           <Avatar className="size-11">
+            {linkedAthlete?.photoUrl && (
+              <AvatarImage
+                src={linkedAthlete.photoUrl}
+                alt=""
+                style={{
+                  objectPosition: `${linkedAthlete.photoConfig.x ?? 50}% ${linkedAthlete.photoConfig.y ?? 50}%`,
+                  transform: `scale(${linkedAthlete.photoConfig.zoom ?? 1})`,
+                  transformOrigin: `${linkedAthlete.photoConfig.x ?? 50}% ${linkedAthlete.photoConfig.y ?? 50}%`,
+                }}
+              />
+            )}
             <AvatarFallback className="bg-gradient-to-br from-primary to-primary/60 text-sm font-bold text-primary-foreground">
               {initials(name)}
             </AvatarFallback>
@@ -78,9 +90,9 @@ export function MobileAccountSheet({
             {isDark ? 'Mode sombre' : 'Mode clair'}
           </button>
 
-          {linkedAthleteId && (
+          {linkedAthlete && (
             <Link
-              href={`/athletes/${linkedAthleteId}`}
+              href={`/athletes/${linkedAthlete.id}`}
               onClick={() => onOpenChange(false)}
               className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors hover:bg-muted/60"
             >

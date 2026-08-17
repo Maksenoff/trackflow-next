@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Sidebar } from '@/components/nav/sidebar'
 import { MobileNav } from '@/components/nav/mobile-nav'
+import { FeedbackWidget } from '@/components/feedback/feedback-widget'
 import type { Role } from '@/lib/roles'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -13,10 +14,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const user = session?.user.id
     ? await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { linkedAthlete: { select: { id: true } } },
+        select: { linkedAthlete: { select: { id: true, photoUrl: true, photoConfig: true } } },
       })
     : null
-  const linkedAthleteId = user?.linkedAthlete?.id ?? null
+  const linkedAthlete = user?.linkedAthlete
+    ? {
+        id: user.linkedAthlete.id,
+        photoUrl: user.linkedAthlete.photoUrl,
+        photoConfig: JSON.parse(user.linkedAthlete.photoConfig) as {
+          zoom?: number
+          x?: number
+          y?: number
+        },
+      }
+    : null
 
   return (
     <div className="relative flex min-h-dvh">
@@ -28,11 +39,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             'radial-gradient(ellipse 80% 50% at 50% -10%, color-mix(in oklab, var(--primary) 7%, transparent), transparent)',
         }}
       />
-      <Sidebar roles={roles} name={name} email={email} />
+      <Sidebar roles={roles} name={name} email={email} linkedAthlete={linkedAthlete} />
       <div className="flex min-w-0 flex-1 flex-col">
         <main className="flex-1 pb-24 lg:pb-0">{children}</main>
       </div>
-      <MobileNav roles={roles} name={name} email={email} linkedAthleteId={linkedAthleteId} />
+      <MobileNav roles={roles} name={name} email={email} linkedAthlete={linkedAthlete} />
+      <FeedbackWidget />
     </div>
   )
 }

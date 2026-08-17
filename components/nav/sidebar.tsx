@@ -8,9 +8,21 @@ import { NAV_LINKS } from '@/components/nav/nav-links'
 import { Logo } from '@/components/logo'
 import { AccountMenu } from '@/components/nav/account-menu'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { NotificationBell } from '@/components/notifications/notification-bell'
 import { primaryRole, type Role } from '@/lib/roles'
+import type { LinkedAthleteInfo } from '@/lib/athlete'
 
-export function Sidebar({ roles, name, email }: { roles: Role[]; name: string; email: string }) {
+export function Sidebar({
+  roles,
+  name,
+  email,
+  linkedAthlete,
+}: {
+  roles: Role[]
+  name: string
+  email: string
+  linkedAthlete: LinkedAthleteInfo | null
+}) {
   const pathname = usePathname()
   const links = NAV_LINKS.filter((l) => !l.roles || l.roles.some((r) => roles.includes(r)))
 
@@ -22,8 +34,9 @@ export function Sidebar({ roles, name, email }: { roles: Role[]; name: string; e
           className="pointer-events-none absolute -top-20 -left-16 size-56 rounded-full bg-primary/10 blur-3xl"
         />
 
-        <div className="relative flex h-16 shrink-0 items-center px-5">
+        <div className="relative flex h-16 shrink-0 items-center justify-between px-5">
           <Logo markClassName="size-9" wordmarkClassName="h-4.5 w-auto text-card-foreground" />
+          <NotificationBell />
         </div>
 
         <nav className="relative flex-1 space-y-1 overflow-y-auto px-3 py-2">
@@ -65,7 +78,12 @@ export function Sidebar({ roles, name, email }: { roles: Role[]; name: string; e
 
         <div className="relative flex items-center gap-2 border-t border-border p-3">
           <div className="min-w-0 flex-1">
-            <AccountMenu name={name} email={email} primaryRole={primaryRole(roles)} />
+            <AccountMenu
+              name={name}
+              email={email}
+              primaryRole={primaryRole(roles)}
+              linkedAthlete={linkedAthlete}
+            />
           </div>
           <ThemeToggle />
         </div>

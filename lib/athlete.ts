@@ -17,6 +17,13 @@ export function initials(firstName: string, lastName: string): string {
   return `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase()
 }
 
+/** Profil athlète lié à l'utilisateur connecté, pour afficher sa vraie photo dans la nav. */
+export type LinkedAthleteInfo = {
+  id: string
+  photoUrl: string | null
+  photoConfig: { zoom?: number; x?: number; y?: number }
+}
+
 export function fullName(firstName: string, lastName: string): string {
   return `${firstName} ${lastName}`
 }
