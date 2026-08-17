@@ -16,6 +16,7 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { initials } from '@/lib/athlete'
 import { formatFullDate } from '@/lib/date'
+import { useIsLightTheme } from '@/lib/use-is-light-theme'
 import { cn } from '@/lib/utils'
 import { MEDAL_GRADIENTS, type MedalRank } from './medal-colors'
 import { PodiumFormDialog } from './podium-form-dialog'
@@ -41,11 +42,15 @@ type AthleteInfo = {
 }
 
 const STEP_HEIGHT: Record<number, string> = {
-  1: 'h-24 sm:h-32',
-  2: 'h-16 sm:h-24',
-  3: 'h-10 sm:h-16',
+  1: 'h-28 sm:h-36',
+  2: 'h-20 sm:h-28',
+  3: 'h-12 sm:h-16',
 }
 const STEP_ORDER = [2, 1, 3]
+
+function medalStyle(rank: number) {
+  return MEDAL_GRADIENTS[(rank in MEDAL_GRADIENTS ? rank : 3) as MedalRank]
+}
 
 type ViewMode = 'list' | 'years'
 
@@ -64,6 +69,14 @@ export function PodiumsView({
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<PodiumItem | null>(null)
 
+  const counts = useMemo(() => {
+    const c = { 1: 0, 2: 0, 3: 0 }
+    for (const p of podiums) {
+      if (p.rank === 1 || p.rank === 2 || p.rank === 3) c[p.rank]++
+    }
+    return c
+  }, [podiums])
+
   function openAdd() {
     setEditing(null)
     setFormOpen(true)
@@ -78,7 +91,7 @@ export function PodiumsView({
     return (
       <div className="rounded-3xl border border-dashed border-border bg-card py-16 text-center shadow-sm">
         <Trophy className="mx-auto mb-3 size-9 text-muted-foreground/50" />
-        <p className="mb-1 font-bold">Aucun podium pour le moment</p>
+        <p className="mb-1 text-lg font-extrabold">Aucun podium pour le moment</p>
         <p className="mb-5 text-sm text-muted-foreground">
           Synchronise avec athle.fr ou ajoute-en un manuellement.
         </p>
@@ -86,7 +99,7 @@ export function PodiumsView({
           <button
             type="button"
             onClick={openAdd}
-            className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-primary/80 px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25"
+            className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-primary/80 px-4 py-2 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/25"
           >
             <Plus className="size-4" />
             Ajouter un podium
@@ -104,6 +117,41 @@ export function PodiumsView({
 
   return (
     <div className="space-y-5">
+      <div className="grid grid-cols-3 gap-3">
+        {([1, 2, 3] as const).map((rank) => {
+          const style = medalStyle(rank)
+          return (
+            <div
+              key={rank}
+              className="relative overflow-hidden rounded-2xl border p-4 shadow-sm"
+              style={{ background: style.step, borderColor: style.border }}
+            >
+              <div
+                aria-hidden
+                className="absolute -top-6 -right-6 size-20 rounded-full blur-2xl"
+                style={{ background: style.ring, opacity: 0.25 }}
+              />
+              <div className="relative flex items-center gap-3">
+                <div
+                  className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-black shadow-sm"
+                  style={{ background: style.disc, borderColor: style.ring, color: style.text }}
+                >
+                  {rank}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-2xl font-black tabular-nums" style={{ color: style.ring }}>
+                    {counts[rank]}
+                  </div>
+                  <div className="truncate text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+                    {style.label}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1 shadow-sm">
           {(
@@ -140,7 +188,7 @@ export function PodiumsView({
           <button
             type="button"
             onClick={openAdd}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 text-sm font-semibold shadow-sm transition-colors hover:bg-muted/60"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 text-sm font-bold shadow-sm transition-colors hover:bg-muted/60"
           >
             <Plus className="size-4" />
             Ajouter
@@ -176,11 +224,11 @@ export function PodiumsView({
 }
 
 function RankBadge({ rank, className }: { rank: number; className?: string }) {
-  const style = MEDAL_GRADIENTS[(rank in MEDAL_GRADIENTS ? rank : 3) as MedalRank]
+  const style = medalStyle(rank)
   return (
     <span
       className={cn(
-        'flex size-8 shrink-0 items-center justify-center rounded-full border font-extrabold shadow-sm',
+        'flex size-8 shrink-0 items-center justify-center rounded-full border font-black shadow-sm',
         className
       )}
       style={{ background: style.disc, borderColor: style.ring, color: style.text }}
@@ -255,24 +303,31 @@ function PodiumListView({
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
       <div className="divide-y divide-border">
-        {podiums.map((p) => (
-          <div key={p.id} className="flex items-center gap-2.5 px-4 py-2 sm:px-5">
-            <RankBadge rank={p.rank} className="size-6 text-[11px]" />
-            <div className="min-w-0 flex-1 truncate text-sm">
-              <span className="font-bold">{p.discipline}</span>
-              <span className="text-muted-foreground"> · {p.level}</span>
-            </div>
-            <div className="shrink-0 text-right text-xs text-muted-foreground">
-              {formatFullDate(p.recordedAt)}
-            </div>
-            {p.performance && (
-              <div className="hidden w-16 shrink-0 text-right font-mono text-xs font-bold tabular-nums sm:block">
-                {p.performance}
+        {podiums.map((p) => {
+          const style = medalStyle(p.rank)
+          return (
+            <div
+              key={p.id}
+              className="flex items-center gap-3 py-2 pr-4 pl-3 sm:pr-5"
+              style={{ borderLeft: `3px solid ${style.ring}` }}
+            >
+              <RankBadge rank={p.rank} className="size-6 text-[11px]" />
+              <div className="min-w-0 flex-1 truncate text-sm">
+                <span className="font-extrabold">{p.discipline}</span>
+                <span className="text-muted-foreground"> · {p.level}</span>
               </div>
-            )}
-            {canEdit && <RowActions podium={p} athleteId={athleteId} onEdit={onEdit} />}
-          </div>
-        ))}
+              <div className="shrink-0 text-right text-xs font-semibold text-muted-foreground">
+                {formatFullDate(p.recordedAt)}
+              </div>
+              {p.performance && (
+                <div className="hidden w-16 shrink-0 text-right font-mono text-xs font-bold tabular-nums sm:block">
+                  {p.performance}
+                </div>
+              )}
+              {canEdit && <RowActions podium={p} athleteId={athleteId} onEdit={onEdit} />}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -296,6 +351,7 @@ function PodiumSliderView({
   canEdit: boolean
   onEdit: (p: PodiumItem) => void
 }) {
+  const isLight = useIsLightTheme()
   const years = useMemo(
     () => Array.from(new Set(podiums.map((p) => p.year))).sort((a, b) => b - a),
     [podiums]
@@ -311,8 +367,7 @@ function PodiumSliderView({
   const [index, setIndex] = useState(0)
   const [direction, setDirection] = useState(1)
   const current = yearPodiums[index]
-  const currentStyle =
-    MEDAL_GRADIENTS[(current.rank in MEDAL_GRADIENTS ? current.rank : 3) as MedalRank]
+  const currentStyle = medalStyle(current.rank)
 
   function selectYear(y: number) {
     setYear(y)
@@ -331,7 +386,7 @@ function PodiumSliderView({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1">
         {years.map((y) => (
           <button
@@ -339,7 +394,7 @@ function PodiumSliderView({
             type="button"
             onClick={() => selectYear(y)}
             className={cn(
-              'inline-flex shrink-0 items-center rounded-full border px-3.5 py-1.5 text-sm font-bold transition-colors',
+              'inline-flex shrink-0 items-center rounded-full border px-3.5 py-1.5 text-sm font-black transition-colors',
               y === year
                 ? 'border-primary/40 bg-primary/10 text-primary'
                 : 'border-border text-muted-foreground hover:text-foreground'
@@ -350,151 +405,165 @@ function PodiumSliderView({
         ))}
       </div>
 
-      <div className="flex items-center justify-center gap-3">
-        <button
-          type="button"
-          onClick={() => go(-1)}
-          disabled={index === 0}
-          className="flex size-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
-          aria-label="Compétition précédente"
-        >
-          <ChevronLeft className="size-4" />
-        </button>
-        <div className="text-center">
-          <div className="text-lg font-extrabold tracking-tight">{year}</div>
-          <div className="text-xs text-muted-foreground">
-            {index + 1} / {yearPodiums.length}
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => go(1)}
-          disabled={index === yearPodiums.length - 1}
-          className="flex size-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
-          aria-label="Compétition suivante"
-        >
-          <ChevronRight className="size-4" />
-        </button>
-      </div>
+      {/* Scène podium */}
+      <div className="relative overflow-hidden rounded-[2rem] border border-border bg-card shadow-sm">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: [
+              `repeating-linear-gradient(115deg, ${isLight ? 'rgba(0,0,0,.03)' : 'rgba(255,255,255,.04)'} 0px, ${isLight ? 'rgba(0,0,0,.03)' : 'rgba(255,255,255,.04)'} 1px, transparent 1px, transparent 14px)`,
+              `radial-gradient(120% 90% at 50% 110%, ${currentStyle.ring}22, transparent 60%)`,
+            ].join(', '),
+          }}
+        />
 
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-8">
-        <AnimatePresence mode="wait" custom={direction} initial={false}>
-          <motion.div
-            key={current.id}
-            custom={direction}
-            initial={{ x: direction * 40, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: direction * -40, opacity: 0 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
-            drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.2}
-            onDragEnd={handleDragEnd}
-            className="touch-pan-y space-y-5"
+        <div className="relative flex items-center justify-between gap-3 px-5 pt-5 sm:px-7">
+          <button
+            type="button"
+            onClick={() => go(-1)}
+            disabled={index === 0}
+            className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+            aria-label="Compétition précédente"
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="truncate text-base font-extrabold">{current.discipline}</div>
-                <div className="truncate text-xs text-muted-foreground">
-                  {current.level} · {formatFullDate(current.recordedAt)}
-                  {current.venue ? ` · ${current.venue}` : ''}
-                </div>
-              </div>
-              {canEdit && <RowActions podium={current} athleteId={athleteId} onEdit={onEdit} />}
-            </div>
+            <ChevronLeft className="size-4" />
+          </button>
 
-            <div className="mx-auto flex max-w-md items-end justify-center gap-3 sm:gap-5">
-              {STEP_ORDER.map((rank) => {
-                const isOurs = rank === current.rank
-                const style = MEDAL_GRADIENTS[rank as MedalRank]
-                return (
-                  <div key={rank} className="flex flex-1 flex-col items-center">
-                    <div className="relative mb-1 flex items-end justify-center pb-3">
-                      {isOurs ? (
-                        <>
-                          {/* rubans */}
-                          <span
-                            aria-hidden
-                            className="absolute top-1 left-1/2 h-7 w-2.5 -translate-x-[13px] rotate-[24deg] rounded-full"
-                            style={{ background: style.ring }}
-                          />
-                          <span
-                            aria-hidden
-                            className="absolute top-1 left-1/2 h-7 w-2.5 translate-x-[3px] -rotate-[24deg] rounded-full"
-                            style={{ background: style.ring }}
-                          />
-                          <div className="relative z-10 size-16 overflow-hidden rounded-full ring-4 ring-card sm:size-[4.5rem]">
-                            {athlete.photoUrl ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={athlete.photoUrl}
-                                alt=""
-                                className="size-full object-cover"
-                                style={{
-                                  objectPosition: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
-                                  transform: `scale(${athlete.photoConfig.zoom ?? 1})`,
-                                  transformOrigin: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
-                                }}
-                              />
-                            ) : (
-                              <div className="flex size-full items-center justify-center bg-gradient-to-br from-primary to-primary/60 text-sm font-bold text-primary-foreground">
-                                {initials(athlete.firstName, athlete.lastName)}
-                              </div>
-                            )}
-                          </div>
-                          {/* médaille */}
-                          <div
-                            className="absolute -bottom-1 left-1/2 z-20 flex size-7 -translate-x-1/2 items-center justify-center rounded-full border-2 text-xs font-extrabold sm:size-8"
-                            style={{
-                              background: style.disc,
-                              borderColor: style.ring,
-                              color: style.text,
-                              boxShadow: style.glow,
-                            }}
-                          >
-                            {rank}
-                          </div>
-                        </>
-                      ) : (
-                        <div className="flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground/40 sm:size-[4.5rem]">
-                          <UserRound className="size-6" />
-                        </div>
-                      )}
-                    </div>
-                    <div
-                      className={cn(
-                        'flex w-full flex-col items-center justify-start gap-1 rounded-t-2xl border pt-2',
-                        STEP_HEIGHT[rank]
-                      )}
-                      style={{ background: style.step, borderColor: style.border }}
-                    >
-                      <span className="text-xs font-extrabold" style={{ color: style.ring }}>
-                        {rank}
-                        {rank === 1 ? 'er' : 'ème'}
-                      </span>
-                      {isOurs && current.performance && (
-                        <span className="px-1 text-center text-[10px] font-semibold text-muted-foreground">
-                          {current.performance}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
+          <div className="min-w-0 text-center">
+            <div className="truncate text-base font-black tracking-tight sm:text-lg">
+              {current.discipline}
             </div>
-          </motion.div>
-        </AnimatePresence>
+            <div className="truncate text-xs font-semibold text-muted-foreground">
+              {current.level} · {formatFullDate(current.recordedAt)}
+              {current.venue ? ` · ${current.venue}` : ''}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => go(1)}
+            disabled={index === yearPodiums.length - 1}
+            className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+            aria-label="Compétition suivante"
+          >
+            <ChevronRight className="size-4" />
+          </button>
+        </div>
+
+        <div className="relative flex items-center justify-center gap-2 pt-1">
+          <span className="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+            {index + 1} / {yearPodiums.length}
+          </span>
+          {canEdit && <RowActions podium={current} athleteId={athleteId} onEdit={onEdit} />}
+        </div>
+
+        <div className="relative overflow-hidden px-4 pb-6 sm:px-8">
+          <AnimatePresence mode="wait" custom={direction} initial={false}>
+            <motion.div
+              key={current.id}
+              custom={direction}
+              initial={{ x: direction * 40, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: direction * -40, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.2}
+              onDragEnd={handleDragEnd}
+              className="touch-pan-y"
+            >
+              <div className="mx-auto flex max-w-md items-end justify-center gap-3 sm:gap-6">
+                {STEP_ORDER.map((rank) => {
+                  const isOurs = rank === current.rank
+                  const style = medalStyle(rank)
+                  return (
+                    <div key={rank} className="flex flex-1 flex-col items-center">
+                      <div className="relative mb-1 flex items-end justify-center pb-4">
+                        {isOurs ? (
+                          <>
+                            <span
+                              aria-hidden
+                              className="absolute top-1 left-1/2 h-8 w-3 -translate-x-[15px] rotate-[24deg] rounded-full"
+                              style={{ background: style.ring }}
+                            />
+                            <span
+                              aria-hidden
+                              className="absolute top-1 left-1/2 h-8 w-3 translate-x-[3px] -rotate-[24deg] rounded-full"
+                              style={{ background: style.ring }}
+                            />
+                            <div
+                              className="relative z-10 size-16 overflow-hidden rounded-full ring-4 ring-card sm:size-20"
+                              style={{ boxShadow: style.glow }}
+                            >
+                              {athlete.photoUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={athlete.photoUrl}
+                                  alt=""
+                                  className="size-full object-cover"
+                                  style={{
+                                    objectPosition: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
+                                    transform: `scale(${athlete.photoConfig.zoom ?? 1})`,
+                                    transformOrigin: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
+                                  }}
+                                />
+                              ) : (
+                                <div className="flex size-full items-center justify-center bg-gradient-to-br from-primary to-primary/60 text-base font-bold text-primary-foreground">
+                                  {initials(athlete.firstName, athlete.lastName)}
+                                </div>
+                              )}
+                            </div>
+                            <div
+                              className="absolute -bottom-1 left-1/2 z-20 flex size-8 -translate-x-1/2 items-center justify-center rounded-full border-2 text-sm font-black sm:size-9"
+                              style={{
+                                background: style.disc,
+                                borderColor: style.ring,
+                                color: style.text,
+                                boxShadow: style.glow,
+                              }}
+                            >
+                              {rank}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground/40 sm:size-20">
+                            <UserRound className="size-7" />
+                          </div>
+                        )}
+                      </div>
+                      <div
+                        className={cn(
+                          'flex w-full flex-col items-center justify-start gap-1 rounded-t-2xl border pt-2.5',
+                          STEP_HEIGHT[rank]
+                        )}
+                        style={{ background: style.step, borderColor: style.border }}
+                      >
+                        <span className="text-sm font-black" style={{ color: style.ring }}>
+                          {rank}
+                          {rank === 1 ? 'er' : 'ème'}
+                        </span>
+                        {isOurs && current.performance && (
+                          <span className="px-1 text-center font-mono text-[11px] font-bold text-muted-foreground">
+                            {current.performance}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
 
-      <div
-        className="rounded-2xl border p-3"
-        style={{ background: currentStyle.step, borderColor: currentStyle.border }}
-      >
-        <p className="mb-2 px-1 text-xs font-bold text-muted-foreground">
+      <div className="space-y-1.5 rounded-2xl border border-border bg-card p-3 shadow-sm">
+        <p className="mb-1 px-1 text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
           Tous les podiums {year} ({yearPodiums.length})
         </p>
-        <div className="space-y-1">
-          {yearPodiums.map((p, i) => (
+        {yearPodiums.map((p, i) => {
+          const style = medalStyle(p.rank)
+          return (
             <button
               key={p.id}
               type="button"
@@ -503,18 +572,19 @@ function PodiumSliderView({
                 setIndex(i)
               }}
               className={cn(
-                'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors',
-                i === index ? 'bg-card shadow-sm' : 'hover:bg-card/60'
+                'flex w-full items-center gap-2.5 rounded-xl py-1.5 pr-2 pl-2.5 text-left transition-colors',
+                i === index ? 'bg-muted/60' : 'hover:bg-muted/40'
               )}
+              style={{ borderLeft: `3px solid ${i === index ? style.ring : 'transparent'}` }}
             >
               <RankBadge rank={p.rank} className="size-5 text-[10px]" />
               <span className="min-w-0 flex-1 truncate text-xs font-bold">{p.discipline}</span>
-              <span className="shrink-0 text-[11px] text-muted-foreground">
+              <span className="shrink-0 text-[11px] font-semibold text-muted-foreground">
                 {formatFullDate(p.recordedAt)}
               </span>
             </button>
-          ))}
-        </div>
+          )
+        })}
       </div>
     </div>
   )
