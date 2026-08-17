@@ -46,9 +46,9 @@ import { cn } from '@/lib/utils'
 import { InfoHint } from './info-hint'
 
 const GOLD =
-  'bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-600 bg-clip-text text-transparent'
+  'bg-gradient-to-r from-amber-700 via-yellow-500 to-amber-700 dark:from-yellow-100 dark:via-amber-300 dark:to-yellow-500 bg-clip-text text-transparent'
 const SILVER =
-  'bg-gradient-to-br from-slate-200 via-slate-400 to-slate-500 bg-clip-text text-transparent'
+  'bg-gradient-to-r from-slate-600 via-slate-400 to-slate-600 dark:from-slate-100 dark:via-white dark:to-slate-300 bg-clip-text text-transparent'
 
 export function StatsAdvancedView({
   perfs,
@@ -126,7 +126,6 @@ export function StatsAdvancedView({
       {/* Discipline tabs */}
       <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1">
         {disciplines.map((disc) => {
-          const count = (perfsByDiscipline.get(disc) ?? []).length
           const active = disc === activeDiscipline
           return (
             <button
@@ -140,7 +139,7 @@ export function StatsAdvancedView({
                   : 'border-border bg-card text-muted-foreground hover:text-foreground'
               )}
             >
-              {formatDiscipline(disc)} <span className="opacity-60">({count})</span>
+              {formatDiscipline(disc)}
             </button>
           )
         })}
