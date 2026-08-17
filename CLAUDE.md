@@ -169,11 +169,36 @@ Feedback (retours utilisateurs)
 | Rôle | Label UI | Accès |
 |---|---|---|
 | `ROLE_ADMIN` | Administrateur | Tout (panel admin, gestion users, feedbacks) |
-| `ROLE_COACH` | Coach | Gestion athlètes, séances, calendriers, compétitions |
-| `ROLE_COMPETITION_MANAGER` | Gest. compétitions | Ajout, modification et suppression des compétitions uniquement |
+| `ROLE_COACH` | Coach | Séances + compétitions (CRUD complet), pastilles des deux calendriers (`/settings`, les deux onglets) ; **ne peut pas modifier le profil d'un athlète** (identité/photo/bannière/spécialités — réservé admin), sauf son propre profil s'il a un compte athlète lié |
+| `ROLE_COMPETITION_MANAGER` | Gest. compétitions | Compétitions uniquement (CRUD), pastilles du calendrier compétitions seulement (`/settings`, onglet compétitions seul, sans l'onglet séances) ; ne gère ni séances ni profils athlètes (sauf le sien, s'il en a un lié) |
 | `ROLE_ATHLETE` | Athlète | Consultation de ses propres données uniquement |
 
-> **4 rôles**, pas 3. `ROLE_COMPETITION_MANAGER` est un rôle intermédiaire. Un utilisateur peut avoir plusieurs rôles simultanément (ex: Admin + Athlète).
+> **4 rôles**, pas 3. `ROLE_COMPETITION_MANAGER` est un rôle intermédiaire. Le schéma
+> Prisma stocke `roles` en tableau JSON (legacy : un compte peut historiquement en
+> avoir plusieurs), mais l'admin `/admin/users/[id]` impose désormais **un seul rôle
+> actif à la fois** (sélection exclusive façon radio) — décision explicite du
+> propriétaire du projet le 2026-08-14, qui annule le choix multi-rôles pris en
+> Session 8. Voir écarts assumés de la Session 8 au §14.
+>
+> **Matrice de permissions précisée le 2026-08-18** (écart par rapport à la
+> description initiale "Gestion athlètes" pour le coach, qui prêtait à confusion) :
+> - **Modifier un profil athlète** (`/athletes/[id]/edit`, `PATCH /api/athletes/[id]`
+>   hors `videosEnabled`) : admin, ou l'athlète pour son propre profil. Le coach en
+>   est exclu — `canEdit` (large, coach inclus) reste utilisé pour séances/objectifs/
+>   notes/débriefs sur l'onglet profil ; `canEditProfile` (strict) gère uniquement le
+>   bouton "Modifier" + la page `/edit` (voir `app/(app)/athletes/[id]/page.tsx`).
+> - **Créer** un nouvel athlète reste ouvert à coach + admin (`POST /api/athletes`,
+>   non concerné par la restriction ci-dessus — l'onboarding d'un nouvel athlète est
+>   traité comme une action distincte de la modification d'un profil existant).
+> - **Pastilles séances** (`TrainingType`) : admin + coach uniquement.
+> - **Pastilles compétitions** (`CompetitionType`) : admin + coach + gest. compétitions.
+> - `/settings` accessible aux trois ; `SettingsTabs` masque l'onglet non autorisé
+>   (et la barre d'onglets entière si un seul est permis, cf. gest. compétitions qui
+>   n'a que l'onglet compétitions) ; nav (`nav-links.ts`, sidebar + bottom sheet
+>   mobile) mise à jour pour afficher "Paramètres" aux trois rôles.
+> - Vérifié en Playwright avec des comptes de test à rôle unique (le seed
+>   `coach@trackflow.app` a Admin+Coach cumulés, donc insuffisant pour tester les
+>   restrictions du coach seul).
 
 Implémenter via NextAuth + middleware Next.js (`middleware.ts` à la racine).
 
@@ -464,6 +489,14 @@ leur contenu réel n'est jamais synchronisé par OneDrive, donc plus de corrupti
   pas repartir sur un `distDir` custom (testé : ça casse la résolution de `node_modules`
   depuis les fichiers compilés, car Node résout les paquets en remontant l'arborescence
   depuis l'emplacement du fichier compilé).
+- **Plusieurs fenêtres Claude en parallèle sur ce repo** (ex: une sur les droits, une
+  sur une autre feature) : `DATABASE_URL` pointe vers le même `dev.db` partagé pour
+  toutes, donc si l'une des deux lance `prisma migrate dev` pendant que le serveur dev
+  de l'autre tourne déjà, ce serveur garde un **Prisma Client périmé** en mémoire —
+  symptôme observé : `Unknown field 'xxx' for select statement` sur un champ/relation
+  qui existe pourtant bien dans `schema.prisma` et dans la DB (`prisma migrate status`
+  dit "up to date"). Le fix est juste de redémarrer son propre `npm run dev`, rien de
+  cassé côté schéma/données.
 
 ---
 
@@ -626,13 +659,212 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."         # exposé côté client pour le SW
 >   "Personnalisées" ; auto-inscription par l'athlète lié, upsert idempotent ; badge FFA
 >   réservé au coach/admin ; statut passé/à venir en comparaison de date seule (un jour
 >   J n'est jamais "passé" avant le lendemain).
-> - **Debrief post-compétition non implémenté** — le modèle `CompetitionDebrief`
->   (ressenti, notes, "non disputée") existe déjà en base et dans le schéma Prisma,
->   mais aucune UI n'a été construite (équivalent RPE côté compétitions). À faire dans
->   une session ultérieure si besoin.
 > - **Fichiers (circulaire/horaires) en data URL** dans `documentUrl`/`schedulesUrl`,
 >   même précédent que les photos/bannières athlète (Session 3) — à migrer vers Vercel
 >   Blob avant la prod. Garde-fou côté formulaire : 8 Mo max par fichier.
+
+**Session 5bis — Debriefs + refonte design profil athlète (hors plan initial)**
+- [x] Debrief séances : ouverture 20h30 le soir même, auto-passage en "non faite"
+      après 3 jours sans debrief (`lib/session-debrief.ts`, `computeDebriefStatus`
+      réutilisable séances/compétitions), fiche de ressenti (slider difficulté coloré
+      vert→rouge, commentaire) via `session-debrief-dialog.tsx`
+- [x] Onglet Séances du profil athlète : filtres À débriefer / Faites / Non faites +
+      sous-filtre par type de séance (pastille), cards couleur selon difficulté RPE
+- [x] Debrief compétitions : même logique que les séances (`CompetitionDebrief`,
+      fenêtre 3 jours, ressenti général + commentaire libre, résultat laissé vide en
+      attendant le scraping FFA) via `competition-debrief-dialog.tsx`
+- [x] Onglet Compétitions du profil athlète : filtres Non débriefée / Débriefée +
+      sous-filtre par type de compétition
+- [x] Refonte onglets profil athlète (Performances/Séances/Compétitions/Objectifs/
+      Vidéos/Notes) : pill bar pleine largeur + indicateur animé + transitions slide
+      (pattern standardisé, voir §7)
+- [x] Refonte onglet Notes : création/édition en pop-up (taille carte), grid 4
+      colonnes, épingle en gold/jaune (max 2), clic sur une carte pour voir/modifier
+      le contenu complet
+- [x] Aperçu au survol du calendrier repensé : positionné au-dessus/en-dessous de la
+      pastille survolée, couleur reprise du type de séance/compétition
+
+**Session 7 — Scraping FFA**
+- [x] `lib/ffa-scraper.ts` (Cheerio) — port fidèle de `FfaSync.php` : patterns de
+      disciplines, seuils de temps minimum plausibles, parsing profil (nom, date de
+      naissance, genre, licence via JSON-LD/regex), parsing résultats AJAX par année
+      avec gestion cookie de session, affinage poids/disque/javelot/marteau/haies par
+      catégorie d'âge FFA, recalcul des records personnels
+- [x] `POST /api/ffa/lookup` (lookup profil par URL, utilisé sur `/athletes/new`)
+- [x] `POST /api/athletes/[id]/sync-ffa` (cache 5 min sauf `force`, même logique que
+      le contrôleur Symfony d'origine)
+- [x] `POST /api/athletes/[id]/full-resync-ffa` (admin uniquement — supprime les
+      performances FFA existantes et réimporte tout)
+- [x] Boutons Sync FFA + Resync complet sur la page athlète (bandeau photo, visibles
+      uniquement si `ffaProfileUrl` renseignée ; Resync réservé admin) + date/heure de
+      dernière sync affichée à côté du lien "Profil athle.fr"
+- [x] Mode import FFA sur `/athletes/new` : écran de choix (Avec profil athle.fr /
+      Manuellement) → recherche par URL → formulaire prérempli (badge "Prérempli via
+      athle.fr"), éditable avant création
+- [x] Vérifié en conditions réelles (Playwright + requêtes live vers athle.fr) :
+      gestion d'URL invalide, profil introuvable, et parsing réel (genre + licence
+      correctement extraits d'une page athle.fr existante)
+
+> **Notes techniques / écarts assumés :**
+> - **Endpoints de debug Symfony non portés** (`debug-ffa`, `debug-birthdate`,
+>   `diagnose-ffa`) — utiles uniquement en développement pour inspecter le HTML brut
+>   d'athle.fr, pas nécessaires en usage normal.
+> - **Badge FFA✓ sur les inscriptions compétitions** : déjà implémenté en Session 5
+>   (champ `ffaRegistered` sur `CompetitionRegistration`) — sans lien avec la sync de
+>   performances portée ici, qui opère au niveau de l'athlète (`Athlete.ffaProfileUrl`).
+> - **`tsconfig.json`** : ajout de `"target": "es2020"` (absent auparavant, donc ES3
+>   par défaut) — nécessaire pour les regex `u` et `matchAll`/itérations `Map` utilisées
+>   dans le scraper ; sans impact sur le build (Next.js compile via SWC, pas `tsc`).
+
+**Session 6 — Notifications + WebPush** (avancée avant la Session 8/9 — décision
+explicite du propriétaire du projet le 2026-08-14, "faire les droits" en parallèle
+dans une autre fenêtre)
+- [x] `lib/notifications.ts` — port fidèle de `NotificationService.php` : `notify`
+      générique avec dédoublonnage (pas de doublon non-lu même type/URL),
+      `feedbackUpdated`, `ffaConfirmed`, `athleteRegistered`, `competitionSoon`, +
+      flux "séance à débriefer" calculé à la volée (fusionné avec les notifications
+      stockées) sur notre propre règle de debrief plutôt que celle du Symfony
+      d'origine (cf. `lib/session-debrief.ts`)
+- [x] `lib/push.ts` — envoi WebPush via `web-push`, VAPID déjà en `.env`, suppression
+      auto des abonnements expirés (404/410)
+- [x] API : `GET /api/notifications/feed`, `POST /api/notifications/[id]/read`,
+      `DELETE /api/notifications/[id]`, `POST /api/notifications/read-all`,
+      `POST /api/push/subscribe`, `POST /api/push/unsubscribe`
+- [x] Notifications câblées sur les événements existants : inscription compétition
+      (notifie coach/admin, sauf l'auteur) et confirmation badge FFA (notifie
+      l'athlète) dans les routes `registrations` déjà en place
+- [x] `NotificationBell` (polling 30s) : badge non-lus, panneau avec icône par type,
+      marquer lu/tout lu, suppression, bouton "Activer les notifications push" —
+      intégré dans `Sidebar` (desktop) et `MobileNav` (mobile, bottom nav)
+- [x] Service worker : `public/push-sw.js` (handlers `push`/`notificationclick`)
+      importé dans le `sw.js` généré via `next.config.mjs` (`importScripts`), pour ne
+      pas être écrasé au build
+
+> **Notes techniques / écarts assumés :**
+> - **Bug pré-existant corrigé** : `next-pwa` v5 cible le Pages Router pour
+>   l'auto-injection du script d'enregistrement du service worker — avec l'App
+>   Router de ce projet, `/sw.js` était généré et servi mais **jamais enregistré
+>   côté client**, silencieusement (PWA/push cassés depuis la Session 1, jamais
+>   détecté faute de test en build production). Corrigé avec un enregistrement
+>   manuel (`components/sw-register.tsx`, monté dans `Providers`, actif uniquement
+>   en production).
+> - **Vérifié en build production réel** (`next build && next start`) : le service
+>   worker s'enregistre et s'active correctement. L'appel `pushManager.subscribe()`
+>   lui-même n'a pas pu être vérifié par Playwright — Chrome désactive
+>   délibérément la Push API en mode incognito, et Playwright lance toujours un
+>   contexte incognito ; limitation de l'outil de test, pas du code. Le
+>   round-trip serveur (create/notify/dédoublonnage/suppression des abonnements
+>   expirés) est lui vérifié par appels directs aux endpoints.
+> - **Rappels J-2 compétition** (`competitionSoon`, `CheckCompetitionNotificationsCommand`
+>   côté Symfony) : logique portée dans `lib/notifications.ts` mais pas encore
+>   câblée sur un cron — nécessite Vercel Cron (Session 9, déploiement) pour être
+>   déclenchée automatiquement.
+> - **SSE non implémenté** — polling 30s choisi à la place (plus simple, cohérent
+>   avec le choix déjà entériné au §11 du CLAUDE.md).
+
+**Session 8 — Admin** (gestion utilisateurs/rôles avancée avant les feedbacks —
+décision explicite du propriétaire du projet le 2026-08-14, périmètre restreint à
+"le côté droits" pour cette passe)
+- [x] `/admin/users` — grid utilisateurs (avatar initiales, rôles en pills, badge
+      "Vous"), redirection de `/admin` vers `/admin/users`
+- [x] `/admin/users/[id]` — édition identité (prénom/nom/email) + panneau rôles +
+      lien profil athlète (`PATCH /api/users/[id]`)
+- [x] Redesign panneau rôle + sélecteur "Profil athlète lié" : cartes avec icône par
+      rôle, sélection exclusive façon radio (indicateur rond + check), Select du
+      profil lié avec icône ; `BackButton` ajouté en haut de la page (pattern §7)
+- [x] 2ᵉ passe redesign (2026-08-17) : couleur distincte par rôle (`ROLE_COLORS` dans
+      `lib/roles.ts`, réutilisée sur les cards `/admin/users` et le panneau rôle),
+      cards de rôle compactées, barre Annuler/Enregistrer déplacée en haut de page
+      (visible sans scroll), bug de position du menu déroulant "Profil athlète lié"
+      corrigé (le wrapper `<span>` custom autour de `SelectValue` cassait le calcul
+      de position `alignItemWithTrigger` de base-ui — retour à un trigger simple)
+- [x] Nouveaux champs admin sur `/admin/users/[id]` : réinitialisation du mot de
+      passe (dialog dédié, `POST /api/users/[id]/reset-password`), infos lecture
+      seule (créé le / dernière connexion — nouveau champ `User.lastLoginAt`, mis à
+      jour dans `lib/auth.ts` à chaque connexion réussie), désactivation de compte
+      (`User.disabled`, bloque la connexion dans `authorize()`, non retirable sur
+      soi-même comme la protection sur le rôle Admin)
+- [x] Toggle "Onglet Vidéos" par athlète (`Athlete.videosEnabled`, `@default(true)`),
+      onglet Vidéos masqué dans `ProfileTabs` si désactivé
+- [x] 3ᵉ passe (2026-08-17) : le panneau "infos athlète + toggle Vidéos" a été
+      **déplacé** de `/athletes/[id]/edit` (accessible aussi aux coachs) vers
+      `/admin/users/[id]` (strictement admin), affiché uniquement si l'utilisateur a
+      un profil athlète lié — nouvelle section "Athlète lié" dans `UserEditForm`
+      (`components/admin/user-edit-form.tsx`), toujours via
+      `PATCH /api/athletes/[id]` (admin-only sur `videosEnabled`), déclenché en même
+      temps que le PATCH utilisateur au clic sur le même bouton "Enregistrer"
+- [x] "Historique FFA à synchroniser" (champ `ffaSyncSinceYear`, ajouté par ailleurs
+      dans cette session) : la liste déroulante proposait toutes les saisons depuis
+      1990 (~37 options) — changée pour ne proposer que les saisons depuis la
+      performance la plus ancienne de l'athlète (calculé dans
+      `/athletes/[id]/edit/page.tsx`, passé en prop `earliestSeasonStart`)
+- [x] Bouton feedback flottant discret (bas droite, toutes les pages authentifiées,
+      `components/feedback/feedback-widget.tsx` monté dans `app/(app)/layout.tsx`) →
+      panneau latéral (`Sheet` `side="right"`) avec sélecteur Bug/Suggestion + zone de
+      texte + compteur de caractères + état de succès auto-fermant, `POST /api/feedbacks`
+      (description min. 5 caractères, `page` capturée via le pathname courant, snapshot
+      `authorName`/`authorEmail` au moment de l'envoi)
+- [x] `/admin/feedbacks` — filtres combinables Tous/Bugs/Suggestions × Nouveaux/En
+      cours/Résolus (`components/admin/feedbacks-panel.tsx`), recherche full-text
+      client (description + auteur + email), badge type + statut + auteur + date +
+      page d'origine par ticket, note interne éditable (`+ Ajouter une note`), actions
+      de statut inline Nouveau→En cours→Résolu, suppression ; `GET`/`PATCH`/`DELETE
+      /api/feedbacks[/[id]]` (admin uniquement)
+- [x] Sous-navigation admin (`components/admin/admin-sub-nav.tsx`, pill bar animée
+      façon §7) entre Utilisateurs et Feedbacks, dans un `app/(app)/admin/layout.tsx`
+      partagé (gate `isAdmin` + padding commun) — badge du nombre de tickets non
+      résolus sur l'onglet Feedbacks ; visible uniquement sur les pages index, masquée
+      sur `/admin/users/[id]` (page de détail avec son propre `BackButton`)
+- [x] Changement de statut → `notifyFeedbackUpdated` (déjà présent dans
+      `lib/notifications.ts` depuis la Session 6) notifie l'auteur du ticket, in-app +
+      WebPush, sur transition vers En cours/Résolu uniquement (pas sur Nouveau, fidèle
+      au contrôleur Symfony d'origine)
+- [x] Design final + animations
+- [x] Vérifié en conditions réelles (Playwright) : soumission d'un ticket, apparition
+      immédiate côté admin, filtres type/statut, recherche, transition de statut +
+      persistance après rechargement, note interne + persistance, notification reçue
+      par l'auteur, suppression, accès mobile via Système → Admin → onglet Feedbacks
+
+> **Notes techniques / écarts assumés :**
+> - **Logique portée du contrôleur/entité Symfony d'origine** (`FeedbackController.php`,
+>   `Feedback.php`) : type par défaut `bug`, validation description ≥ 5 caractères
+>   (client + serveur), snapshot `authorName`/`authorEmail` au moment de la création
+>   (pas de jointure live sur `User`), passage automatique de `resolvedAt` à la date du
+>   jour au premier passage en `done`, notification uniquement sur transition vers
+>   `in_progress`/`done`. Le schéma Prisma `Feedback` existait déjà à l'identique
+>   (ajouté anticipativement en Session 6) — aucune migration nécessaire.
+> - **URL de la notification de changement de statut** : le Symfony d'origine pointait
+>   vers `/feedback#{id}` (une page "mes feedbacks" côté utilisateur). Cette route n'a
+>   pas d'équivalent dans ce rewrite (hors périmètre de la demande, qui ne prévoit que
+>   le widget de soumission côté utilisateur, pas de liste consultable). L'URL a été
+>   changée en `/dashboard?feedback={id}` — sert uniquement de clé de dédoublonnage
+>   stable par ticket dans `notifyFeedbackUpdated`, le clic ramène au dashboard plutôt
+>   que vers une route inexistante.
+> - **Pas de notification aux admins à la création d'un ticket** — fidèle à l'origine
+>   (`FeedbackController::report()` ne notifie personne), seule la mise à jour de
+>   statut notifie l'auteur.
+> - **Rôle exclusif (un seul actif à la fois)**, choix inversé le 2026-08-14 par
+>   rapport à la première passe de cette session (qui avait opté pour des checkboxes
+>   multi-rôles en citant le §5). Le propriétaire du projet a confirmé vouloir un
+>   choix radio strict : sélectionner un rôle désélectionne l'ancien
+>   (`components/admin/user-edit-form.tsx`, `roles` reste un tableau côté schéma
+>   mais toujours de longueur 1 depuis l'UI). Le §5 a été mis à jour en conséquence.
+>   La protection serveur contre l'auto-retrait du rôle Admin (voir ci-dessous)
+>   continue de fonctionner à l'identique avec un tableau à un seul élément.
+> - **Désactivation de compte** bloque uniquement les *nouvelles* connexions
+>   (vérifié dans `authorize()`). Une session JWT déjà active pour ce compte n'est
+>   pas invalidée immédiatement — l'utilisateur reste connecté jusqu'à expiration
+>   ou reconnexion. Pas de logique Symfony équivalente à porter (feature absente de
+>   l'app d'origine) ; invalidation immédiate hors scope de cette passe.
+> - **Logique portée du contrôleur Symfony d'origine** (`UserAdminController.php`) :
+>   protection contre l'auto-retrait de son propre rôle Admin, et double-flush pour
+>   délier un athlète déjà lié à un autre compte avant de créer le nouveau lien.
+>   L'édition d'identité (prénom/nom/email) n'existe pas dans le Symfony d'origine
+>   (qui ne gérait que rôle + lien athlète) — ajoutée ici pour suivre le §10 du
+>   CLAUDE.md, sur le même schéma que `PATCH /api/athletes/[id]`.
+> - **Suppression de compte non portée** dans cette passe (route existait côté
+>   Symfony) — hors du périmètre "gestion utilisateurs + rôles" demandé, à ajouter
+>   si besoin plus tard.
 
 ### 🔄 En cours
 - [ ] ...
@@ -641,22 +873,6 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."         # exposé côté client pour le SW
 
 **Session 1 — Fondations**
 - [ ] Vercel Postgres connecté (reste en SQLite local jusqu'au déploiement)
-
-**Session 6 — Notifications + WebPush**
-- [ ] Notifications in-app (polling / SSE)
-- [ ] WebPush (VAPID, service worker, abonnement)
-
-**Session 7 — Scraping FFA**
-- [ ] `lib/ffa-scraper.ts` (Cheerio)
-- [ ] Endpoint `POST /api/ffa/sync` + `POST /api/ffa/sync/full`
-- [ ] Boutons Sync FFA + Resync complet sur page athlète
-- [ ] Badge FFA✓ sur les inscriptions compétitions
-
-**Session 8 — Admin**
-- [ ] `/admin/users` — grid utilisateurs avec rôles + badge Vous
-- [ ] `/admin/users/[id]` — édition identité + sélection rôle (4 rôles) + lien profil athlète
-- [ ] `/admin/feedbacks` — filtres Bugs/Suggestions/statuts + recherche + actions inline Nouveau→En cours→Résolu + notes internes + suppression
-- [ ] Design final
 
 **Session 9 — Déploiement**
 - [ ] Config Vercel (env vars, Postgres, Blob)
@@ -674,9 +890,10 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY="..."         # exposé côté client pour le SW
 | 03 | 2026-08-02 | Athlètes (liste + profil + édition) | ✅ |
 | 04 | 2026-08-09 | Calendriers + Séances + Types | ✅ |
 | 05 | 2026-08-12 | Compétitions | ✅ |
-| 06 | - | Notifications + WebPush | ⏳ |
-| 07 | - | Scraping FFA | ⏳ |
-| 08 | - | Admin + Feedback | ⏳ |
+| 05bis | 2026-08-13 | Debriefs séances/compétitions + refonte profil athlète | ✅ |
+| 07 | 2026-08-13 | Scraping FFA | ✅ |
+| 06 | 2026-08-14 | Notifications + WebPush | ✅ |
+| 08 | 2026-08-17 | Admin + Feedback | ✅ |
 | 09 | - | Déploiement Vercel | ⏳ |
 
 > Mettre à jour ce tableau à chaque fin de session.
