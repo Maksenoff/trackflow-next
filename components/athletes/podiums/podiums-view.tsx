@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { AnimatePresence, motion, type PanInfo } from 'framer-motion'
-import { ChevronLeft, ChevronRight, List, MapPin, Medal, Trophy } from 'lucide-react'
+import { ChevronLeft, ChevronRight, List, MapPin, Trophy, UserRound } from 'lucide-react'
 import { initials } from '@/lib/athlete'
 import { formatFullDate } from '@/lib/date'
 import { cn } from '@/lib/utils'
@@ -45,9 +45,9 @@ const RANK_STYLES: Record<number, { badge: string; ring: string; step: string }>
 }
 
 const STEP_HEIGHT: Record<number, string> = {
-  1: 'h-32 sm:h-40',
-  2: 'h-24 sm:h-32',
-  3: 'h-16 sm:h-24',
+  1: 'h-28 sm:h-36',
+  2: 'h-20 sm:h-28',
+  3: 'h-14 sm:h-20',
 }
 const STEP_ORDER = [2, 1, 3]
 
@@ -55,11 +55,6 @@ type ViewMode = 'list' | 'years'
 
 export function PodiumsView({ podiums, athlete }: { podiums: PodiumItem[]; athlete: AthleteInfo }) {
   const [mode, setMode] = useState<ViewMode>('years')
-
-  const years = useMemo(
-    () => Array.from(new Set(podiums.map((p) => p.year))).sort((a, b) => b - a),
-    [podiums]
-  )
 
   return (
     <div className="space-y-5">
@@ -97,7 +92,7 @@ export function PodiumsView({ podiums, athlete }: { podiums: PodiumItem[]; athle
       {mode === 'list' ? (
         <PodiumListView podiums={podiums} />
       ) : (
-        <PodiumYearsView podiums={podiums} years={years} athlete={athlete} />
+        <PodiumSliderView podiums={podiums} athlete={athlete} />
       )}
     </div>
   )
@@ -155,31 +150,27 @@ function PodiumListView({ podiums }: { podiums: PodiumItem[] }) {
   )
 }
 
-function PodiumYearsView({
-  podiums,
-  years,
-  athlete,
-}: {
-  podiums: PodiumItem[]
-  years: number[]
-  athlete: AthleteInfo
-}) {
+/**
+ * Chaque résultat correspond à un podium distinct (une seule compétition) : on ne
+ * connaît que le classement de notre athlète, pas les 2 autres personnes présentes
+ * sur les marches qu'il n'occupe pas — celles-ci restent donc une icône générique.
+ */
+function PodiumSliderView({ podiums, athlete }: { podiums: PodiumItem[]; athlete: AthleteInfo }) {
+  const ordered = useMemo(
+    () => [...podiums].sort((a, b) => b.recordedAt.getTime() - a.recordedAt.getTime()),
+    [podiums]
+  )
   const [index, setIndex] = useState(0)
   const [direction, setDirection] = useState(1)
-  const year = years[index]
-  const yearPodiums = podiums.filter((p) => p.year === year)
-  const byRank = new Map<number, PodiumItem[]>()
-  for (const p of yearPodiums) {
-    byRank.set(p.rank, [...(byRank.get(p.rank) ?? []), p])
-  }
+  const current = ordered[index]
 
   function go(delta: number) {
     setDirection(delta)
-    setIndex((i) => Math.min(Math.max(i + delta, 0), years.length - 1))
+    setIndex((i) => Math.min(Math.max(i + delta, 0), ordered.length - 1))
   }
 
   function handleDragEnd(_: unknown, info: PanInfo) {
-    if (info.offset.x < -60 && index < years.length - 1) go(1)
+    if (info.offset.x < -60 && index < ordered.length - 1) go(1)
     else if (info.offset.x > 60 && index > 0) go(-1)
   }
 
@@ -191,17 +182,22 @@ function PodiumYearsView({
           onClick={() => go(-1)}
           disabled={index === 0}
           className="flex size-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
-          aria-label="Année précédente"
+          aria-label="Compétition précédente"
         >
           <ChevronLeft className="size-4" />
         </button>
-        <span className="min-w-20 text-center text-lg font-extrabold tracking-tight">{year}</span>
+        <div className="text-center">
+          <div className="text-lg font-extrabold tracking-tight">{current.year}</div>
+          <div className="text-xs text-muted-foreground">
+            {index + 1} / {ordered.length}
+          </div>
+        </div>
         <button
           type="button"
           onClick={() => go(1)}
-          disabled={index === years.length - 1}
+          disabled={index === ordered.length - 1}
           className="flex size-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
-          aria-label="Année suivante"
+          aria-label="Compétition suivante"
         >
           <ChevronRight className="size-4" />
         </button>
@@ -210,7 +206,7 @@ function PodiumYearsView({
       <div className="relative overflow-hidden">
         <AnimatePresence mode="wait" custom={direction} initial={false}>
           <motion.div
-            key={year}
+            key={current.id}
             custom={direction}
             initial={{ x: direction * 40, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -220,15 +216,23 @@ function PodiumYearsView({
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.2}
             onDragEnd={handleDragEnd}
-            className="touch-pan-y"
+            className="touch-pan-y space-y-4"
           >
+            <div className="text-center">
+              <div className="text-sm font-bold">{current.discipline}</div>
+              <div className="text-xs text-muted-foreground">
+                {current.level} · {formatFullDate(current.recordedAt)}
+                {current.venue ? ` · ${current.venue}` : ''}
+              </div>
+            </div>
+
             <div className="mx-auto flex max-w-lg items-end justify-center gap-2 sm:gap-4">
               {STEP_ORDER.map((rank) => {
-                const results = byRank.get(rank) ?? []
+                const isOurs = rank === current.rank
                 const style = RANK_STYLES[rank]
                 return (
                   <div key={rank} className="flex flex-1 flex-col items-center gap-2">
-                    {results.length > 0 ? (
+                    {isOurs ? (
                       <div
                         className={cn(
                           'flex size-14 items-center justify-center rounded-full ring-4 ring-offset-2 ring-offset-background sm:size-16',
@@ -254,8 +258,8 @@ function PodiumYearsView({
                         )}
                       </div>
                     ) : (
-                      <div className="flex size-14 items-center justify-center rounded-full border-2 border-dashed border-border text-muted-foreground sm:size-16">
-                        <Medal className="size-5 opacity-30" />
+                      <div className="flex size-14 items-center justify-center rounded-full bg-muted text-muted-foreground/50 sm:size-16">
+                        <UserRound className="size-6" />
                       </div>
                     )}
                     <div
@@ -266,11 +270,9 @@ function PodiumYearsView({
                       )}
                     >
                       <RankBadge rank={rank} />
-                      {results.length > 0 && (
+                      {isOurs && (
                         <span className="px-1 text-center text-[10px] font-semibold text-muted-foreground">
-                          {results.length > 1
-                            ? `${results.length} résultats`
-                            : results[0].discipline}
+                          {current.performance ?? current.label}
                         </span>
                       )}
                     </div>
@@ -280,29 +282,6 @@ function PodiumYearsView({
             </div>
           </motion.div>
         </AnimatePresence>
-      </div>
-
-      <div className="space-y-2">
-        {yearPodiums.map((p) => (
-          <div
-            key={p.id}
-            className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-2.5 shadow-sm"
-          >
-            <RankBadge rank={p.rank} className="size-6 text-xs" />
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-bold">{p.discipline}</div>
-              <div className="truncate text-xs text-muted-foreground">
-                {p.label} · {p.level}
-              </div>
-            </div>
-            <div className="shrink-0 text-right">
-              {p.performance && (
-                <div className="font-mono text-xs font-bold tabular-nums">{p.performance}</div>
-              )}
-              <div className="text-xs text-muted-foreground">{formatFullDate(p.recordedAt)}</div>
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   )
