@@ -41,7 +41,14 @@ import {
   formatDiscipline,
   formatPerformanceValue,
 } from '@/lib/performance'
+import { formatFullDate } from '@/lib/date'
 import { cn } from '@/lib/utils'
+import { InfoHint } from './info-hint'
+
+const GOLD =
+  'bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-600 bg-clip-text text-transparent'
+const SILVER =
+  'bg-gradient-to-br from-slate-200 via-slate-400 to-slate-500 bg-clip-text text-transparent'
 
 export function StatsAdvancedView({
   perfs,
@@ -180,6 +187,7 @@ export function StatsAdvancedView({
         <StatCard
           icon={TrendingUp}
           label="vs PB"
+          info="Écart entre ton meilleur résultat de la saison sélectionnée et ton record personnel (PB), toutes saisons confondues."
           body={
             activeSeason === 'all' ? (
               <EmptyCardHint>Sélectionne une saison.</EmptyCardHint>
@@ -205,6 +213,7 @@ export function StatsAdvancedView({
         <StatCard
           icon={TrendingDown}
           label="vs SB"
+          info="Écart entre ton meilleur résultat (SB) de la saison sélectionnée et celui de la saison précédente."
           body={
             activeSeason === 'all' ? (
               <EmptyCardHint>Sélectionne une saison.</EmptyCardHint>
@@ -228,13 +237,18 @@ export function StatsAdvancedView({
         <StatCard
           icon={Medal}
           label="SB & PB"
+          info="SB = meilleur résultat de la saison sélectionnée. PB = record personnel toutes saisons confondues. Une pastille dorée marque un nouveau record."
           body={
             activeSeason !== 'all' ? (
               <div className="space-y-2.5">
-                <LabeledValue tag="SB" value={activeStats.pb.formatted} />
+                <LabeledValue tag="SB" value={activeStats.pb.formatted} valueClassName={SILVER} />
                 {vsPB?.isNewPB ? (
                   <div>
-                    <LabeledValue tag="PB" value={`${activeStats.pb.formatted} ★`} />
+                    <LabeledValue
+                      tag="PB"
+                      value={`${activeStats.pb.formatted} ★`}
+                      valueClassName={GOLD}
+                    />
                     <p className="mt-1 pl-7 text-[11px] text-muted-foreground">
                       ex-PB : {vsPB.refFormatted} ({vsPB.refDate})
                     </p>
@@ -243,11 +257,12 @@ export function StatsAdvancedView({
                   <LabeledValue
                     tag="PB"
                     value={vsPB ? vsPB.refFormatted : baseStats.pb.formatted}
+                    valueClassName={GOLD}
                   />
                 )}
               </div>
             ) : (
-              <LabeledValue tag="PB" value={baseStats.pb.formatted} />
+              <LabeledValue tag="PB" value={baseStats.pb.formatted} valueClassName={GOLD} />
             )
           }
         />
@@ -255,6 +270,7 @@ export function StatsAdvancedView({
         <StatCard
           icon={Activity}
           label="Régularité"
+          info="Score basé sur la dispersion de tes performances (écart-type / coefficient de variation) : plus tes résultats sont proches les uns des autres, plus le score est élevé."
           body={
             <div>
               <p
@@ -315,17 +331,8 @@ export function StatsAdvancedView({
                 tickFormatter={(v: number) => formatPerformanceValue(v, activeStats.unit)}
               />
               <Tooltip
-                contentStyle={{
-                  background: 'var(--card)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 12,
-                  fontSize: 12,
-                }}
-                labelStyle={{ color: 'var(--muted-foreground)' }}
-                formatter={(v, name) => [
-                  formatPerformanceValue(Number(v), activeStats.unit),
-                  name === 'ma' ? 'Moy. mobile' : 'Perf',
-                ]}
+                cursor={{ stroke: 'var(--border)', strokeWidth: 1 }}
+                content={<ProgressionTooltip unit={activeStats.unit} />}
               />
               <Line
                 type="monotone"
@@ -368,7 +375,14 @@ export function StatsAdvancedView({
       {/* Consistance + Distribution */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
-          <h2 className="mb-5 text-sm font-bold">Consistance</h2>
+          <h2 className="mb-5 flex items-center gap-1.5 text-sm font-bold">
+            Consistance
+            <InfoHint>
+              Mesure la régularité de tes performances dans cette discipline : un écart-type et un
+              coefficient de variation faibles indiquent des résultats proches les uns des autres
+              d&apos;une compétition à l&apos;autre.
+            </InfoHint>
+          </h2>
 
           <div className="mb-5">
             <div className="mb-2.5 flex items-center justify-between">
@@ -436,7 +450,13 @@ export function StatsAdvancedView({
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
-          <h2 className="mb-5 text-sm font-bold">Distribution des résultats</h2>
+          <h2 className="mb-5 flex items-center gap-1.5 text-sm font-bold">
+            Distribution des résultats
+            <InfoHint>
+              Nombre de performances regroupées par tranche de valeur, pour voir en un coup
+              d&apos;œil où se concentrent tes résultats.
+            </InfoHint>
+          </h2>
           {activeStats.bins.length > 0 ? (
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
@@ -456,14 +476,8 @@ export function StatsAdvancedView({
                     axisLine={false}
                   />
                   <Tooltip
-                    contentStyle={{
-                      background: 'var(--card)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 12,
-                      fontSize: 12,
-                    }}
-                    labelStyle={{ color: 'var(--muted-foreground)' }}
-                    formatter={(v) => [v, 'Performances']}
+                    cursor={{ fill: 'var(--muted)', opacity: 0.5 }}
+                    content={<DistributionTooltip />}
                   />
                   <Bar
                     dataKey="count"
@@ -488,6 +502,10 @@ export function StatsAdvancedView({
           <h2 className="mb-5 flex items-center gap-2 text-sm font-bold">
             <Wind className="size-4 text-muted-foreground" />
             Impact du vent
+            <InfoHint>
+              Un vent favorable ≤ 2.0 m/s rend la performance homologuable (records/classements).
+              Au-delà, la perf reste affichée mais n&apos;est pas retenue comme référence.
+            </InfoHint>
           </h2>
 
           <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -537,20 +555,8 @@ export function StatsAdvancedView({
                 <ReferenceLine y={2} stroke="var(--chart-3)" strokeDasharray="4 3" />
                 <ReferenceLine y={-2} stroke="var(--chart-3)" strokeDasharray="4 3" />
                 <Tooltip
-                  contentStyle={{
-                    background: 'var(--card)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 12,
-                    fontSize: 12,
-                  }}
-                  labelStyle={{ color: 'var(--muted-foreground)' }}
-                  formatter={(v, name, item) => {
-                    const wind = item.payload as (typeof activeStats.wind)[number]
-                    return [
-                      `${wind.formatted} · vent ${v} m/s`,
-                      wind.isComp ? 'Compétition' : 'Entraînement',
-                    ]
-                  }}
+                  cursor={{ fill: 'var(--muted)', opacity: 0.5 }}
+                  content={<WindChartTooltip />}
                 />
                 <Bar dataKey="wind" radius={[4, 4, 4, 4]} isAnimationActive={false}>
                   {activeStats.wind.map((w, i) => (
@@ -575,10 +581,12 @@ export function StatsAdvancedView({
 function StatCard({
   icon: Icon,
   label,
+  info,
   body,
 }: {
   icon: React.ComponentType<{ className?: string }>
   label: string
+  info?: React.ReactNode
   body: React.ReactNode
 }) {
   return (
@@ -588,6 +596,7 @@ function StatCard({
         <p className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
           {label}
         </p>
+        {info && <InfoHint>{info}</InfoHint>}
       </div>
       {body}
     </div>
@@ -621,13 +630,23 @@ function EmptyCardHint({ children }: { children: React.ReactNode }) {
   return <p className="text-xs text-muted-foreground">{children}</p>
 }
 
-function LabeledValue({ tag, value }: { tag: string; value: string }) {
+function LabeledValue({
+  tag,
+  value,
+  valueClassName,
+}: {
+  tag: string
+  value: string
+  valueClassName?: string
+}) {
   return (
     <div className="flex items-baseline gap-2">
       <span className="w-6 shrink-0 text-[10px] font-semibold text-muted-foreground uppercase">
         {tag}
       </span>
-      <span className="font-mono text-xl leading-none font-bold">{value}</span>
+      <span className={cn('font-mono text-xl leading-none font-bold', valueClassName)}>
+        {value}
+      </span>
     </div>
   )
 }
@@ -638,6 +657,143 @@ function StatRow({ label, value }: { label: string; value: React.ReactNode }) {
       <span className="text-xs text-muted-foreground">{label}</span>
       <span className="font-mono text-xs text-foreground">{value}</span>
     </div>
+  )
+}
+
+function TooltipCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-w-36 rounded-xl border border-border bg-card px-3.5 py-3 text-xs shadow-xl shadow-black/10 dark:shadow-black/50">
+      {children}
+    </div>
+  )
+}
+
+function TooltipRow({
+  color,
+  dashed,
+  label,
+  value,
+  muted,
+}: {
+  color: string
+  dashed?: boolean
+  label: string
+  value: string
+  muted?: boolean
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-0.5">
+      <span className="flex items-center gap-1.5 text-muted-foreground">
+        {dashed ? (
+          <span
+            className="inline-block w-2.5 border-t-2 border-dashed"
+            style={{ borderColor: color }}
+          />
+        ) : (
+          <span className="size-2 shrink-0 rounded-full" style={{ background: color }} />
+        )}
+        {label}
+      </span>
+      <span
+        className={cn('font-mono font-bold', muted ? 'text-muted-foreground' : 'text-foreground')}
+      >
+        {value}
+      </span>
+    </div>
+  )
+}
+
+function ProgressionTooltip({
+  active,
+  payload,
+  label,
+  unit,
+}: {
+  active?: boolean
+  payload?: { dataKey?: string; value?: number; payload?: { isComp: boolean } }[]
+  label?: string
+  unit: string
+}) {
+  if (!active || !payload?.length || !label) return null
+  const perfPoint = payload.find((p) => p.dataKey === 'value')
+  const maPoint = payload.find((p) => p.dataKey === 'ma')
+  const isComp = perfPoint?.payload?.isComp
+
+  return (
+    <TooltipCard>
+      <div className="mb-2 font-bold text-foreground">{formatFullDate(new Date(label))}</div>
+      <div className="space-y-0.5">
+        {perfPoint?.value !== undefined && (
+          <TooltipRow
+            color={isComp ? 'var(--chart-3)' : 'var(--chart-1)'}
+            label="Perf"
+            value={formatPerformanceValue(perfPoint.value, unit)}
+          />
+        )}
+        {maPoint?.value !== undefined && (
+          <TooltipRow
+            color="var(--muted-foreground)"
+            dashed
+            muted
+            label="Moy. mobile"
+            value={formatPerformanceValue(maPoint.value, unit)}
+          />
+        )}
+      </div>
+    </TooltipCard>
+  )
+}
+
+function DistributionTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean
+  payload?: { value?: number; payload?: { label: string; count: number } }[]
+}) {
+  if (!active || !payload?.length) return null
+  const bin = payload[0].payload
+  if (!bin) return null
+
+  return (
+    <TooltipCard>
+      <div className="mb-2 font-bold text-foreground">{bin.label}</div>
+      <TooltipRow color="var(--chart-1)" label="Performances" value={`${bin.count}`} />
+    </TooltipCard>
+  )
+}
+
+function WindChartTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean
+  payload?: {
+    value?: number
+    payload?: { wind: number; formatted: string; date: string; isComp: boolean }
+  }[]
+}) {
+  if (!active || !payload?.length) return null
+  const point = payload[0].payload
+  if (!point) return null
+  const legal = Math.abs(point.wind) <= 2
+
+  return (
+    <TooltipCard>
+      <div className="mb-2 font-bold text-foreground">{point.date}</div>
+      <div className="space-y-0.5">
+        <TooltipRow
+          color="var(--chart-1)"
+          label={point.isComp ? 'Compétition' : 'Entraînement'}
+          value={point.formatted}
+        />
+        <TooltipRow
+          color={legal ? 'var(--chart-2)' : 'var(--chart-4)'}
+          label="Vent"
+          value={`${point.wind > 0 ? '+' : ''}${point.wind} m/s`}
+        />
+      </div>
+    </TooltipCard>
   )
 }
 
