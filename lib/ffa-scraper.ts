@@ -5,6 +5,7 @@ import * as cheerio from 'cheerio'
 import { prisma } from '@/lib/prisma'
 
 const ATHLETE_PAGE_URL = (id: string) => `https://www.athle.fr/athletes/${id}/resultats`
+const PODIUMS_PAGE_URL = (id: string) => `https://www.athle.fr/athletes/${id}/podiums`
 const AJAX_URL = 'https://www.athle.fr/ajax/fiche-athlete-resultats.aspx'
 
 const USER_AGENT =
@@ -143,7 +144,12 @@ export type FfaProfile = {
   error: string | null
 }
 
-export type FfaSyncResult = { imported: number; skipped: number; error: string | null }
+export type FfaSyncResult = {
+  imported: number
+  skipped: number
+  podiumsImported: number
+  error: string | null
+}
 
 // =========================================================================
 // PUBLIC API
@@ -169,9 +175,15 @@ export async function lookupFfaProfile(url: string): Promise<FfaProfile> {
 /** Import all competition results for an athlete linked via `ffaProfileUrl`. */
 export async function syncAthleteFfa(athleteId: string): Promise<FfaSyncResult> {
   const athlete = await prisma.athlete.findUnique({ where: { id: athleteId } })
-  if (!athlete) return { imported: 0, skipped: 0, error: 'Athlète introuvable.' }
+  if (!athlete)
+    return { imported: 0, skipped: 0, podiumsImported: 0, error: 'Athlète introuvable.' }
   if (!athlete.ffaProfileUrl) {
-    return { imported: 0, skipped: 0, error: 'Aucune URL de profil renseignée.' }
+    return {
+      imported: 0,
+      skipped: 0,
+      podiumsImported: 0,
+      error: 'Aucune URL de profil renseignée.',
+    }
   }
 
   const ffaId = extractAthleteId(athlete.ffaProfileUrl)
@@ -179,13 +191,19 @@ export async function syncAthleteFfa(athleteId: string): Promise<FfaSyncResult> 
     return {
       imported: 0,
       skipped: 0,
+      podiumsImported: 0,
       error: 'URL invalide. Format attendu : https://www.athle.fr/athletes/XXXXX/resultats',
     }
   }
 
   const [html, cookie] = await fetchWithCookie(ATHLETE_PAGE_URL(ffaId))
   if (html === null) {
-    return { imported: 0, skipped: 0, error: 'Impossible de charger la page athlète.' }
+    return {
+      imported: 0,
+      skipped: 0,
+      podiumsImported: 0,
+      error: 'Impossible de charger la page athlète.',
+    }
   }
 
   let years = extractAvailableYears(html)
@@ -279,14 +297,62 @@ export async function syncAthleteFfa(athleteId: string): Promise<FfaSyncResult> 
 
   if (imported > 0) await updatePersonalBests(athleteId)
 
+  const podiumsImported = await syncPodiums(athleteId, ffaId, athlete.ffaSyncSinceYear)
+
   await prisma.athlete.update({ where: { id: athleteId }, data: { lastSyncedAt: new Date() } })
 
-  return { imported, skipped, error: null }
+  return { imported, skipped, podiumsImported, error: null }
+}
+
+/** Synchronise les podiums (page /athletes/{id}/podiums, rendu côté serveur). */
+async function syncPodiums(
+  athleteId: string,
+  ffaId: string,
+  sinceYear: number | null
+): Promise<number> {
+  const [podiumHtml] = await fetchWithCookie(PODIUMS_PAGE_URL(ffaId))
+  if (podiumHtml === null) return 0
+
+  const rows = parsePodiums(podiumHtml).filter((r) => sinceYear === null || r.year >= sinceYear)
+
+  let imported = 0
+  for (const row of rows) {
+    const existing = await prisma.podium.findFirst({
+      where: {
+        athleteId,
+        year: row.year,
+        rank: row.rank,
+        discipline: row.discipline,
+        recordedAt: row.date,
+      },
+    })
+    if (existing) continue
+
+    await prisma.podium.create({
+      data: {
+        athleteId,
+        year: row.year,
+        rank: row.rank,
+        label: row.label,
+        level: row.level,
+        discipline: row.discipline,
+        performance: row.performance,
+        recordedAt: row.date,
+        venue: row.venue,
+        source: 'ffa',
+      },
+    })
+    imported++
+  }
+
+  return imported
 }
 
 /** Admin uniquement : supprime toutes les perfs FFA et réimporte à partir de zéro. */
 export async function fullResyncAthleteFfa(athleteId: string): Promise<FfaSyncResult> {
   await prisma.performance.deleteMany({ where: { athleteId, isCompetition: true } })
+  // Ne supprime que les podiums scrapés — les podiums ajoutés manuellement sont conservés.
+  await prisma.podium.deleteMany({ where: { athleteId, source: 'ffa' } })
   await updatePersonalBests(athleteId)
   return syncAthleteFfa(athleteId)
 }
@@ -629,6 +695,73 @@ function parseResults(html: string, year: number): ResultRow[] {
     }
   }
   return unique
+}
+
+type PodiumRow = {
+  year: number
+  rank: number
+  label: string
+  level: string
+  discipline: string
+  performance: string | null
+  date: Date
+  venue: string | null
+}
+
+/** Extrait le rang (1/2/3) depuis le texte brut de la colonne "Place" (ex: "Champion JUM - H-F", "3ème (place) JUM - H-F"). */
+function parsePodiumRank(raw: string): number | null {
+  const text = raw.trim().toLowerCase()
+  if (/vice[\s-]?champion/.test(text)) return 2
+  if (/^champion\b/.test(text)) return 1
+  const m = text.match(/^(\d)\s*(?:er|ère|ème|e)\b/)
+  if (m) {
+    const n = Number(m[1])
+    return n >= 1 && n <= 3 ? n : null
+  }
+  return null
+}
+
+/** Parse le HTML de la page /athletes/{id}/podiums (rendu côté serveur, pas d'AJAX). */
+function parsePodiums(html: string): PodiumRow[] {
+  const $ = cheerio.load(html)
+  const rows: PodiumRow[] = []
+  let currentLevel = ''
+
+  $('table.base-table tr').each((_, tr) => {
+    const $tr = $(tr)
+    const headerLabel = $tr.find('div.headers').first()
+    if (headerLabel.length > 0) {
+      currentLevel = headerLabel.text().trim()
+      return
+    }
+    if ($tr.hasClass('detail-row')) return
+    if ($tr.find('th').length > 0) return
+
+    const cells = $tr.find('td')
+    if (cells.length < 6) return
+    const texts: string[] = []
+    cells.each((i, td) => {
+      texts[i] = $(td).text().trim()
+    })
+
+    const year = parseInt(texts[0] ?? '', 10)
+    const rank = parsePodiumRank(texts[1] ?? '')
+    const date = parsePartialDate(texts[4] ?? '', year)
+    if (Number.isNaN(year) || rank === null || date === null) return
+
+    rows.push({
+      year,
+      rank,
+      label: texts[1] ?? '',
+      level: currentLevel,
+      discipline: texts[2] ?? '',
+      performance: texts[3] || null,
+      date,
+      venue: texts[5] || null,
+    })
+  })
+
+  return rows
 }
 
 function parseWind(raw: string): string | null {

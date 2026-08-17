@@ -1,5 +1,7 @@
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
+import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { isAdmin, isCoach, type Role } from '@/lib/roles'
 import { getAthleteDetail } from '@/lib/athletes-data'
 import { fullName } from '@/lib/athlete'
 import { PageTransition } from '@/components/motion/page-transition'
@@ -10,11 +12,18 @@ export default async function AthletePodiumsPage({ params }: { params: { id: str
   const athlete = await getAthleteDetail(params.id)
   if (!athlete) notFound()
 
+  const session = await auth()
+  const roles = (session?.user.roles ?? []) as Role[]
+  let canEdit = isAdmin(roles) || isCoach(roles)
+  if (!canEdit && session) {
+    const user = await prisma.user.findUnique({ where: { id: session.user.id } })
+    canEdit = user?.linkedAthleteId === athlete.id
+  }
+
   const podiums = await prisma.podium.findMany({
     where: { athleteId: params.id },
     orderBy: [{ year: 'desc' }, { rank: 'asc' }],
   })
-  if (podiums.length === 0) redirect(`/athletes/${athlete.id}`)
 
   return (
     <PageTransition>
@@ -27,6 +36,8 @@ export default async function AthletePodiumsPage({ params }: { params: { id: str
           </p>
         </div>
         <PodiumsView
+          athleteId={athlete.id}
+          canEdit={canEdit}
           podiums={podiums.map((p) => ({
             id: p.id,
             year: p.year,
@@ -37,6 +48,7 @@ export default async function AthletePodiumsPage({ params }: { params: { id: str
             performance: p.performance,
             recordedAt: p.recordedAt,
             venue: p.venue,
+            source: p.source as 'ffa' | 'manual',
           }))}
           athlete={{
             firstName: athlete.firstName,
