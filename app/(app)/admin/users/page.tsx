@@ -15,7 +15,7 @@ export default async function AdminUsersPage() {
 
   return (
     <PageTransition>
-      <div className="space-y-6 p-4 lg:p-8 xl:p-10">
+      <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Utilisateurs</h1>
           <p className="text-sm text-muted-foreground">
@@ -33,6 +33,7 @@ export default async function AdminUsersPage() {
                 lastName: user.lastName,
                 email: user.email,
                 roles: JSON.parse(user.roles) as Role[],
+                disabled: user.disabled,
               }}
               isSelf={user.id === session?.user.id}
               index={index}

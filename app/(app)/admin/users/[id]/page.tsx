@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isAdmin, type Role } from '@/lib/roles'
 import { PageTransition } from '@/components/motion/page-transition'
+import { BackButton } from '@/components/ui/back-button'
 import { UserEditForm } from '@/components/admin/user-edit-form'
 
 export default async function AdminUserEditPage({ params }: { params: { id: string } }) {
@@ -23,15 +24,27 @@ export default async function AdminUserEditPage({ params }: { params: { id: stri
     notFound()
   }
 
+  const linkedAthlete = user.linkedAthleteId
+    ? await prisma.athlete.findUnique({
+        where: { id: user.linkedAthleteId },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          birthDate: true,
+          gender: true,
+          licenseNumber: true,
+          ffaProfileUrl: true,
+          disciplines: true,
+          videosEnabled: true,
+        },
+      })
+    : null
+
   return (
     <PageTransition>
-      <div className="space-y-6 p-4 lg:p-8 xl:p-10">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {user.firstName} {user.lastName}
-          </h1>
-          <p className="text-sm text-muted-foreground">{user.email}</p>
-        </div>
+      <div className="space-y-6">
+        <BackButton label="Retour aux utilisateurs" />
 
         <UserEditForm
           user={{
@@ -41,9 +54,27 @@ export default async function AdminUserEditPage({ params }: { params: { id: stri
             email: user.email,
             roles: JSON.parse(user.roles) as Role[],
             linkedAthleteId: user.linkedAthleteId,
+            disabled: user.disabled,
+            createdAt: user.createdAt,
+            lastLoginAt: user.lastLoginAt,
           }}
           athletes={athletes}
           isSelf={user.id === session?.user.id}
+          linkedAthlete={
+            linkedAthlete
+              ? {
+                  id: linkedAthlete.id,
+                  firstName: linkedAthlete.firstName,
+                  lastName: linkedAthlete.lastName,
+                  birthDate: linkedAthlete.birthDate,
+                  gender: linkedAthlete.gender,
+                  licenseNumber: linkedAthlete.licenseNumber,
+                  ffaProfileUrl: linkedAthlete.ffaProfileUrl,
+                  disciplines: JSON.parse(linkedAthlete.disciplines) as string[],
+                  videosEnabled: linkedAthlete.videosEnabled,
+                }
+              : null
+          }
         />
       </div>
     </PageTransition>

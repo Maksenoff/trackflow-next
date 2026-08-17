@@ -7,6 +7,13 @@ export const userUpdateSchema = z.object({
   email: z.string().email('Email invalide'),
   roles: z.array(z.enum(ALL_ROLES as [string, ...string[]])).min(1, 'Au moins un rôle est requis'),
   linkedAthleteId: z.string().nullable(),
+  disabled: z.boolean().optional(),
 })
 
 export type UserUpdateInput = z.infer<typeof userUpdateSchema>
+
+export const userPasswordResetSchema = z.object({
+  password: z.string().min(8, 'Minimum 8 caractères'),
+})
+
+export type UserPasswordResetInput = z.infer<typeof userPasswordResetSchema>

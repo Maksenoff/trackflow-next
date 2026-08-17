@@ -31,6 +31,13 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     )
   }
 
+  if (isSelf && data.disabled === true) {
+    return NextResponse.json(
+      { error: 'Vous ne pouvez pas désactiver votre propre compte.' },
+      { status: 400 }
+    )
+  }
+
   if (data.linkedAthleteId !== undefined && data.linkedAthleteId !== null) {
     await prisma.user.updateMany({
       where: { linkedAthleteId: data.linkedAthleteId, NOT: { id: params.id } },
@@ -47,6 +54,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         ...(data.email !== undefined && { email: data.email }),
         ...(data.roles !== undefined && { roles: JSON.stringify(data.roles) }),
         ...(data.linkedAthleteId !== undefined && { linkedAthleteId: data.linkedAthleteId }),
+        ...(data.disabled !== undefined && { disabled: data.disabled }),
       },
     })
     return NextResponse.json({ id: user.id })

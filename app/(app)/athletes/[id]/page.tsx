@@ -16,17 +16,28 @@ export default async function AthleteProfilePage({ params }: { params: { id: str
   const roles = (session?.user.roles ?? []) as Role[]
   const isManager = isAdmin(roles) || isCoach(roles)
 
-  let canEdit = isManager
-  if (!canEdit && session) {
+  let isSelf = false
+  if (session) {
     const user = await prisma.user.findUnique({ where: { id: session.user.id } })
-    canEdit = user?.linkedAthleteId === athlete.id
+    isSelf = user?.linkedAthleteId === athlete.id
   }
+
+  // canEdit : gère séances/compétitions/objectifs/notes de l'athlète (coach inclus).
+  const canEdit = isManager || isSelf
+  // canEditProfile : modifie le profil lui-même (identité/photo/bannière/spécialités)
+  // — réservé à l'admin, ou à l'athlète pour son propre profil.
+  const canEditProfile = isAdmin(roles) || isSelf
 
   return (
     <PageTransition>
-      <div className="mx-auto max-w-5xl space-y-6 p-4 lg:p-8 xl:p-10">
+      <div className="mx-auto max-w-[1600px] space-y-6 p-4 lg:p-8 xl:p-10">
         <BackButton label="Retour aux athlètes" />
-        <ProfileHeader athlete={athlete} canEdit={canEdit} />
+        <ProfileHeader
+          athlete={athlete}
+          canEdit={canEdit}
+          canEditProfile={canEditProfile}
+          isAdmin={isAdmin(roles)}
+        />
         <ProfileTabs athlete={athlete} canEdit={canEdit} />
       </div>
     </PageTransition>

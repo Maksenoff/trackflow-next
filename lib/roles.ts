@@ -14,6 +14,13 @@ export const ROLE_LABELS: Record<Role, string> = {
   [ROLES.ATHLETE]: 'Athlète',
 }
 
+export const ROLE_COLORS: Record<Role, string> = {
+  [ROLES.ADMIN]: '#f43f5e',
+  [ROLES.COACH]: '#6366f1',
+  [ROLES.COMPETITION_MANAGER]: '#f59e0b',
+  [ROLES.ATHLETE]: '#10b981',
+}
+
 export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   [ROLES.ADMIN]: 'Tout (panel admin, gestion des utilisateurs, feedbacks)',
   [ROLES.COACH]: 'Gestion des athlètes, séances, calendriers et compétitions',
