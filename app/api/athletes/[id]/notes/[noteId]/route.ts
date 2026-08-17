@@ -16,6 +16,18 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
+  if (parsed.data.pinned === true) {
+    const pinnedCount = await prisma.athleteNote.count({
+      where: { athleteId: params.id, pinned: true, id: { not: params.noteId } },
+    })
+    if (pinnedCount >= 2) {
+      return NextResponse.json(
+        { error: 'Maximum 2 notes épinglées. Désépingle-en une avant.' },
+        { status: 400 }
+      )
+    }
+  }
+
   const note = await prisma.athleteNote.update({
     where: { id: params.noteId },
     data: parsed.data,

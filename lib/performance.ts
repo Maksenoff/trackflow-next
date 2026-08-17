@@ -1,5 +1,7 @@
 // Logique de performance portée depuis Performance.php / PerformanceRepository.php (repo Symfony)
 
+import { DISCIPLINE_LABELS } from '@/lib/disciplines'
+
 const LOWER_IS_BETTER_UNITS = ['s', 'min:s']
 
 export function isLowerBetter(unit: string): boolean {
@@ -20,13 +22,84 @@ export function formatPerformanceValue(value: number, unit: string): string {
   return `${n} ${unit}`
 }
 
-/** Formatte un nom de discipline (ex: "100m-haies" -> "100m Haies") */
+/** Formatte un nom de discipline en libellé lisible (ex: "poids-7kg" -> "Lancer de poids (7kg)") */
 export function formatDiscipline(discipline: string): string {
+  if (DISCIPLINE_LABELS[discipline]) return DISCIPLINE_LABELS[discipline]
   return discipline
     .replace(/-/g, ' ')
     .split(' ')
     .map((w) => (/^[a-zA-Z]/.test(w) ? w.charAt(0).toUpperCase() + w.slice(1) : w))
     .join(' ')
+}
+
+/** Saison sept->août, ex: {season: "2025-2026", seasonShort: "2025-26"}. Reproduit AthleteController::show() */
+export function computeSeason(date: Date): {
+  season: string
+  seasonShort: string
+  seasonStart: number
+} {
+  const year = date.getFullYear()
+  const month = date.getMonth() + 1
+  const seasonStart = month >= 9 ? year : year - 1
+  return {
+    season: `${seasonStart}-${seasonStart + 1}`,
+    seasonShort: `${seasonStart}-${String(seasonStart + 1).slice(2)}`,
+    seasonStart,
+  }
+}
+
+/** Catégorie FFA (âge au 31/12 de l'année de la perf). Reproduit AthleteController::show() */
+export function computeCategory(recordedAt: Date, birthDate: Date | null): string | null {
+  if (!birthDate) return null
+  const age = recordedAt.getFullYear() - birthDate.getFullYear()
+  if (age <= 11) return 'Poussin'
+  if (age <= 13) return 'Benjamin'
+  if (age <= 15) return 'Minime'
+  if (age <= 17) return 'Cadet'
+  if (age <= 19) return 'Junior'
+  if (age <= 22) return 'Espoir'
+  if (age <= 34) return 'Senior'
+  return 'Master'
+}
+
+/**
+ * Domaine + ticks "ronds" pour l'axe des perfs d'un graphique (ex: 6.10, 6.20...
+ * plutôt que les valeurs brutes 6.18, 6.61). La valeur exacte reste visible au survol.
+ */
+export function computeNiceAxis(
+  values: number[],
+  targetTicks = 5
+): { domain: [number, number]; ticks: number[] } {
+  if (values.length === 0) return { domain: [0, 1], ticks: [0, 1] }
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const range = max - min || Math.max(min * 0.1, 1)
+  const rawStep = range / targetTicks
+  const exponent = Math.floor(Math.log10(rawStep))
+  const magnitude = 10 ** exponent
+  const residual = rawStep / magnitude
+  const niceResidual = residual >= 5 ? 10 : residual >= 2 ? 5 : residual >= 1 ? 2 : 1
+  const step = niceResidual * magnitude
+  const niceMin = Math.floor(min / step) * step
+  const niceMax = Math.ceil(max / step) * step
+
+  const ticks: number[] = []
+  for (let t = niceMin; t <= niceMax + step / 2; t += step) {
+    ticks.push(Math.round(t * 1e6) / 1e6)
+  }
+  return { domain: [niceMin, niceMax], ticks }
+}
+
+/** Formatte un écart absolu (sans signe), ex: "0.23s" ou "0.24 m". Reproduit $formatDiff (AthleteController::stats) */
+export function formatDiffAbs(abs: number, unit: string): string {
+  if (isLowerBetter(unit)) {
+    if (abs >= 60) {
+      const min = Math.floor(abs / 60)
+      return `${min}:${(abs - min * 60).toFixed(2).padStart(5, '0')}`
+    }
+    return `${abs.toFixed(2)}s`
+  }
+  return `${abs.toFixed(2)} ${unit}`
 }
 
 export type Trend = { improved: boolean | null; diff: string }
@@ -45,14 +118,7 @@ export function calcTrend(perf: PerfLike, prev: PerfLike | null): Trend | null {
   const diff = Math.abs(curr - prevVal)
   const sign = improved ? (lowerBetter ? '-' : '+') : lowerBetter ? '+' : '-'
 
-  const diffStr = lowerBetter
-    ? sign +
-      (diff >= 60
-        ? `${Math.floor(diff / 60)}:${(diff % 60).toFixed(2).padStart(5, '0')}`
-        : `${diff.toFixed(2)}s`)
-    : `${sign}${diff.toFixed(2)} ${perf.unit}`
-
-  return { improved, diff: diffStr }
+  return { improved, diff: sign + formatDiffAbs(diff, perf.unit) }
 }
 
 type PerfWithDate = {

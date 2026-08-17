@@ -1,89 +1,127 @@
 'use client'
 
-import { TrendingUp, CalendarDays, Trophy, Target, Video, StickyNote } from 'lucide-react'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { TrendingUp, Dumbbell, Trophy, Target, Video, StickyNote } from 'lucide-react'
 import { PerformancesTab } from '@/components/athletes/tabs/performances-tab'
 import { SessionsTab } from '@/components/athletes/tabs/sessions-tab'
 import { CompetitionsTab } from '@/components/athletes/tabs/competitions-tab'
 import { GoalsTab } from '@/components/athletes/tabs/goals-tab'
 import { VideosTab } from '@/components/athletes/tabs/videos-tab'
 import { NotesTab } from '@/components/athletes/tabs/notes-tab'
+import { cn } from '@/lib/utils'
 import type { AthleteDetail } from '@/lib/athletes-data'
 
-export function ProfileTabs({ athlete, canEdit }: { athlete: AthleteDetail; canEdit: boolean }) {
-  return (
-    <Tabs defaultValue="performances" className="gap-4">
-      <TabsList className="h-auto w-full flex-wrap justify-start gap-1 bg-transparent p-0">
-        <TabsTrigger
-          value="performances"
-          className="gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 data-active:border-primary/40 data-active:bg-primary/10"
-        >
-          <TrendingUp className="size-3.5" />
-          Performances
-        </TabsTrigger>
-        <TabsTrigger
-          value="sessions"
-          className="gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 data-active:border-primary/40 data-active:bg-primary/10"
-        >
-          <CalendarDays className="size-3.5" />
-          Séances
-        </TabsTrigger>
-        <TabsTrigger
-          value="competitions"
-          className="gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 data-active:border-primary/40 data-active:bg-primary/10"
-        >
-          <Trophy className="size-3.5" />
-          Compétitions
-        </TabsTrigger>
-        <TabsTrigger
-          value="goals"
-          className="gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 data-active:border-primary/40 data-active:bg-primary/10"
-        >
-          <Target className="size-3.5" />
-          Objectifs
-        </TabsTrigger>
-        <TabsTrigger
-          value="videos"
-          className="gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 data-active:border-primary/40 data-active:bg-primary/10"
-        >
-          <Video className="size-3.5" />
-          Vidéos
-        </TabsTrigger>
-        <TabsTrigger
-          value="notes"
-          className="gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 data-active:border-primary/40 data-active:bg-primary/10"
-        >
-          <StickyNote className="size-3.5" />
-          Notes
-          {athlete.notesList.length > 0 && (
-            <span className="rounded-full bg-muted px-1.5 text-[10px] font-bold">
-              {athlete.notesList.length}
-            </span>
-          )}
-        </TabsTrigger>
-      </TabsList>
+type TabKey = 'performances' | 'sessions' | 'competitions' | 'goals' | 'videos' | 'notes'
 
-      <TabsContent value="performances">
-        <PerformancesTab performances={athlete.performances} />
-      </TabsContent>
-      <TabsContent value="sessions">
-        <SessionsTab
-          athleteSessions={athlete.athleteSessions}
-          customSessions={athlete.customSessions}
-        />
-      </TabsContent>
-      <TabsContent value="competitions">
-        <CompetitionsTab registrations={athlete.competitionRegistrations} />
-      </TabsContent>
-      <TabsContent value="goals">
-        <GoalsTab athleteId={athlete.id} goals={athlete.goals} canEdit={canEdit} />
-      </TabsContent>
-      <TabsContent value="videos">
-        <VideosTab videos={athlete.videos} />
-      </TabsContent>
-      <TabsContent value="notes">
-        <NotesTab athleteId={athlete.id} notes={athlete.notesList} canEdit={canEdit} />
-      </TabsContent>
-    </Tabs>
+export function ProfileTabs({ athlete, canEdit }: { athlete: AthleteDetail; canEdit: boolean }) {
+  const tabs = [
+    { key: 'performances' as const, label: 'Performances', icon: TrendingUp },
+    { key: 'sessions' as const, label: 'Séances', icon: Dumbbell },
+    { key: 'competitions' as const, label: 'Compétitions', icon: Trophy },
+    { key: 'goals' as const, label: 'Objectifs', icon: Target },
+    ...(athlete.videosEnabled
+      ? [{ key: 'videos' as const, label: 'Vidéos', icon: Video }]
+      : []),
+    {
+      key: 'notes' as const,
+      label: 'Notes',
+      icon: StickyNote,
+      badge: athlete.notesList.length || undefined,
+    },
+  ]
+
+  const [active, setActive] = useState<TabKey>('performances')
+  const [direction, setDirection] = useState(1)
+
+  function switchTo(key: TabKey) {
+    if (key === active) return
+    const from = tabs.findIndex((t) => t.key === active)
+    const to = tabs.findIndex((t) => t.key === key)
+    setDirection(to > from ? 1 : -1)
+    setActive(key)
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="no-scrollbar flex items-center gap-1 overflow-x-auto rounded-full border border-border bg-card p-1 shadow-sm">
+        {tabs.map((tab) => {
+          const isActive = tab.key === active
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => switchTo(tab.key)}
+              aria-current={isActive}
+              aria-label={tab.label}
+              title={tab.label}
+              className={cn(
+                'relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-full px-2.5 py-2 text-sm font-medium whitespace-nowrap transition-colors sm:px-3.5',
+                isActive ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {isActive && (
+                <motion.span
+                  layoutId="profile-tab-active"
+                  className="absolute inset-0 -z-10 rounded-full bg-gradient-to-r from-primary to-primary/80 shadow-sm shadow-primary/30"
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                />
+              )}
+              <tab.icon className="size-4 sm:size-3.5" />
+              <span className="hidden sm:inline">{tab.label}</span>
+              {tab.badge !== undefined && (
+                <span
+                  className={cn(
+                    'rounded-full px-1.5 text-[10px] font-bold',
+                    isActive ? 'bg-white/20' : 'bg-muted'
+                  )}
+                >
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="relative overflow-hidden">
+        <AnimatePresence mode="wait" custom={direction} initial={false}>
+          <motion.div
+            key={active}
+            custom={direction}
+            initial={{ x: direction * 16, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: direction * -16, opacity: 0 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+          >
+            {active === 'performances' && (
+              <PerformancesTab
+                performances={athlete.performances}
+                birthDate={athlete.birthDate}
+                disciplineColors={athlete.disciplineColors}
+              />
+            )}
+            {active === 'sessions' && (
+              <SessionsTab
+                athleteId={athlete.id}
+                sessionsWindow={athlete.sessionsWindow}
+                customSessions={athlete.customSessions}
+                canEdit={canEdit}
+              />
+            )}
+            {active === 'competitions' && (
+              <CompetitionsTab registrations={athlete.competitionRegistrations} canEdit={canEdit} />
+            )}
+            {active === 'goals' && (
+              <GoalsTab athleteId={athlete.id} goals={athlete.goals} canEdit={canEdit} />
+            )}
+            {active === 'videos' && <VideosTab videos={athlete.videos} />}
+            {active === 'notes' && (
+              <NotesTab athleteId={athlete.id} notes={athlete.notesList} canEdit={canEdit} />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </div>
   )
 }
