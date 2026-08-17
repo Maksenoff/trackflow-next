@@ -1,10 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTheme } from 'next-themes'
 import { signOut } from 'next-auth/react'
-import { ChevronsUpDown, LogOut, Moon, Sun, UserRound } from 'lucide-react'
+import { ChevronsUpDown, LogOut, UserRound } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,10 +40,6 @@ export function AccountMenu({
   linkedAthlete?: LinkedAthleteInfo | null
 }) {
   const router = useRouter()
-  const { resolvedTheme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
-  const isDark = mounted && resolvedTheme === 'dark'
 
   const avatarImage = linkedAthlete?.photoUrl && (
     <AvatarImage
@@ -116,11 +110,6 @@ export function AccountMenu({
             <DropdownMenuSeparator />
           </>
         )}
-        <DropdownMenuItem onClick={() => setTheme(isDark ? 'light' : 'dark')}>
-          {isDark ? <Moon className="size-4" /> : <Sun className="size-4" />}
-          {isDark ? 'Thème sombre' : 'Thème clair'}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onClick={() => signOut({ callbackUrl: '/login' })}>
           <LogOut className="size-4" />
           Se déconnecter
