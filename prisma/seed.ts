@@ -45,6 +45,10 @@ async function main() {
       birthDate: new Date('2003-07-22'),
       disciplines: JSON.stringify(['longueur', '110m-haies']),
       licenseNumber: '7654321',
+      photoUrl: 'https://picsum.photos/seed/noah-trackflow/600/600',
+      photoConfig: JSON.stringify({ zoom: 1.15, x: 45, y: 35 }),
+      bannerUrl: 'https://picsum.photos/seed/noah-banner-trackflow/1200/400',
+      bannerConfig: JSON.stringify({ mode: 'photo', zoom: 1, x: 50, y: 40 }),
     },
   })
 
@@ -105,6 +109,27 @@ async function main() {
     },
   })
 
+  // Séance d'hier non debriefée par Léa -> statut "à débriefer"
+  await prisma.session.create({
+    data: {
+      title: 'Côtes + gammes',
+      date: daysFromNow(-1),
+      trainingTypeId: speedType.id,
+      description: '8x80m côte, récup marchée',
+      durationMinutes: 60,
+    },
+  })
+  // Séance d'il y a une semaine non debriefée par Léa -> statut "non effectuée" (auto)
+  await prisma.session.create({
+    data: {
+      title: 'Sortie longue',
+      date: daysFromNow(-7),
+      trainingTypeId: enduranceType.id,
+      description: '50min allure facile',
+      durationMinutes: 50,
+    },
+  })
+
   const sessionPast = await prisma.session.create({
     data: {
       title: 'Séance seuil',
@@ -149,6 +174,23 @@ async function main() {
     },
   })
 
+  const compToDebrief = await prisma.competition.create({
+    data: {
+      title: 'Meeting de rentrée',
+      location: 'Marquette-lez-Lille',
+      date: daysFromNow(-2),
+      competitionTypeId: meetingType.id,
+    },
+  })
+  const compDebriefed = await prisma.competition.create({
+    data: {
+      title: 'Interclubs été',
+      location: 'Villeneuve-d’Ascq',
+      date: daysFromNow(-12),
+      competitionTypeId: champType.id,
+    },
+  })
+
   await prisma.competitionRegistration.create({
     data: {
       athleteId: athlete1.id,
@@ -157,10 +199,48 @@ async function main() {
       ffaRegistered: true,
     },
   })
+  await prisma.competitionRegistration.create({
+    data: {
+      athleteId: athlete1.id,
+      competitionId: compToDebrief.id,
+      disciplines: JSON.stringify(['100m', '200m']),
+      ffaRegistered: true,
+    },
+  })
+  const debriefedReg = await prisma.competitionRegistration.create({
+    data: {
+      athleteId: athlete1.id,
+      competitionId: compDebriefed.id,
+      disciplines: JSON.stringify(['100m']),
+      ffaRegistered: true,
+    },
+  })
+  await prisma.competitionDebrief.create({
+    data: {
+      registrationId: debriefedReg.id,
+      feeling: 8,
+      notes: 'Bon départ, sensations solides sur toute la course.',
+    },
+  })
 
-  // Performances — historique + saison en cours pour tester PB/SB/trend
+  // Performances — historique + saison en cours pour tester PB/SB/trend/graphique
   await prisma.performance.createMany({
     data: [
+      // Léa — 100m
+      {
+        athleteId: athlete1.id,
+        discipline: '100m',
+        value: 12.68,
+        unit: 's',
+        recordedAt: new Date('2025-05-04'),
+        isPersonalBest: false,
+        isCompetition: true,
+        isIndoor: false,
+        venue: 'Amiens',
+        level: 'IR3',
+        levelPoints: 742,
+        wind: '-1.2',
+      },
       {
         athleteId: athlete1.id,
         discipline: '100m',
@@ -169,6 +249,39 @@ async function main() {
         recordedAt: new Date('2025-06-10'),
         isPersonalBest: false,
         isCompetition: true,
+        isIndoor: false,
+        venue: 'Liévin',
+        level: 'IR2',
+        levelPoints: 771,
+        wind: '0.4',
+      },
+      {
+        athleteId: athlete1.id,
+        discipline: '100m',
+        value: 12.52,
+        unit: 's',
+        recordedAt: new Date('2025-07-02'),
+        isPersonalBest: false,
+        isCompetition: true,
+        isIndoor: false,
+        venue: 'Lille',
+        level: 'IR3',
+        levelPoints: 759,
+        wind: '-0.8',
+      },
+      {
+        athleteId: athlete1.id,
+        discipline: '100m',
+        value: 12.38,
+        unit: 's',
+        recordedAt: daysFromNow(-24),
+        isPersonalBest: false,
+        isCompetition: true,
+        isIndoor: false,
+        venue: 'Liévin',
+        level: 'IR2',
+        levelPoints: 782,
+        wind: '2.6',
       },
       {
         athleteId: athlete1.id,
@@ -178,6 +291,25 @@ async function main() {
         recordedAt: daysFromNow(-10),
         isPersonalBest: true,
         isCompetition: true,
+        isIndoor: false,
+        venue: 'Lille',
+        level: 'IR1',
+        levelPoints: 796,
+        wind: '1.5',
+      },
+      // Léa — 200m
+      {
+        athleteId: athlete1.id,
+        discipline: '200m',
+        value: 26.4,
+        unit: 's',
+        recordedAt: new Date('2025-06-15'),
+        isPersonalBest: false,
+        isCompetition: true,
+        isIndoor: false,
+        venue: 'Liévin',
+        level: 'IR4',
+        levelPoints: 705,
       },
       {
         athleteId: athlete1.id,
@@ -185,8 +317,26 @@ async function main() {
         value: 25.8,
         unit: 's',
         recordedAt: daysFromNow(-3),
-        isPersonalBest: false,
+        isPersonalBest: true,
         isCompetition: false,
+        isIndoor: true,
+        venue: 'Salle Liévin',
+        level: 'IR3',
+        levelPoints: 738,
+      },
+      // Noah — longueur
+      {
+        athleteId: athlete2.id,
+        discipline: 'longueur',
+        value: 6.18,
+        unit: 'm',
+        recordedAt: new Date('2025-04-12'),
+        isPersonalBest: false,
+        isCompetition: true,
+        isIndoor: false,
+        venue: 'Arras',
+        level: 'IR4',
+        levelPoints: 688,
       },
       {
         athleteId: athlete2.id,
@@ -196,6 +346,23 @@ async function main() {
         recordedAt: new Date('2025-05-01'),
         isPersonalBest: false,
         isCompetition: true,
+        isIndoor: false,
+        venue: 'Lille',
+        level: 'IR3',
+        levelPoints: 719,
+      },
+      {
+        athleteId: athlete2.id,
+        discipline: 'longueur',
+        value: 6.35,
+        unit: 'm',
+        recordedAt: new Date('2025-06-08'),
+        isPersonalBest: false,
+        isCompetition: true,
+        isIndoor: false,
+        venue: 'Liévin',
+        level: 'IR3',
+        levelPoints: 709,
       },
       {
         athleteId: athlete2.id,
@@ -205,6 +372,97 @@ async function main() {
         recordedAt: daysFromNow(-5),
         isPersonalBest: true,
         isCompetition: true,
+        isIndoor: false,
+        venue: 'Lille',
+        level: 'IR2',
+        levelPoints: 748,
+      },
+      // Noah — 110m haies
+      {
+        athleteId: athlete2.id,
+        discipline: '110m-haies',
+        value: 16.9,
+        unit: 's',
+        recordedAt: new Date('2025-05-20'),
+        isPersonalBest: false,
+        isCompetition: true,
+        isIndoor: false,
+        venue: 'Arras',
+        level: 'IR4',
+        levelPoints: 671,
+      },
+      {
+        athleteId: athlete2.id,
+        discipline: '110m-haies',
+        value: 16.54,
+        unit: 's',
+        recordedAt: daysFromNow(-14),
+        isPersonalBest: true,
+        isCompetition: true,
+        isIndoor: false,
+        venue: 'Lille',
+        level: 'IR3',
+        levelPoints: 705,
+      },
+    ],
+  })
+
+  await prisma.podium.createMany({
+    data: [
+      {
+        athleteId: athlete2.id,
+        year: 2024,
+        rank: 1,
+        label: 'Champion ESM - H-F',
+        level: 'Régional',
+        discipline: 'Longueur',
+        performance: '6m45 (+0.9)',
+        recordedAt: new Date('2024-07-06'),
+        venue: 'Lens',
+      },
+      {
+        athleteId: athlete2.id,
+        year: 2024,
+        rank: 3,
+        label: '3ème (place) ESM - H-F',
+        level: 'Départemental',
+        discipline: '110m haies (99)',
+        performance: "14''50 (+0.8)",
+        recordedAt: new Date('2024-05-18'),
+        venue: 'Douai',
+      },
+      {
+        athleteId: athlete2.id,
+        year: 2023,
+        rank: 2,
+        label: 'Vice-champion ESM - H-F',
+        level: 'Régional',
+        discipline: 'Longueur',
+        performance: '6m20',
+        recordedAt: new Date('2023-06-24'),
+        venue: 'Liévin',
+      },
+      {
+        athleteId: athlete2.id,
+        year: 2022,
+        rank: 1,
+        label: 'Champion JUM - H-F',
+        level: 'Départemental',
+        discipline: '110m haies (99)',
+        performance: "14''90 (+1.1)",
+        recordedAt: new Date('2022-06-11'),
+        venue: 'Douai',
+      },
+      {
+        athleteId: athlete2.id,
+        year: 2021,
+        rank: 3,
+        label: '3ème (place) JUM - H-F',
+        level: 'Départemental',
+        discipline: 'Longueur',
+        performance: '5m95',
+        recordedAt: new Date('2021-05-15'),
+        venue: 'Lens',
       },
     ],
   })

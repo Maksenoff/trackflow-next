@@ -22,8 +22,10 @@ model User {
   lastName  String
   password  String
   // Plusieurs rôles simultanés possibles: ROLE_ADMIN, ROLE_COACH, ROLE_COMPETITION_MANAGER, ROLE_ATHLETE
-  roles     String   @default("[]") // JSON string: ROLE_ADMIN, ROLE_COACH, ROLE_COMPETITION_MANAGER, ROLE_ATHLETE
-  createdAt DateTime @default(now())
+  roles       String    @default("[]") // JSON string: ROLE_ADMIN, ROLE_COACH, ROLE_COMPETITION_MANAGER, ROLE_ATHLETE
+  disabled    Boolean   @default(false) // compte désactivé par un admin : connexion bloquée
+  createdAt   DateTime  @default(now())
+  lastLoginAt DateTime?
 
   linkedAthleteId String?  @unique
   linkedAthlete   Athlete? @relation("UserLinkedAthlete", fields: [linkedAthleteId], references: [id], onDelete: SetNull)
@@ -49,15 +51,19 @@ model Athlete {
   disciplineColors String    @default("{}") // JSON string object
   notes            String?
   photoUrl         String?
+  photoConfig      String    @default("{}") // JSON string object: { zoom, x, y }
   bannerUrl        String?
-  bannerConfig     String    @default("{}") // JSON string object
+  bannerConfig     String    @default("{}") // JSON string object: { mode, pattern, color, zoom, x, y }
   licenseNumber    String?
   ffaProfileUrl    String?
+  ffaSyncSinceYear Int? // saison de départ (année de début, ex: 2015 = saison 2015/2016) — performances antérieures ignorées à la sync
   lastSyncedAt     DateTime?
+  videosEnabled    Boolean   @default(true) // onglet Vidéos visible sur le profil — activable par un admin
   createdAt        DateTime  @default(now())
 
   user                     User?                     @relation("UserLinkedAthlete")
   performances             Performance[]
+  podiums                  Podium[]
   goals                    Goal[]
   athleteSessions          AthleteSession[]
   customSessions           AthleteCustomSession[]
@@ -146,6 +152,24 @@ model Performance {
   wind           String?
 
   @@map("performance")
+}
+
+model Podium {
+  id          String   @id @default(cuid())
+  athleteId   String
+  athlete     Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  year        Int
+  rank        Int // 1, 2 ou 3
+  label       String? // texte brut FFA de la colonne "Place" (ex: "Champion JUM - H-F") — vide si ajouté manuellement
+  level       String // "Régional", "National", "Départemental", "Club"... (regroupement FFA ou libre si manuel)
+  discipline  String // texte brut FFA de la colonne "Epreuve", ou libre si manuel
+  performance String? // texte brut affiché (ex: "14''79 (+0.7)")
+  recordedAt  DateTime
+  venue       String?
+  source      String   @default("ffa") // "ffa" (scrapé) ou "manual" (ajouté par un coach/l'athlète)
+
+  @@unique([athleteId, year, rank, discipline, recordedAt])
+  @@map("podium")
 }
 
 model Goal {
