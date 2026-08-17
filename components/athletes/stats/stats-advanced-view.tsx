@@ -46,9 +46,9 @@ import { cn } from '@/lib/utils'
 import { InfoHint } from './info-hint'
 
 const GOLD =
-  'bg-gradient-to-r from-amber-700 via-yellow-500 to-amber-700 dark:from-yellow-100 dark:via-amber-300 dark:to-yellow-500 bg-clip-text text-transparent'
+  'bg-gradient-to-r from-amber-700 via-yellow-500 to-amber-700 dark:from-amber-400 dark:via-yellow-200 dark:to-amber-500 bg-clip-text text-transparent'
 const SILVER =
-  'bg-gradient-to-r from-slate-600 via-slate-400 to-slate-600 dark:from-slate-100 dark:via-white dark:to-slate-300 bg-clip-text text-transparent'
+  'bg-gradient-to-r from-slate-600 via-slate-400 to-slate-600 dark:from-slate-300 dark:via-white dark:to-slate-400 bg-clip-text text-transparent'
 
 export function StatsAdvancedView({
   perfs,
