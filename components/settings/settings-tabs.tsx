@@ -13,21 +13,38 @@ export function SettingsTabs({
   initialTab,
   sessionTypes,
   competitionTypes,
+  showSessions = true,
+  showCompetitions = true,
 }: {
   initialTab: TabKey
   sessionTypes: ManagedType[]
   competitionTypes: ManagedType[]
+  showSessions?: boolean
+  showCompetitions?: boolean
 }) {
   const router = useRouter()
 
   const tabs = [
-    { key: 'sessions' as const, label: 'Types de séances', icon: Zap, count: sessionTypes.length },
-    {
-      key: 'competitions' as const,
-      label: 'Types de compétitions',
-      icon: Trophy,
-      count: competitionTypes.length,
-    },
+    ...(showSessions
+      ? [
+          {
+            key: 'sessions' as const,
+            label: 'Types de séances',
+            icon: Zap,
+            count: sessionTypes.length,
+          },
+        ]
+      : []),
+    ...(showCompetitions
+      ? [
+          {
+            key: 'competitions' as const,
+            label: 'Types de compétitions',
+            icon: Trophy,
+            count: competitionTypes.length,
+          },
+        ]
+      : []),
   ]
 
   const [active, setActive] = useState<TabKey>(initialTab)
@@ -44,41 +61,45 @@ export function SettingsTabs({
 
   return (
     <div className="space-y-5">
-      <div className="no-scrollbar flex items-center gap-1 overflow-x-auto rounded-full border border-border bg-card p-1 shadow-sm">
-        {tabs.map((t) => {
-          const isActive = t.key === active
-          return (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => switchTo(t.key)}
-              aria-current={isActive}
-              className={cn(
-                'relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium whitespace-nowrap transition-colors',
-                isActive ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {isActive && (
-                <motion.span
-                  layoutId="settings-tab-active"
-                  className="absolute inset-0 -z-10 rounded-full bg-gradient-to-r from-primary to-primary/80 shadow-sm shadow-primary/30"
-                  transition={{ duration: 0.25, ease: 'easeOut' }}
-                />
-              )}
-              <t.icon className="size-3.5" />
-              {t.label}
-              <span
+      {tabs.length > 1 && (
+        <div className="no-scrollbar flex items-center gap-1 overflow-x-auto rounded-full border border-border bg-card p-1 shadow-sm">
+          {tabs.map((t) => {
+            const isActive = t.key === active
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => switchTo(t.key)}
+                aria-current={isActive}
                 className={cn(
-                  'rounded-full px-1.5 text-[10px] font-bold',
-                  isActive ? 'bg-white/20' : 'bg-muted'
+                  'relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium whitespace-nowrap transition-colors',
+                  isActive
+                    ? 'text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                {t.count}
-              </span>
-            </button>
-          )
-        })}
-      </div>
+                {isActive && (
+                  <motion.span
+                    layoutId="settings-tab-active"
+                    className="absolute inset-0 -z-10 rounded-full bg-gradient-to-r from-primary to-primary/80 shadow-sm shadow-primary/30"
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                  />
+                )}
+                <t.icon className="size-3.5" />
+                {t.label}
+                <span
+                  className={cn(
+                    'rounded-full px-1.5 text-[10px] font-bold',
+                    isActive ? 'bg-white/20' : 'bg-muted'
+                  )}
+                >
+                  {t.count}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       <AnimatePresence mode="wait" custom={direction} initial={false}>
         <motion.div

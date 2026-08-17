@@ -73,7 +73,6 @@ export default async function CalendarPage({
           competitionTypes={competitionTypes}
           canManageSessions={canManageSessions}
           canManageCompetitions={canManageCompetitions}
-          isAdmin={isAdmin(roles)}
         />
       </div>
     </PageTransition>

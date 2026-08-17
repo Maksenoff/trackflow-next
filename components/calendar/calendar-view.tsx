@@ -6,9 +6,11 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import {
+  ArrowRight,
   Check,
   ChevronLeft,
   ChevronRight,
+  Clock,
   GripVertical,
   MapPin,
   Plus,
@@ -68,7 +70,6 @@ export function CalendarView({
   competitionTypes,
   canManageSessions,
   canManageCompetitions,
-  isAdmin,
 }: {
   year: number
   month: number
@@ -78,7 +79,6 @@ export function CalendarView({
   competitionTypes: ColorTypeOption[]
   canManageSessions: boolean
   canManageCompetitions: boolean
-  isAdmin: boolean
 }) {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('sessions')
@@ -108,7 +108,7 @@ export function CalendarView({
   const suppressClickRef = useRef(false)
 
   const [hoverItem, setHoverItem] = useState<{ kind: Tab; id: string } | null>(null)
-  const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(null)
+  const [hoverRect, setHoverRect] = useState<DOMRect | null>(null)
 
   const cells = useMemo(() => buildMonthGrid(year, month), [year, month])
   const today = new Date()
@@ -242,8 +242,70 @@ export function CalendarView({
 
   return (
     <div className="space-y-5">
-      {/* Tabs + légende */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* Mois + création (mobile) */}
+      <div className="flex items-center justify-between gap-2 sm:hidden">
+        <div className="flex items-center gap-1 rounded-full border border-border bg-card p-1 shadow-sm">
+          <button
+            onClick={() => go(-1)}
+            className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="Mois précédent"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+          <button
+            onClick={goToday}
+            className="rounded-full px-2 py-1 text-sm font-semibold capitalize transition-colors hover:bg-muted"
+          >
+            {monthLabel(year, month)}
+          </button>
+          <button
+            onClick={() => go(1)}
+            className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="Mois suivant"
+          >
+            <ChevronRight className="size-4" />
+          </button>
+        </div>
+
+        {canManageActiveTab && (
+          <button
+            onClick={() => (tab === 'sessions' ? setCreateOpen(true) : goToNewCompetition())}
+            className="group inline-flex shrink-0 items-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-primary/80 px-3 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/35"
+          >
+            <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
+          </button>
+        )}
+      </div>
+
+      {/* Onglets (mobile) */}
+      <div className="flex items-center gap-1 rounded-full border border-border bg-card p-1 shadow-sm sm:hidden">
+        {(['sessions', 'competitions'] as const).map((value) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setTab(value)}
+            className={cn(
+              'relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-colors',
+              tab === value
+                ? 'text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {tab === value && (
+              <motion.span
+                layoutId="calendar-tab-mobile"
+                className="absolute inset-0 -z-10 rounded-full bg-gradient-to-r from-primary to-primary/80 shadow-sm shadow-primary/30"
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+              />
+            )}
+            {value === 'sessions' ? <Zap className="size-3.5" /> : <Trophy className="size-3.5" />}
+            {value === 'sessions' ? 'Entraînements' : 'Compétitions'}
+          </button>
+        ))}
+      </div>
+
+      {/* Tabs + légende (desktop, vue classique) */}
+      <div className="hidden flex-wrap items-center justify-between gap-3 sm:flex">
         <div className="inline-flex rounded-full border border-border bg-card p-0.5 shadow-sm">
           {(['sessions', 'competitions'] as const).map((value) => (
             <button
@@ -320,7 +382,7 @@ export function CalendarView({
             {t.name}
           </span>
         ))}
-        {isAdmin && (
+        {canManageActiveTab && (
           <Link
             href={tab === 'sessions' ? '/settings?tab=sessions' : '/settings?tab=competitions'}
             className="ml-auto inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
@@ -349,7 +411,8 @@ export function CalendarView({
                 ? sessions.filter((s) => sameDay(s.date, cell.date))
                 : competitions.filter((c) => sameDay(c.date, cell.date))
             const visible = items.slice(0, 3)
-            const overflow = items.length - visible.length
+            const overflowMobile = items.length - Math.min(items.length, 2)
+            const overflowDesktop = items.length - Math.min(items.length, 3)
             const isDropTarget = canManageActiveTab && dragOverDate === cellDateKey
 
             return (
@@ -372,21 +435,21 @@ export function CalendarView({
                   setSelectedDay(cell.date)
                 }}
                 className={cn(
-                  'flex min-h-20 flex-col gap-1 border-r border-b border-border p-1.5 text-left transition-colors last:border-r-0 hover:bg-muted/40 sm:min-h-24',
+                  'flex h-20 flex-col gap-0.5 overflow-hidden border-r border-b border-border p-1 text-left transition-colors last:border-r-0 hover:bg-muted/40 sm:h-auto sm:min-h-24 sm:gap-1 sm:p-1.5',
                   !cell.inMonth && 'bg-muted/20 text-muted-foreground/50',
                   isDropTarget && 'bg-primary/10 ring-2 ring-inset ring-primary/50'
                 )}
               >
                 <span
                   className={cn(
-                    'flex size-6 items-center justify-center rounded-full text-xs font-semibold',
+                    'flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold sm:size-6 sm:text-xs',
                     isToday && 'bg-primary text-primary-foreground'
                   )}
                 >
                   {cell.day}
                 </span>
-                <div className="flex flex-1 flex-col gap-0.5 overflow-hidden">
-                  {visible.map((item) => {
+                <div className="flex flex-1 flex-col gap-0.5 overflow-hidden sm:gap-1">
+                  {visible.map((item, idx) => {
                     const color =
                       tab === 'sessions'
                         ? (item as CalSession).trainingType?.color
@@ -405,12 +468,12 @@ export function CalendarView({
                         }
                         onMouseEnter={(e) => {
                           setHoverItem({ kind: tab, id: item.id })
-                          setHoverPos({ x: e.clientX, y: e.clientY })
+                          setHoverRect(e.currentTarget.getBoundingClientRect())
                         }}
-                        onMouseMove={(e) => setHoverPos({ x: e.clientX, y: e.clientY })}
                         onMouseLeave={() => setHoverItem(null)}
                         className={cn(
-                          'flex items-center gap-0.5 truncate rounded px-1.5 py-0.5 text-[10px] font-semibold',
+                          'flex shrink-0 items-center gap-0.5 truncate rounded px-1 py-0.5 text-[9px] font-semibold sm:px-1.5 sm:py-0.5 sm:text-[10px]',
+                          idx === 2 && 'hidden sm:flex',
                           canManageActiveTab && 'touch-none select-none',
                           isBeingDragged && 'opacity-30'
                         )}
@@ -420,15 +483,20 @@ export function CalendarView({
                         }}
                       >
                         {canManageActiveTab && (
-                          <GripVertical className="size-2.5 shrink-0 opacity-60" />
+                          <GripVertical className="hidden size-2.5 shrink-0 opacity-60 sm:block" />
                         )}
                         <span className="truncate">{item.title}</span>
                       </span>
                     )
                   })}
-                  {overflow > 0 && (
-                    <span className="text-[10px] font-semibold text-muted-foreground">
-                      +{overflow}
+                  {overflowMobile > 0 && (
+                    <span className="text-[10px] font-semibold text-muted-foreground sm:hidden">
+                      +{overflowMobile}
+                    </span>
+                  )}
+                  {overflowDesktop > 0 && (
+                    <span className="hidden text-[10px] font-semibold text-muted-foreground sm:inline">
+                      +{overflowDesktop}
                     </span>
                   )}
                 </div>
@@ -453,10 +521,10 @@ export function CalendarView({
       )}
 
       {/* Aperçu au survol (souris uniquement) */}
-      {hoverItem && hoverPos && !draggingItem && (
+      {hoverItem && hoverRect && !draggingItem && (
         <HoverPreview
           hoverItem={hoverItem}
-          pos={hoverPos}
+          rect={hoverRect}
           sessions={sessions}
           competitions={competitions}
         />
@@ -572,63 +640,110 @@ export function CalendarView({
 
 function HoverPreview({
   hoverItem,
-  pos,
+  rect,
   sessions,
   competitions,
 }: {
   hoverItem: { kind: Tab; id: string }
-  pos: { x: number; y: number }
+  rect: DOMRect
   sessions: CalSession[]
   competitions: CalCompetition[]
 }) {
-  const width = 260
-  const left =
-    typeof window !== 'undefined'
-      ? Math.min(pos.x + 16, window.innerWidth - width - 12)
-      : pos.x + 16
-  const top =
-    typeof window !== 'undefined' ? Math.min(pos.y + 16, window.innerHeight - 140) : pos.y + 16
+  const width = 280
+  const GAP = 10
+
+  const viewportW = typeof window !== 'undefined' ? window.innerWidth : 1024
+  const viewportH = typeof window !== 'undefined' ? window.innerHeight : 768
+
+  const spaceBelow = viewportH - rect.bottom
+  const spaceAbove = rect.top
+  const placeAbove = spaceBelow < 170 && spaceAbove > spaceBelow
+
+  let left = rect.left + rect.width / 2 - width / 2
+  left = Math.min(Math.max(left, 8), viewportW - width - 8)
+
+  const positionStyle: React.CSSProperties = placeAbove
+    ? { left, bottom: viewportH - rect.top + GAP, width }
+    : { left, top: rect.bottom + GAP, width }
 
   if (hoverItem.kind === 'sessions') {
     const session = sessions.find((s) => s.id === hoverItem.id)
     if (!session) return null
+    const color = session.trainingType?.color ?? '#94a3b8'
     return (
       <div
-        className="pointer-events-none fixed z-50 rounded-xl border border-border bg-card p-3 text-xs shadow-xl"
-        style={{ left, top, width }}
+        className="pointer-events-none fixed z-50 overflow-hidden rounded-xl border border-border bg-card text-xs shadow-xl"
+        style={{ ...positionStyle, position: 'fixed' }}
       >
-        <div className="mb-1 truncate text-sm font-semibold">{session.title}</div>
-        <p className="line-clamp-3 text-muted-foreground">
-          {session.description || 'Aucun programme renseigné.'}
-        </p>
+        <div className="h-1.5" style={{ background: color }} />
+        <div className="p-3">
+          {session.trainingType && (
+            <span
+              className="mb-2 inline-block rounded-full px-2 py-0.5 text-[11px] font-bold"
+              style={{ backgroundColor: `${color}22`, color }}
+            >
+              {session.trainingType.name}
+            </span>
+          )}
+          <div className="truncate text-sm font-bold">{session.title}</div>
+          {session.durationMinutes && (
+            <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+              <Clock className="size-3 shrink-0" />
+              {session.durationMinutes} min
+            </div>
+          )}
+          <p className="mt-2 line-clamp-3 text-muted-foreground italic">
+            {session.description || 'Aucun programme renseigné.'}
+          </p>
+          <div className="mt-2 flex items-center gap-1 border-t border-border pt-2 text-[11px] font-semibold text-primary">
+            Cliquer pour voir la fiche
+            <ArrowRight className="size-3" />
+          </div>
+        </div>
       </div>
     )
   }
 
   const competition = competitions.find((c) => c.id === hoverItem.id)
   if (!competition) return null
+  const color = competition.competitionType?.color ?? '#94a3b8'
   return (
     <div
-      className="pointer-events-none fixed z-50 rounded-xl border border-border bg-card p-3 text-xs shadow-xl"
-      style={{ left, top, width }}
+      className="pointer-events-none fixed z-50 overflow-hidden rounded-xl border border-border bg-card text-xs shadow-xl"
+      style={{ ...positionStyle, position: 'fixed' }}
     >
-      <div className="mb-1.5 truncate text-sm font-semibold">{competition.title}</div>
-      <div className="space-y-1 text-muted-foreground">
-        <div className="flex items-center gap-1.5">
-          <Users className="size-3 shrink-0" />
-          {competition.registrationCount} inscrit{competition.registrationCount > 1 ? 's' : ''}
-        </div>
-        <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-          <Check className="size-3 shrink-0" />
-          {competition.ffaRegisteredCount} inscrit{competition.ffaRegisteredCount > 1 ? 's' : ''}{' '}
-          FFA
-        </div>
-        {competition.location && (
-          <div className="flex items-center gap-1.5">
-            <MapPin className="size-3 shrink-0" />
-            {competition.location}
-          </div>
+      <div className="h-1.5" style={{ background: color }} />
+      <div className="p-3">
+        {competition.competitionType && (
+          <span
+            className="mb-2 inline-block rounded-full px-2 py-0.5 text-[11px] font-bold"
+            style={{ backgroundColor: `${color}22`, color }}
+          >
+            {competition.competitionType.name}
+          </span>
         )}
+        <div className="truncate text-sm font-bold">{competition.title}</div>
+        <div className="mt-1.5 space-y-1 text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <Users className="size-3 shrink-0" />
+            {competition.registrationCount} inscrit{competition.registrationCount > 1 ? 's' : ''}
+          </div>
+          <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+            <Check className="size-3 shrink-0" />
+            {competition.ffaRegisteredCount} inscrit{competition.ffaRegisteredCount > 1 ? 's' : ''}{' '}
+            FFA
+          </div>
+          {competition.location && (
+            <div className="flex items-center gap-1.5">
+              <MapPin className="size-3 shrink-0" />
+              {competition.location}
+            </div>
+          )}
+        </div>
+        <div className="mt-2 flex items-center gap-1 border-t border-border pt-2 text-[11px] font-semibold text-primary">
+          Cliquer pour voir la fiche
+          <ArrowRight className="size-3" />
+        </div>
       </div>
     </div>
   )

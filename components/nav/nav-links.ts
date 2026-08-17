@@ -17,7 +17,7 @@ export const NAV_LINKS: NavLink[] = [
     href: '/settings',
     label: 'Paramètres',
     icon: Settings,
-    roles: [ROLES.ADMIN],
+    roles: [ROLES.ADMIN, ROLES.COACH, ROLES.COMPETITION_MANAGER],
   },
   {
     href: '/admin',

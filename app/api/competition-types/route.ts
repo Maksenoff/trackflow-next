@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isAdmin } from '@/lib/roles'
+import { isAdmin, isCoach, isCompetitionManager } from '@/lib/roles'
 import { typeInputSchema } from '@/lib/validations/type'
 
 export async function POST(request: Request) {
   const session = await auth()
   const roles = session?.user.roles ?? []
-  if (!session || !isAdmin(roles)) {
+  if (!session || (!isAdmin(roles) && !isCoach(roles) && !isCompetitionManager(roles))) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
   }
 

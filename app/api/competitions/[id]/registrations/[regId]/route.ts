@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isAdmin, isCoach, isCompetitionManager } from '@/lib/roles'
+import { notifyFfaConfirmed } from '@/lib/notifications'
 
 function canManage(roles: string[]) {
   return isAdmin(roles) || isCoach(roles) || isCompetitionManager(roles)
@@ -55,6 +56,16 @@ export async function PATCH(request: Request, { params }: { params: { regId: str
       }),
     },
   })
+
+  if (data.ffaRegistered === true && !registration.ffaRegistered) {
+    const [linkedUser, competition] = await Promise.all([
+      prisma.user.findFirst({ where: { linkedAthleteId: registration.athleteId } }),
+      prisma.competition.findUnique({ where: { id: registration.competitionId } }),
+    ])
+    if (linkedUser && competition) {
+      await notifyFfaConfirmed(linkedUser.id, competition.title, `/competitions/${competition.id}`)
+    }
+  }
 
   return NextResponse.json({ id: updated.id })
 }
