@@ -156,26 +156,58 @@ function PodiumListView({ podiums }: { podiums: PodiumItem[] }) {
  * sur les marches qu'il n'occupe pas — celles-ci restent donc une icône générique.
  */
 function PodiumSliderView({ podiums, athlete }: { podiums: PodiumItem[]; athlete: AthleteInfo }) {
-  const ordered = useMemo(
-    () => [...podiums].sort((a, b) => b.recordedAt.getTime() - a.recordedAt.getTime()),
+  const years = useMemo(
+    () => Array.from(new Set(podiums.map((p) => p.year))).sort((a, b) => b - a),
     [podiums]
+  )
+  const [year, setYear] = useState(years[0])
+  const yearPodiums = useMemo(
+    () =>
+      podiums
+        .filter((p) => p.year === year)
+        .sort((a, b) => b.recordedAt.getTime() - a.recordedAt.getTime()),
+    [podiums, year]
   )
   const [index, setIndex] = useState(0)
   const [direction, setDirection] = useState(1)
-  const current = ordered[index]
+  const current = yearPodiums[index]
+
+  function selectYear(y: number) {
+    setYear(y)
+    setIndex(0)
+    setDirection(1)
+  }
 
   function go(delta: number) {
     setDirection(delta)
-    setIndex((i) => Math.min(Math.max(i + delta, 0), ordered.length - 1))
+    setIndex((i) => Math.min(Math.max(i + delta, 0), yearPodiums.length - 1))
   }
 
   function handleDragEnd(_: unknown, info: PanInfo) {
-    if (info.offset.x < -60 && index < ordered.length - 1) go(1)
+    if (info.offset.x < -60 && index < yearPodiums.length - 1) go(1)
     else if (info.offset.x > 60 && index > 0) go(-1)
   }
 
   return (
     <div className="space-y-5">
+      <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1">
+        {years.map((y) => (
+          <button
+            key={y}
+            type="button"
+            onClick={() => selectYear(y)}
+            className={cn(
+              'inline-flex shrink-0 items-center rounded-full border px-3.5 py-1.5 text-sm font-bold transition-colors',
+              y === year
+                ? 'border-primary/40 bg-primary/10 text-primary'
+                : 'border-border text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {y}
+          </button>
+        ))}
+      </div>
+
       <div className="flex items-center justify-center gap-3">
         <button
           type="button"
@@ -187,15 +219,15 @@ function PodiumSliderView({ podiums, athlete }: { podiums: PodiumItem[]; athlete
           <ChevronLeft className="size-4" />
         </button>
         <div className="text-center">
-          <div className="text-lg font-extrabold tracking-tight">{current.year}</div>
+          <div className="text-lg font-extrabold tracking-tight">{year}</div>
           <div className="text-xs text-muted-foreground">
-            {index + 1} / {ordered.length}
+            {index + 1} / {yearPodiums.length}
           </div>
         </div>
         <button
           type="button"
           onClick={() => go(1)}
-          disabled={index === ordered.length - 1}
+          disabled={index === yearPodiums.length - 1}
           className="flex size-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
           aria-label="Compétition suivante"
         >
@@ -282,6 +314,41 @@ function PodiumSliderView({ podiums, athlete }: { podiums: PodiumItem[]; athlete
             </div>
           </motion.div>
         </AnimatePresence>
+      </div>
+
+      <div className="space-y-2 border-t border-border pt-4">
+        <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          Tous les podiums {year}
+        </p>
+        {yearPodiums.map((p, i) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => {
+              setDirection(i > index ? 1 : -1)
+              setIndex(i)
+            }}
+            className={cn(
+              'flex w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition-colors',
+              i === index
+                ? 'border-primary/40 bg-primary/5'
+                : 'border-transparent hover:bg-muted/50'
+            )}
+          >
+            <RankBadge rank={p.rank} className="size-6 text-xs" />
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-xs font-bold">{p.discipline}</div>
+              <div className="truncate text-[11px] text-muted-foreground">
+                {p.level} · {formatFullDate(p.recordedAt)}
+              </div>
+            </div>
+            {p.performance && (
+              <div className="shrink-0 font-mono text-[11px] font-bold tabular-nums text-muted-foreground">
+                {p.performance}
+              </div>
+            )}
+          </button>
+        ))}
       </div>
     </div>
   )
