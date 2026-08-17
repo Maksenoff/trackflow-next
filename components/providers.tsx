@@ -3,6 +3,7 @@
 import { ThemeProvider } from 'next-themes'
 import { SessionProvider } from 'next-auth/react'
 import { Toaster } from '@/components/ui/sonner'
+import { ServiceWorkerRegister } from '@/components/sw-register'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -13,6 +14,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         enableSystem={false}
         disableTransitionOnChange
       >
+        <ServiceWorkerRegister />
         {children}
         <Toaster richColors position="top-right" />
       </ThemeProvider>
