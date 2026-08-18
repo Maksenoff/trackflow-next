@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch'
 import { BackButton } from '@/components/ui/back-button'
 import { TypePillPicker, type ColorTypeOption } from '@/components/calendar/type-pill-picker'
 import { DisciplinePicker } from '@/components/competitions/discipline-picker'
-import { fileToDataUrl } from '@/lib/file-to-data-url'
+import { uploadFile } from '@/lib/upload-file'
 import { toDateInputValue } from '@/lib/calendar-grid'
 import { cn } from '@/lib/utils'
 
@@ -64,14 +64,27 @@ export function CompetitionForm({
   const [availableDisciplines, setAvailableDisciplines] = useState<string[]>(
     initialData?.availableDisciplines ?? []
   )
+  const [uploadingDocument, setUploadingDocument] = useState(false)
+  const [uploadingSchedules, setUploadingSchedules] = useState(false)
 
-  async function handleFile(file: File | undefined, setter: (url: string | null) => void) {
+  async function handleFile(
+    file: File | undefined,
+    setter: (url: string | null) => void,
+    setUploading: (v: boolean) => void
+  ) {
     if (!file) return
     if (file.size > MAX_FILE_BYTES) {
       toast.error('Fichier trop volumineux (8 Mo max).')
       return
     }
-    setter(await fileToDataUrl(file))
+    setUploading(true)
+    try {
+      setter(await uploadFile(file, 'competitions/documents'))
+    } catch {
+      toast.error("Impossible d'uploader ce fichier.")
+    } finally {
+      setUploading(false)
+    }
   }
 
   async function handleSubmit() {
@@ -192,7 +205,8 @@ export function CompetitionForm({
               <FileField
                 id="competition-document"
                 value={documentUrl}
-                onFile={(f) => handleFile(f, setDocumentUrl)}
+                loading={uploadingDocument}
+                onFile={(f) => handleFile(f, setDocumentUrl, setUploadingDocument)}
                 onClear={() => setDocumentUrl(null)}
               />
             </div>
@@ -201,7 +215,8 @@ export function CompetitionForm({
               <FileField
                 id="competition-schedules"
                 value={schedulesUrl}
-                onFile={(f) => handleFile(f, setSchedulesUrl)}
+                loading={uploadingSchedules}
+                onFile={(f) => handleFile(f, setSchedulesUrl, setUploadingSchedules)}
                 onClear={() => setSchedulesUrl(null)}
               />
             </div>
@@ -291,7 +306,13 @@ export function CompetitionForm({
         </Button>
         <Button
           onClick={handleSubmit}
-          disabled={loading || !title.trim() || (restricted && availableDisciplines.length === 0)}
+          disabled={
+            loading ||
+            uploadingDocument ||
+            uploadingSchedules ||
+            !title.trim() ||
+            (restricted && availableDisciplines.length === 0)
+          }
         >
           {loading && <Loader2 className="size-4 animate-spin" />}
           {mode === 'edit' ? 'Enregistrer' : 'Créer la compétition'}
@@ -304,11 +325,13 @@ export function CompetitionForm({
 function FileField({
   id,
   value,
+  loading,
   onFile,
   onClear,
 }: {
   id: string
   value: string | null
+  loading?: boolean
   onFile: (file: File | undefined) => void
   onClear: () => void
 }) {
@@ -316,16 +339,26 @@ function FileField({
     <div className="space-y-1.5">
       <label
         htmlFor={id}
-        className="flex h-11 cursor-pointer items-center gap-2 rounded-lg border border-input bg-transparent px-3 text-sm text-muted-foreground transition-colors hover:bg-muted/40"
+        className={cn(
+          'flex h-11 cursor-pointer items-center gap-2 rounded-lg border border-input bg-transparent px-3 text-sm text-muted-foreground transition-colors hover:bg-muted/40',
+          loading && 'pointer-events-none opacity-60'
+        )}
       >
-        <Upload className="size-4 shrink-0" />
-        <span className="truncate">{value ? 'Fichier sélectionné' : 'Choisir un fichier'}</span>
+        {loading ? (
+          <Loader2 className="size-4 shrink-0 animate-spin" />
+        ) : (
+          <Upload className="size-4 shrink-0" />
+        )}
+        <span className="truncate">
+          {loading ? 'Envoi en cours…' : value ? 'Fichier sélectionné' : 'Choisir un fichier'}
+        </span>
       </label>
       <input
         id={id}
         type="file"
         accept="application/pdf,image/*"
         className="hidden"
+        disabled={loading}
         onChange={(e) => onFile(e.target.files?.[0])}
       />
       {value && (

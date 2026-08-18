@@ -24,7 +24,7 @@ import {
   DEFAULT_DISCIPLINE_COLORS,
   DISCIPLINE_LABELS,
 } from '@/lib/disciplines'
-import { fileToDataUrl } from '@/lib/file-to-data-url'
+import { uploadFile } from '@/lib/upload-file'
 import { cn } from '@/lib/utils'
 
 export type AthleteFormValues = z.input<typeof athleteInputSchema>
@@ -71,6 +71,8 @@ export function AthleteForm({
   const [loading, setLoading] = useState(false)
   const [photoUrl, setPhotoUrl] = useState<string | null>(initialData?.photoUrl ?? null)
   const [bannerUrl, setBannerUrl] = useState<string | null>(initialData?.bannerUrl ?? null)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [uploadingBanner, setUploadingBanner] = useState(false)
 
   const {
     register,
@@ -119,18 +121,40 @@ export function AthleteForm({
 
   async function handlePhotoChange(file: File | undefined) {
     if (!file) return
-    const dataUrl = await fileToDataUrl(file)
-    setPhotoUrl(dataUrl)
-    setValue('photoUrl', dataUrl)
+    // Aperçu instantané pendant l'upload en arrière-plan — l'éditeur de recadrage
+    // n'a besoin que d'une source affichable, peu importe qu'elle soit finale ou non.
+    const previewUrl = URL.createObjectURL(file)
+    setPhotoUrl(previewUrl)
     setValue('photoConfig', { zoom: 1, x: 50, y: 50 })
+    setUploadingPhoto(true)
+    try {
+      const url = await uploadFile(file, 'athletes/photos')
+      setPhotoUrl(url)
+      setValue('photoUrl', url)
+    } catch {
+      toast.error("Impossible d'uploader la photo.")
+      setPhotoUrl(initialData?.photoUrl ?? null)
+    } finally {
+      setUploadingPhoto(false)
+    }
   }
 
   async function handleBannerChange(file: File | undefined) {
     if (!file) return
-    const dataUrl = await fileToDataUrl(file)
-    setBannerUrl(dataUrl)
-    setValue('bannerUrl', dataUrl)
+    const previewUrl = URL.createObjectURL(file)
+    setBannerUrl(previewUrl)
     setValue('bannerConfig', { ...bannerConfig, mode: 'photo', zoom: 1, x: 50, y: 50 })
+    setUploadingBanner(true)
+    try {
+      const url = await uploadFile(file, 'athletes/banners')
+      setBannerUrl(url)
+      setValue('bannerUrl', url)
+    } catch {
+      toast.error("Impossible d'uploader la bannière.")
+      setBannerUrl(initialData?.bannerUrl ?? null)
+    } finally {
+      setUploadingBanner(false)
+    }
   }
 
   async function onSubmit(values: AthleteFormValues) {
@@ -362,9 +386,13 @@ export function AthleteForm({
                   <Input
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
+                    disabled={uploadingPhoto}
                     onChange={(e) => handlePhotoChange(e.target.files?.[0])}
                   />
-                  {photoUrl && (
+                  {uploadingPhoto && (
+                    <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
+                  )}
+                  {photoUrl && !uploadingPhoto && (
                     <Button
                       type="button"
                       variant="ghost"
@@ -428,11 +456,17 @@ export function AthleteForm({
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <Input
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                      onChange={(e) => handleBannerChange(e.target.files?.[0])}
-                    />
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        disabled={uploadingBanner}
+                        onChange={(e) => handleBannerChange(e.target.files?.[0])}
+                      />
+                      {uploadingBanner && (
+                        <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
+                      )}
+                    </div>
                     {bannerUrl && (
                       <ImagePositionEditor
                         src={bannerUrl}
@@ -446,7 +480,6 @@ export function AthleteForm({
               </div>
             </div>
           </section>
-
         </div>
       </div>
 
@@ -454,7 +487,7 @@ export function AthleteForm({
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Annuler
         </Button>
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading || uploadingPhoto || uploadingBanner}>
           {loading && <Loader2 className="size-4 animate-spin" />}
           {mode === 'create' ? "Créer l'athlète" : 'Enregistrer'}
         </Button>
