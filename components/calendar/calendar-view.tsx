@@ -410,9 +410,10 @@ export function CalendarView({
               tab === 'sessions'
                 ? sessions.filter((s) => sameDay(s.date, cell.date))
                 : competitions.filter((c) => sameDay(c.date, cell.date))
-            const visible = items.slice(0, 3)
-            const overflowMobile = items.length - Math.min(items.length, 2)
-            const overflowDesktop = items.length - Math.min(items.length, 3)
+            const visiblePills = items.slice(0, 3)
+            const overflowPills = items.length - visiblePills.length
+            const visibleDots = items.slice(0, 4)
+            const overflowDots = items.length - visibleDots.length
             const isDropTarget = canManageActiveTab && dragOverDate === cellDateKey
 
             return (
@@ -448,57 +449,93 @@ export function CalendarView({
                 >
                   {cell.day}
                 </span>
-                <div className="flex flex-1 flex-col gap-0.5 overflow-hidden sm:gap-1">
-                  {visible.map((item, idx) => {
-                    const color =
-                      tab === 'sessions'
-                        ? (item as CalSession).trainingType?.color
-                        : (item as CalCompetition).competitionType?.color
-                    const isBeingDragged = draggingItem?.id === item.id && draggingItem.kind === tab
-                    return (
-                      <span
-                        key={item.id}
-                        onPointerDown={(e) =>
-                          handlePillPointerDown(e, {
-                            id: item.id,
-                            title: item.title,
-                            color: color ?? '#94a3b8',
-                            kind: tab,
-                          })
-                        }
-                        onMouseEnter={(e) => {
-                          setHoverItem({ kind: tab, id: item.id })
-                          setHoverRect(e.currentTarget.getBoundingClientRect())
-                        }}
-                        onMouseLeave={() => setHoverItem(null)}
-                        className={cn(
-                          'flex shrink-0 items-center gap-0.5 truncate rounded px-1 py-0.5 text-[9px] font-semibold sm:px-1.5 sm:py-0.5 sm:text-[10px]',
-                          idx === 2 && 'hidden sm:flex',
-                          canManageActiveTab && 'touch-none select-none',
-                          isBeingDragged && 'opacity-30'
-                        )}
-                        style={{
-                          backgroundColor: `${color ?? '#94a3b8'}22`,
-                          color: color ?? '#64748b',
-                        }}
-                      >
-                        {canManageActiveTab && (
-                          <GripVertical className="hidden size-2.5 shrink-0 opacity-60 sm:block" />
-                        )}
-                        <span className="truncate">{item.title}</span>
+                <div className="flex flex-1 flex-col gap-1 overflow-hidden">
+                  {/* Mobile + tablette : pas assez de place pour un libellé lisible,
+                      on affiche juste des pastilles colorées (le tap sur le jour
+                      ouvre la liste complète, cf. modal du jour). */}
+                  <div className="flex flex-wrap items-center gap-1 xl:hidden">
+                    {visibleDots.map((item) => {
+                      const color =
+                        tab === 'sessions'
+                          ? (item as CalSession).trainingType?.color
+                          : (item as CalCompetition).competitionType?.color
+                      const isBeingDragged =
+                        draggingItem?.id === item.id && draggingItem.kind === tab
+                      return (
+                        <span
+                          key={item.id}
+                          onPointerDown={(e) =>
+                            handlePillPointerDown(e, {
+                              id: item.id,
+                              title: item.title,
+                              color: color ?? '#94a3b8',
+                              kind: tab,
+                            })
+                          }
+                          className={cn(
+                            'size-1.5 shrink-0 rounded-full',
+                            canManageActiveTab && 'touch-none select-none',
+                            isBeingDragged && 'opacity-30'
+                          )}
+                          style={{ background: color ?? '#94a3b8' }}
+                        />
+                      )
+                    })}
+                    {overflowDots > 0 && (
+                      <span className="text-[9px] leading-none font-semibold text-muted-foreground">
+                        +{overflowDots}
                       </span>
-                    )
-                  })}
-                  {overflowMobile > 0 && (
-                    <span className="text-[10px] font-semibold text-muted-foreground sm:hidden">
-                      +{overflowMobile}
-                    </span>
-                  )}
-                  {overflowDesktop > 0 && (
-                    <span className="hidden text-[10px] font-semibold text-muted-foreground sm:inline">
-                      +{overflowDesktop}
-                    </span>
-                  )}
+                    )}
+                  </div>
+
+                  {/* Desktop large : assez de place pour un libellé tronqué. */}
+                  <div className="hidden flex-1 flex-col gap-1 overflow-hidden xl:flex">
+                    {visiblePills.map((item) => {
+                      const color =
+                        tab === 'sessions'
+                          ? (item as CalSession).trainingType?.color
+                          : (item as CalCompetition).competitionType?.color
+                      const isBeingDragged =
+                        draggingItem?.id === item.id && draggingItem.kind === tab
+                      return (
+                        <span
+                          key={item.id}
+                          onPointerDown={(e) =>
+                            handlePillPointerDown(e, {
+                              id: item.id,
+                              title: item.title,
+                              color: color ?? '#94a3b8',
+                              kind: tab,
+                            })
+                          }
+                          onMouseEnter={(e) => {
+                            setHoverItem({ kind: tab, id: item.id })
+                            setHoverRect(e.currentTarget.getBoundingClientRect())
+                          }}
+                          onMouseLeave={() => setHoverItem(null)}
+                          className={cn(
+                            'flex shrink-0 items-center gap-0.5 truncate rounded px-1.5 py-0.5 text-[10px] font-semibold',
+                            canManageActiveTab && 'touch-none select-none',
+                            isBeingDragged && 'opacity-30'
+                          )}
+                          style={{
+                            backgroundColor: `${color ?? '#94a3b8'}22`,
+                            color: color ?? '#64748b',
+                          }}
+                        >
+                          {canManageActiveTab && (
+                            <GripVertical className="size-2.5 shrink-0 opacity-60" />
+                          )}
+                          <span className="truncate">{item.title}</span>
+                        </span>
+                      )
+                    })}
+                    {overflowPills > 0 && (
+                      <span className="text-[10px] font-semibold text-muted-foreground">
+                        +{overflowPills}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </button>
             )

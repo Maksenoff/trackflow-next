@@ -30,7 +30,7 @@ export const athleteInputSchema = z.object({
   photoConfig: photoConfigSchema.default({}),
   bannerUrl: z.string().optional().nullable(),
   bannerConfig: bannerConfigSchema.default({ mode: 'pattern' }),
-  videosEnabled: z.boolean().default(true),
+  videosEnabled: z.boolean().default(false),
 })
 
 export type AthleteInput = z.infer<typeof athleteInputSchema>

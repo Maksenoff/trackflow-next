@@ -141,6 +141,7 @@ export function MobileNav({
         })}
         <li className="flex-1">
           <NotificationBell
+            variant="sheet"
             label="Alertes"
             className="mx-auto size-auto w-full flex-col gap-1 rounded-2xl py-2 text-[11px] font-medium [&_svg]:size-5"
           />

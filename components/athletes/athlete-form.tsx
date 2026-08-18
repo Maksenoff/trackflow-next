@@ -96,7 +96,7 @@ export function AthleteForm({
       photoConfig: {},
       bannerUrl: null,
       bannerConfig: { mode: 'pattern', color: BANNER_COLORS[0], zoom: 1 },
-      videosEnabled: true,
+      videosEnabled: false,
       ...initialData,
     },
   })

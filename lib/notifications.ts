@@ -9,9 +9,12 @@ import { computeDebriefStatus } from '@/lib/session-debrief'
 export const NOTIFICATION_TYPES = {
   FEEDBACK: 'feedback',
   DEBRIEF: 'debrief',
+  SESSION_SOON: 'session-soon',
   COMPETITION: 'competition',
   FFA: 'ffa',
 } as const
+
+const SESSION_SOON_WINDOW_MS = 2 * 60 * 60 * 1000 // 2h avant le début de la séance
 
 /** Notification générique avec dédoublonnage : pas de doublon non-lu du même type sur la même URL. */
 async function notify(
@@ -124,6 +127,16 @@ function timeAgo(date: Date): string {
   return `il y a ${Math.floor(diffDays / 7)} sem.`
 }
 
+/** Formatte un délai avant un évènement futur (ex: rappel "séance dans 45 min"). */
+function timeUntil(date: Date): string {
+  const diffMin = Math.max(0, Math.round((date.getTime() - Date.now()) / 60_000))
+  if (diffMin < 1) return 'maintenant'
+  if (diffMin < 60) return `dans ${diffMin} min`
+  const diffH = Math.floor(diffMin / 60)
+  const remMin = diffMin % 60
+  return remMin > 0 ? `dans ${diffH}h${String(remMin).padStart(2, '0')}` : `dans ${diffH}h`
+}
+
 export type NotificationFeedItem = {
   id: string
   type: string
@@ -150,21 +163,33 @@ export async function buildNotificationFeed(
   })
 
   const debriefItems: NotificationFeedItem[] = []
+  const sessionSoonItems: NotificationFeedItem[] = []
   if (user?.linkedAthleteId) {
+    const now = new Date()
     const windowStart = new Date()
     windowStart.setDate(windowStart.getDate() - 14)
+    const soonEnd = new Date(now.getTime() + SESSION_SOON_WINDOW_MS)
 
-    const sessions = await prisma.session.findMany({
-      where: { date: { gte: windowStart, lte: new Date() } },
-      include: { athleteSessions: { where: { athleteId: user.linkedAthleteId } } },
-    })
+    const [pastSessions, soonSessions, dismissed] = await Promise.all([
+      prisma.session.findMany({
+        where: { date: { gte: windowStart, lte: now } },
+        include: { athleteSessions: { where: { athleteId: user.linkedAthleteId } } },
+      }),
+      prisma.session.findMany({
+        where: { startTime: { gte: now, lte: soonEnd } },
+      }),
+      prisma.dismissedReminder.findMany({ where: { userId }, select: { key: true } }),
+    ])
+    const dismissedKeys = new Set(dismissed.map((d) => d.key))
 
-    for (const session of sessions) {
+    for (const session of pastSessions) {
+      const key = `debrief-${session.id}`
+      if (dismissedKeys.has(key)) continue
       const log = session.athleteSessions[0] ?? null
       const status = computeDebriefStatus(session.date, log)
       if (status !== 'to_debrief') continue
       debriefItems.push({
-        id: `debrief-${session.id}`,
+        id: key,
         type: NOTIFICATION_TYPES.DEBRIEF,
         title: 'Séance à débriefer',
         body: session.title,
@@ -173,16 +198,33 @@ export async function buildNotificationFeed(
         timeAgo: timeAgo(session.date),
       })
     }
+
+    for (const session of soonSessions) {
+      const key = `session-soon-${session.id}`
+      if (dismissedKeys.has(key) || !session.startTime) continue
+      sessionSoonItems.push({
+        id: key,
+        type: NOTIFICATION_TYPES.SESSION_SOON,
+        title: 'Séance bientôt',
+        body: session.title,
+        url: `/sessions/${session.id}`,
+        isRead: false,
+        timeAgo: timeUntil(session.startTime),
+      })
+    }
   }
 
   const items: NotificationFeedItem[] = [
+    ...sessionSoonItems,
     ...debriefItems,
     ...stored.map((n) => ({
       id: n.id,
       type: n.type,
       title: n.title,
       body: n.body,
-      url: n.url,
+      // Le feedback n'a pas de vraie page de destination — l'URL stockée sert
+      // uniquement de clé de dédoublonnage côté serveur, jamais exposée comme lien.
+      url: n.type === NOTIFICATION_TYPES.FEEDBACK ? null : n.url,
       isRead: n.isRead,
       timeAgo: timeAgo(n.createdAt),
     })),

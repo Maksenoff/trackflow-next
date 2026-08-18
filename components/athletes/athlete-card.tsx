@@ -71,17 +71,19 @@ export function AthleteCard({ athlete, index = 0 }: { athlete: AthleteCardData; 
         <div className="flex flex-1 flex-col px-5 pt-0 pb-5">
           <div className="relative z-10 -mt-7 mb-2 flex justify-start">
             {athlete.photoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={athlete.photoUrl}
-                alt=""
-                className="size-14 shrink-0 rounded-full object-cover ring-4 ring-card shadow-md"
-                style={{
-                  objectPosition: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
-                  transform: `scale(${athlete.photoConfig.zoom ?? 1})`,
-                  transformOrigin: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
-                }}
-              />
+              <div className="size-14 shrink-0 overflow-hidden rounded-full ring-4 ring-card shadow-md">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={athlete.photoUrl}
+                  alt=""
+                  className="size-full object-cover"
+                  style={{
+                    objectPosition: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
+                    transform: `scale(${athlete.photoConfig.zoom ?? 1})`,
+                    transformOrigin: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
+                  }}
+                />
+              </div>
             ) : (
               <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-lg font-bold text-primary-foreground ring-4 ring-card shadow-md">
                 {initials(athlete.firstName, athlete.lastName)}

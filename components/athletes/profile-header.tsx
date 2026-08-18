@@ -90,17 +90,19 @@ export function ProfileHeader({
       <div className="px-5 pb-5 sm:px-8 sm:pb-8">
         <div className="relative z-10 -mt-12 flex flex-wrap items-end justify-between gap-4 sm:-mt-14">
           {athlete.photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={athlete.photoUrl}
-              alt=""
-              className="size-24 rounded-2xl object-cover ring-4 ring-card sm:size-28"
-              style={{
-                objectPosition: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
-                transform: `scale(${athlete.photoConfig.zoom ?? 1})`,
-                transformOrigin: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
-              }}
-            />
+            <div className="size-24 overflow-hidden rounded-2xl ring-4 ring-card sm:size-28">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={athlete.photoUrl}
+                alt=""
+                className="size-full object-cover"
+                style={{
+                  objectPosition: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
+                  transform: `scale(${athlete.photoConfig.zoom ?? 1})`,
+                  transformOrigin: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
+                }}
+              />
+            </div>
           ) : (
             <div className="flex size-24 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/60 text-2xl font-bold text-primary-foreground ring-4 ring-card sm:size-28">
               {initials(athlete.firstName, athlete.lastName)}

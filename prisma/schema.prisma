@@ -7,8 +7,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 // ---------------------------------------------------------------------------
@@ -32,6 +33,7 @@ model User {
 
   feedbacks         Feedback[]
   notifications     Notification[]
+  dismissedReminders DismissedReminder[]
   pushSubscriptions PushSubscription[]
   createdPolls      Poll[]
   pollVotes         PollVote[]
@@ -60,7 +62,7 @@ model Athlete {
   ffaProfileUrl    String?
   ffaSyncSinceYear Int? // saison de départ (année de début, ex: 2015 = saison 2015/2016) — performances antérieures ignorées à la sync
   lastSyncedAt     DateTime?
-  videosEnabled    Boolean   @default(true) // onglet Vidéos visible sur le profil — activable par un admin
+  videosEnabled    Boolean   @default(false) // onglet Vidéos visible sur le profil — activable par un admin
   createdAt        DateTime  @default(now())
 
   user                     User?                     @relation("UserLinkedAthlete")
@@ -324,6 +326,22 @@ model Notification {
 
   @@index([userId, isRead, createdAt])
   @@map("notification")
+}
+
+// Rappels calculés à la volée (lib/notifications.ts : "séance à débriefer", "séance
+// dans 2h"...) : pas de ligne Notification en base, donc rien à supprimer via
+// DELETE /api/notifications/[id]. Cette table retient juste "cet utilisateur a masqué
+// ce rappel précis" (key = id synthétique du flux, ex: "debrief-{sessionId}" ou
+// "session-soon-{sessionId}"), vérifiée en excluant ces clés du calcul du flux.
+model DismissedReminder {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key       String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, key])
+  @@map("dismissed_reminder")
 }
 
 model PushSubscription {
