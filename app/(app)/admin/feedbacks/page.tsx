@@ -11,7 +11,10 @@ export default async function AdminFeedbacksPage() {
     redirect('/dashboard')
   }
 
-  const feedbacks = await prisma.feedback.findMany({ orderBy: { createdAt: 'desc' } })
+  const feedbacks = await prisma.feedback.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: { pollOption: { select: { pollId: true } } },
+  })
   const unresolved = feedbacks.filter((f) => f.status !== 'done').length
 
   return (
@@ -35,6 +38,7 @@ export default async function AdminFeedbacksPage() {
             authorEmail: f.authorEmail,
             adminNote: f.adminNote,
             createdAt: f.createdAt.toISOString(),
+            pollId: f.pollOption?.pollId ?? null,
           }))}
         />
       </div>
