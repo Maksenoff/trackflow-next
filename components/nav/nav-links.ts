@@ -1,5 +1,13 @@
 import type { LucideIcon } from 'lucide-react'
-import { LayoutDashboard, Users, CalendarDays, Settings, ShieldCheck } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Users,
+  UsersRound,
+  Vote,
+  CalendarDays,
+  Settings,
+  ShieldCheck,
+} from 'lucide-react'
 import { ROLES, type Role } from '@/lib/roles'
 
 export interface NavLink {
@@ -12,6 +20,8 @@ export interface NavLink {
 export const NAV_LINKS: NavLink[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/athletes', label: 'Athlètes', icon: Users },
+  { href: '/teams', label: 'Équipes', icon: UsersRound },
+  { href: '/votes', label: 'Votes', icon: Vote },
   { href: '/calendar', label: 'Calendriers', icon: CalendarDays },
   {
     href: '/settings',

@@ -33,6 +33,8 @@ model User {
   feedbacks         Feedback[]
   notifications     Notification[]
   pushSubscriptions PushSubscription[]
+  createdPolls      Poll[]
+  pollVotes         PollVote[]
 
   @@map("app_user")
 }
@@ -70,6 +72,7 @@ model Athlete {
   videos                   AthleteVideo[]
   notesList                AthleteNote[]
   competitionRegistrations CompetitionRegistration[]
+  teamMemberships          TeamMember[]
 
   @@map("athlete")
 }
@@ -126,6 +129,34 @@ model AthleteVideo {
   createdAt  DateTime @default(now())
 
   @@map("athlete_video")
+}
+
+// ---------------------------------------------------------------------------
+// Équipes
+// ---------------------------------------------------------------------------
+
+// Structure volontairement générique (pas seulement relais) : groupes d'athlètes
+// réutilisables pour d'autres usages futurs (compétitions par équipe, groupes
+// d'entraînement...). Un athlète peut appartenir à plusieurs équipes.
+model Team {
+  id        String       @id @default(cuid())
+  name      String
+  createdAt DateTime     @default(now())
+  members   TeamMember[]
+
+  @@map("team")
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  athleteId String
+  athlete   Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  addedAt   DateTime @default(now())
+
+  @@unique([teamId, athleteId])
+  @@map("team_member")
 }
 
 // ---------------------------------------------------------------------------
@@ -320,6 +351,53 @@ model Feedback {
   adminNote   String?
   createdAt   DateTime  @default(now())
   resolvedAt  DateTime?
+  pollOption  PollOption?
 
   @@map("feedback")
+}
+
+// ---------------------------------------------------------------------------
+// Votes communauté
+// ---------------------------------------------------------------------------
+
+// Confrontation entre deux suggestions (Feedback) choisies par un admin, chacune
+// reformulée proprement. Chaque utilisateur vote pour l'une des deux, durée libre
+// (début/fin) fixée à la création, résultats visibles uniquement une fois expiré.
+model Poll {
+  id          String       @id @default(cuid())
+  createdById String?
+  createdBy   User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime     @default(now())
+  startsAt    DateTime     @default(now()) // date de début choisie par l'admin — le vote n'est ouvert qu'à partir de cette date
+  expiresAt   DateTime
+  options     PollOption[]
+  votes       PollVote[]
+
+  @@map("poll")
+}
+
+model PollOption {
+  id         String     @id @default(cuid())
+  pollId     String
+  poll       Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  feedbackId String     @unique
+  feedback   Feedback   @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  label      String // reformulation admin de la suggestion originale
+  votes      PollVote[]
+
+  @@map("poll_option")
+}
+
+model PollVote {
+  id       String     @id @default(cuid())
+  pollId   String
+  poll     Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  optionId String
+  option   PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  votedAt  DateTime   @default(now())
+
+  @@unique([pollId, userId])
+  @@map("poll_vote")
 }

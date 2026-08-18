@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Settings, ShieldCheck } from 'lucide-react'
+import { Settings, ShieldCheck, Users } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { MobileAccountSheet } from '@/components/nav/mobile-account-sheet'
@@ -38,8 +38,29 @@ export function MobileNav({
   const pathname = usePathname()
   const [accountOpen, setAccountOpen] = useState(false)
   const [systemOpen, setSystemOpen] = useState(false)
+  const [communityOpen, setCommunityOpen] = useState(false)
   const allowed = NAV_LINKS.filter((l) => !l.roles || l.roles.some((r) => roles.includes(r)))
-  const links = allowed.filter((l) => l.href !== '/settings' && l.href !== '/admin')
+  const COMMUNITY_HREFS = ['/athletes', '/teams', '/votes']
+  const communityLinks = allowed.filter((l) => COMMUNITY_HREFS.includes(l.href))
+  const communityActive = COMMUNITY_HREFS.some(
+    (href) => pathname === href || pathname.startsWith(`${href}/`)
+  )
+  // Regroupe Athlètes/Équipes/Votes sous un seul bouton "Communauté" à la position
+  // qu'occupait Athlètes, en conservant l'ordre des autres liens (pattern §Système).
+  type RowItem = { kind: 'link'; link: (typeof allowed)[number] } | { kind: 'community' }
+  const rowItems: RowItem[] = []
+  let communityInserted = false
+  for (const link of allowed) {
+    if (link.href === '/settings' || link.href === '/admin') continue
+    if (COMMUNITY_HREFS.includes(link.href)) {
+      if (!communityInserted) {
+        rowItems.push({ kind: 'community' })
+        communityInserted = true
+      }
+      continue
+    }
+    rowItems.push({ kind: 'link', link })
+  }
   const hasSystem = allowed.some((l) => l.href === '/settings' || l.href === '/admin')
   const systemActive =
     pathname === '/settings' ||
@@ -53,7 +74,40 @@ export function MobileNav({
       style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
     >
       <ul className="flex items-stretch justify-around px-1 py-1.5">
-        {links.map((link) => {
+        {rowItems.map((item) => {
+          if (item.kind === 'community') {
+            return (
+              <li key="community" className="flex-1">
+                <button
+                  type="button"
+                  onClick={() => setCommunityOpen(true)}
+                  className="relative flex w-full flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-medium text-muted-foreground"
+                >
+                  {communityActive && (
+                    <motion.span
+                      layoutId="mobile-nav-active"
+                      className="absolute inset-0 rounded-2xl bg-primary/10"
+                      transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                    />
+                  )}
+                  <motion.span
+                    animate={{ scale: communityActive ? 1.15 : 1 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                    className={cn(
+                      'relative z-10 flex items-center justify-center',
+                      communityActive && 'text-primary'
+                    )}
+                  >
+                    <Users className="size-5" />
+                  </motion.span>
+                  <span className={cn('relative z-10', communityActive && 'text-primary')}>
+                    Communauté
+                  </span>
+                </button>
+              </li>
+            )
+          }
+          const link = item.link
           const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`)
           return (
             <li key={link.href} className="flex-1">
@@ -154,6 +208,31 @@ export function MobileNav({
         primaryRole={primaryRole(roles)}
         linkedAthlete={linkedAthlete}
       />
+
+      <Sheet open={communityOpen} onOpenChange={setCommunityOpen}>
+        <SheetContent
+          side="bottom"
+          className="rounded-t-[28px] border-border pb-[max(1rem,env(safe-area-inset-bottom))]"
+          showCloseButton={false}
+        >
+          <SheetTitle className="sr-only">Communauté</SheetTitle>
+          <div className="mx-auto mt-1 h-1 w-9 shrink-0 rounded-full bg-muted" />
+
+          <div className="space-y-1 px-2 pt-2 pb-2">
+            {communityLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setCommunityOpen(false)}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors hover:bg-muted/60"
+              >
+                <link.icon className="size-4 text-muted-foreground" />
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <Sheet open={systemOpen} onOpenChange={setSystemOpen}>
         <SheetContent
