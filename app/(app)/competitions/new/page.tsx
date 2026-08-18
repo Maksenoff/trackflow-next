@@ -20,7 +20,11 @@ export default async function NewCompetitionPage({
 
   return (
     <PageTransition>
-      <CompetitionForm mode="create" competitionTypes={competitionTypes} initialDate={initialDate} />
+      <CompetitionForm
+        mode="create"
+        competitionTypes={competitionTypes}
+        initialDate={initialDate}
+      />
     </PageTransition>
   )
 }

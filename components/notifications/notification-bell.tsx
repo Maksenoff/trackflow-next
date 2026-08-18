@@ -71,9 +71,7 @@ function NotificationRowContent({ item }: { item: NotificationItem }) {
         <Icon className="size-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className={cn('truncate text-[13px]', !item.isRead && 'font-semibold')}>
-          {item.title}
-        </p>
+        <p className={cn('truncate text-[13px]', !item.isRead && 'font-semibold')}>{item.title}</p>
         <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{item.body}</p>
         <p className="mt-1 text-[11px] text-muted-foreground/80">{item.timeAgo}</p>
       </div>

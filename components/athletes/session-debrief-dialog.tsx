@@ -98,10 +98,7 @@ export function SessionDebriefDialog({
             {isEditing ? 'Modifier le ressenti' : 'Comment s’est passée cette séance ?'}
           </h3>
 
-          <div
-            className="mb-5 space-y-3"
-            style={{ '--rpe-color': color } as CSSProperties}
-          >
+          <div className="mb-5 space-y-3" style={{ '--rpe-color': color } as CSSProperties}>
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-muted-foreground">
                 Difficulté ressentie

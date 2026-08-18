@@ -87,7 +87,9 @@ export function SettingsTabs({
                 )}
                 <t.icon className="size-3.5" />
                 <span className="hidden sm:inline">{t.label}</span>
-                <span className="sm:hidden">{t.key === 'sessions' ? 'Séances' : 'Compétitions'}</span>
+                <span className="sm:hidden">
+                  {t.key === 'sessions' ? 'Séances' : 'Compétitions'}
+                </span>
                 <span
                   className={cn(
                     'rounded-full px-1.5 text-[10px] font-bold',

@@ -13,7 +13,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false }, { status: 400 })
   }
 
-  const sub = await prisma.pushSubscription.findUnique({ where: { endpoint: parsed.data.endpoint } })
+  const sub = await prisma.pushSubscription.findUnique({
+    where: { endpoint: parsed.data.endpoint },
+  })
   if (sub && sub.userId === session.user.id) {
     await prisma.pushSubscription.delete({ where: { id: sub.id } })
   }

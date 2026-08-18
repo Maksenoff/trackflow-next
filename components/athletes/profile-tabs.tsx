@@ -20,9 +20,7 @@ export function ProfileTabs({ athlete, canEdit }: { athlete: AthleteDetail; canE
     { key: 'sessions' as const, label: 'Séances', icon: Dumbbell },
     { key: 'competitions' as const, label: 'Compétitions', icon: Trophy },
     { key: 'goals' as const, label: 'Objectifs', icon: Target },
-    ...(athlete.videosEnabled
-      ? [{ key: 'videos' as const, label: 'Vidéos', icon: Video }]
-      : []),
+    ...(athlete.videosEnabled ? [{ key: 'videos' as const, label: 'Vidéos', icon: Video }] : []),
     {
       key: 'notes' as const,
       label: 'Notes',

@@ -275,16 +275,16 @@ export function UserEditForm({
                         <span
                           className={cn(
                             'flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold',
-                            linked
-                              ? 'bg-primary/15 text-primary'
-                              : 'bg-muted text-muted-foreground'
+                            linked ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'
                           )}
                         >
                           {linked ? initials(linked.firstName, linked.lastName) : '—'}
                         </span>
                         <SelectValue placeholder="Aucun profil lié">
                           {() =>
-                            linked ? fullName(linked.firstName, linked.lastName) : 'Aucun profil lié'
+                            linked
+                              ? fullName(linked.firstName, linked.lastName)
+                              : 'Aucun profil lié'
                           }
                         </SelectValue>
                       </SelectTrigger>
@@ -334,7 +334,10 @@ export function UserEditForm({
                   Infos (lecture seule)
                 </div>
                 <div className="space-y-1.5 text-xs">
-                  <InfoRow label="Date de naissance" value={formatBirthDate(linkedAthlete.birthDate)} />
+                  <InfoRow
+                    label="Date de naissance"
+                    value={formatBirthDate(linkedAthlete.birthDate)}
+                  />
                   <InfoRow
                     label="Genre"
                     value={linkedAthlete.gender ? GENDER_LABELS[linkedAthlete.gender] : null}
