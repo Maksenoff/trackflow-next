@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Clock,
   Dumbbell,
+  KeyRound,
   MessageSquare,
   Trophy,
   BadgeCheck,
@@ -43,6 +44,7 @@ const TYPE_ICONS: Record<string, typeof Bell> = {
   'session-soon': Clock,
   competition: Trophy,
   ffa: BadgeCheck,
+  account: KeyRound,
 }
 
 const TYPE_ICON_STYLES: Record<string, string> = {
@@ -51,6 +53,7 @@ const TYPE_ICON_STYLES: Record<string, string> = {
   'session-soon': 'bg-sky-500/10 text-sky-500',
   competition: 'bg-amber-500/10 text-amber-500',
   ffa: 'bg-emerald-500/10 text-emerald-500',
+  account: 'bg-rose-500/10 text-rose-500',
 }
 const DEFAULT_ICON_STYLE = 'bg-primary/10 text-primary'
 

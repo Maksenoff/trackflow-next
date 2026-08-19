@@ -146,3 +146,40 @@
     cursor: pointer;
   }
 }
+
+/* Panneau de marque login/register (écrans (auth)) — dérive lente des halos +
+   particules qui remontent doucement en fond, fond nuit volontairement fixe
+   (identité de marque, pas de variante dark:/light:). Le fond "stats"
+   (histogramme/sparkline) reste fixe, tout le mouvement vient des particules. */
+@keyframes brand-orb-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(2%, -3%) scale(1.08);
+  }
+}
+.animate-brand-orb {
+  animation: brand-orb-drift ease-in-out infinite;
+}
+
+@keyframes brand-particle-float {
+  0% {
+    transform: translateY(0) scale(0.8);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.5;
+  }
+  85% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(-420px) scale(1.1);
+    opacity: 0;
+  }
+}
+.animate-brand-particle {
+  animation: brand-particle-float ease-in infinite;
+}

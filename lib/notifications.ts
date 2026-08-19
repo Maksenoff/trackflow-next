@@ -12,6 +12,7 @@ export const NOTIFICATION_TYPES = {
   SESSION_SOON: 'session-soon',
   COMPETITION: 'competition',
   FFA: 'ffa',
+  ACCOUNT: 'account',
 } as const
 
 const SESSION_SOON_WINDOW_MS = 2 * 60 * 60 * 1000 // 2h avant le début de la séance
@@ -60,6 +61,33 @@ export async function notifyFeedbackUpdated(
     data: { userId, type: NOTIFICATION_TYPES.FEEDBACK, title, body, url },
   })
   await sendPushToUser(userId, { title, body, url, tag: `feedback-${Date.now()}` })
+}
+
+// Pas d'envoi d'email (aucune infra mail dans ce rewrite) : la demande "mot de passe
+// oublié" notifie simplement les admins, qui réinitialisent manuellement via
+// /admin/users/[id] (fonctionnalité déjà existante).
+export async function notifyPasswordResetRequested(
+  adminUserId: string,
+  requesterName: string,
+  requesterEmail: string
+): Promise<void> {
+  const title = 'Mot de passe oublié'
+  const body = `${requesterName} (${requesterEmail}) demande une réinitialisation.`
+  await prisma.notification.create({
+    data: {
+      userId: adminUserId,
+      type: NOTIFICATION_TYPES.ACCOUNT,
+      title,
+      body,
+      url: '/admin/users',
+    },
+  })
+  await sendPushToUser(adminUserId, {
+    title,
+    body,
+    url: '/admin/users',
+    tag: `account-${Date.now()}`,
+  })
 }
 
 export async function notifyFfaConfirmed(

@@ -8,12 +8,10 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { signIn } from 'next-auth/react'
 import { motion } from 'framer-motion'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Lock, Mail, User } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { AuthField } from '@/components/auth/auth-field'
 
 const registerSchema = z
   .object({
@@ -81,85 +79,97 @@ export function RegisterForm() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      className="relative overflow-hidden rounded-3xl border border-border bg-card p-7 shadow-xl shadow-black/[0.06] backdrop-blur-sm sm:p-8 dark:shadow-[0_0_80px_-24px_rgba(124,58,237,0.4)]"
     >
-      <Card className="border-border shadow-xl shadow-black/5">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-xl">Créer un compte</CardTitle>
-          <CardDescription>Rejoignez votre club sur TrackFlow</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">Prénom</Label>
-                <Input id="firstName" autoComplete="given-name" {...register('firstName')} />
-                {errors.firstName && (
-                  <p className="text-xs text-destructive">{errors.firstName.message}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Nom</Label>
-                <Input id="lastName" autoComplete="family-name" {...register('lastName')} />
-                {errors.lastName && (
-                  <p className="text-xs text-destructive">{errors.lastName.message}</p>
-                )}
-              </div>
-            </div>
+      {/* Bandeau "ligne d'arrivée" — écho du panneau de marque (violet, pas le bleu de --primary) */}
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-violet-800 via-fuchsia-800 to-violet-900"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-16 -right-16 size-48 rounded-full bg-violet-600/10 blur-3xl dark:bg-violet-600/15"
+      />
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="vous@club.fr"
-                autoComplete="email"
-                {...register('email')}
-              />
-              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
-            </div>
+      <div className="relative mb-7 space-y-1.5">
+        <h1 className="text-2xl font-extrabold tracking-tight">Créer un compte</h1>
+        <p className="text-sm text-muted-foreground">Rejoins ton club sur TrackFlow.</p>
+      </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="8 caractères minimum"
-                autoComplete="new-password"
-                {...register('password')}
-              />
-              {errors.password && (
-                <p className="text-xs text-destructive">{errors.password.message}</p>
-              )}
-            </div>
+      <form onSubmit={handleSubmit(onSubmit)} className="relative space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          <AuthField
+            id="firstName"
+            label="Prénom"
+            icon={User}
+            autoComplete="given-name"
+            error={errors.firstName?.message}
+            {...register('firstName')}
+          />
+          <AuthField
+            id="lastName"
+            label="Nom"
+            icon={User}
+            autoComplete="family-name"
+            error={errors.lastName?.message}
+            {...register('lastName')}
+          />
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                {...register('confirmPassword')}
-              />
-              {errors.confirmPassword && (
-                <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>
-              )}
-            </div>
+        <AuthField
+          id="email"
+          label="Email"
+          icon={Mail}
+          type="email"
+          placeholder="vous@club.fr"
+          autoComplete="email"
+          error={errors.email?.message}
+          {...register('email')}
+        />
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading && <Loader2 className="size-4 animate-spin" />}
-              Créer mon compte
-            </Button>
-          </form>
+        <AuthField
+          id="password"
+          label="Mot de passe"
+          icon={Lock}
+          type="password"
+          placeholder="8 caractères minimum"
+          autoComplete="new-password"
+          error={errors.password?.message}
+          {...register('password')}
+        />
 
-          <p className="text-sm text-muted-foreground text-center mt-6">
-            Déjà un compte ?{' '}
-            <Link href="/login" className="text-primary font-medium hover:underline">
-              Se connecter
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
+        <AuthField
+          id="confirmPassword"
+          label="Confirmer le mot de passe"
+          icon={Lock}
+          type="password"
+          placeholder="••••••••"
+          autoComplete="new-password"
+          error={errors.confirmPassword?.message}
+          {...register('confirmPassword')}
+        />
+
+        <Button
+          type="submit"
+          size="lg"
+          className="h-12 w-full rounded-xl border-0 bg-gradient-to-r from-violet-900 to-fuchsia-900 text-base font-semibold text-white shadow-lg shadow-violet-950/40 hover:from-violet-800 hover:to-fuchsia-800"
+          disabled={loading}
+        >
+          {loading && <Loader2 className="size-4 animate-spin" />}
+          Créer mon compte
+        </Button>
+      </form>
+
+      <p className="relative mt-7 text-center text-sm text-muted-foreground">
+        Déjà un compte ?{' '}
+        <Link
+          href="/login"
+          className="font-semibold text-violet-800 hover:underline dark:text-violet-400"
+        >
+          Se connecter
+        </Link>
+      </p>
     </motion.div>
   )
 }
