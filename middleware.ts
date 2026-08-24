@@ -4,7 +4,9 @@ import { authConfig } from '@/lib/auth.config'
 
 const { auth } = NextAuth(authConfig)
 
-const PUBLIC_PATHS = ['/login', '/register']
+// /api/keep-alive : appelé par le cron Vercel (vercel.json) sans session —
+// doit rester joignable sans redirection vers /login.
+const PUBLIC_PATHS = ['/login', '/register', '/api/keep-alive']
 
 export default auth((req) => {
   const { pathname } = req.nextUrl
