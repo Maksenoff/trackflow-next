@@ -42,7 +42,7 @@ export function ProfileTabs({ athlete, canEdit }: { athlete: AthleteDetail; canE
 
   return (
     <div className="space-y-4">
-      <div className="no-scrollbar flex items-center gap-1 overflow-x-auto rounded-full border border-border bg-card p-1 shadow-sm">
+      <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1.5 shadow-sm">
         {tabs.map((tab) => {
           const isActive = tab.key === active
           return (
@@ -54,14 +54,16 @@ export function ProfileTabs({ athlete, canEdit }: { athlete: AthleteDetail; canE
               aria-label={tab.label}
               title={tab.label}
               className={cn(
-                'relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-full px-2.5 py-2 text-sm font-medium whitespace-nowrap transition-colors sm:px-3.5',
-                isActive ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                'relative z-10 flex min-h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium whitespace-nowrap transition-colors sm:px-4',
+                isActive
+                  ? 'text-white'
+                  : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
               )}
             >
               {isActive && (
                 <motion.span
                   layoutId="profile-tab-active"
-                  className="absolute inset-0 -z-10 rounded-full bg-gradient-to-r from-primary to-primary/80 shadow-sm shadow-primary/30"
+                  className="absolute inset-0 -z-10 rounded-lg bg-gradient-selected shadow-sm shadow-primary/25"
                   transition={{ duration: 0.25, ease: 'easeOut' }}
                 />
               )}
@@ -71,7 +73,7 @@ export function ProfileTabs({ athlete, canEdit }: { athlete: AthleteDetail; canE
                 <span
                   className={cn(
                     'rounded-full px-1.5 text-[10px] font-bold',
-                    isActive ? 'bg-white/20' : 'bg-muted'
+                    isActive ? 'bg-white/25' : 'bg-muted'
                   )}
                 >
                   {tab.badge}

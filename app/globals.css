@@ -9,9 +9,11 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-card-elevated: var(--card-elevated);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -19,6 +21,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-glow: var(--accent-glow);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -56,6 +59,51 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
+  /* Touch targets tactiles — 44x44px minimum sur mobile (WCAG + Apple HIG) */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Ombre de card "premium" — légère + halo violet très diffus, jamais un
+     bloc de couleur plein. Utilisée à la place de shadow-sm sur les cards
+     qui veulent un peu plus de présence. Recette par thème via --shadow-card
+     (light retravaillé au correctif 2026-08-21bis, dark inchangé). */
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Ombre plus marquée pour les cards "mises en avant" (prochaine séance /
+     compétition) — même recette que .shadow-card, en plus prononcé. */
+  .shadow-card-elevated {
+    box-shadow: var(--shadow-card-elevated);
+  }
+
+  /* Header "marque" des pages principales (dashboard...) — TOUJOURS sombre,
+     dans les deux thèmes : c'est l'identité visuelle, pas une zone de contenu
+     neutre. Le violet n'y est pas soumis à la règle "jamais en fond de zone
+     large" du reste de l'app — ce bandeau EST l'accent de marque.
+     --header-mid n'est défini qu'en light (3 stops, correctif 2026-08-21bis) ;
+     en dark, `var(--header-mid, var(--header-to))` retombe sur --header-to,
+     ce qui reproduit à l'identique l'ancien dégradé à 2 stops. */
+  .header-brand {
+    background: linear-gradient(
+      135deg,
+      var(--header-from),
+      var(--header-mid, var(--header-to)),
+      var(--header-to)
+    );
+    color: #ffffff;
+  }
+
+  /* Dégradé "sélectionné" — même esprit que le bouton de connexion (login-form.tsx) :
+     un vrai dégradé plutôt qu'un aplat, mais une paire de violets DE LA MÊME FAMILLE
+     (jamais violet→fuchsia, qui avait été jugé trop "fluo" sur les onglets) — plus clair
+     en light, plus sombre en dark (correctif 2026-08-22). */
+  .bg-gradient-selected {
+    background-image: var(--gradient-selected);
+  }
 }
 
 @layer base {
@@ -63,75 +111,140 @@
     --font-heading: var(--font-sans);
     --font-sans: var(--font-sans);
   }
+
+  /* Thème jour — neutre et sobre, pas de rose/pastel. Le violet reste ponctuel
+     (boutons, nav active, badges) jamais en fond de zone large. Accent foncé
+     et désaturé (#5b21b6) — jamais de violet "fluo" (correctif 2026-08-21).
+     Fond page volontairement un cran plus foncé que blanc pur (#f4f3f8) pour
+     que les cards blanches ressortent — c'est ce contraste qui donne la
+     profondeur (correctif light 2026-08-21bis). */
   :root {
-    --background: oklch(0.945 0.005 260);
-    --foreground: oklch(0.18 0.02 260);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.18 0.02 260);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.18 0.02 260);
-    --primary: oklch(0.58 0.21 265);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.925 0.014 260);
-    --secondary-foreground: oklch(0.205 0.02 260);
-    --muted: oklch(0.925 0.014 260);
-    --muted-foreground: oklch(0.46 0.02 260);
-    --accent: oklch(0.92 0.035 265);
-    --accent-foreground: oklch(0.3 0.1 265);
-    --destructive: oklch(0.577 0.245 27.325);
-    --destructive-foreground: oklch(0.985 0 0);
-    --border: oklch(0 0 0 / 13%);
-    --input: oklch(0 0 0 / 16%);
-    --ring: oklch(0.58 0.21 265);
-    --chart-1: oklch(0.58 0.21 265);
-    --chart-2: oklch(0.75 0.15 190);
-    --chart-3: oklch(0.7 0.19 45);
-    --chart-4: oklch(0.65 0.22 15);
-    --chart-5: oklch(0.6 0.15 320);
-    --radius: 0.75rem;
-    --sidebar: oklch(1 0 0);
-    --sidebar-foreground: oklch(0.18 0.02 260);
-    --sidebar-primary: oklch(0.58 0.21 265);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.92 0.035 265);
-    --sidebar-accent-foreground: oklch(0.3 0.1 265);
-    --sidebar-border: oklch(0 0 0 / 13%);
-    --sidebar-ring: oklch(0.58 0.21 265);
+    --background: #f4f3f8;
+    --foreground: #0f0d1a;
+    --card: #ffffff;
+    --card-foreground: #0f0d1a;
+    /* Fond légèrement distinct pour les cards "mises en avant" (prochaine
+       séance/compétition) — un cran au-dessus de --card sans virer au plein
+       violet. */
+    --card-elevated: #faf9ff;
+    --popover: #ffffff;
+    --popover-foreground: #0f0d1a;
+    --primary: #5b21b6;
+    --primary-hover: #4c1d95;
+    --primary-foreground: #ffffff;
+    --secondary: #ede9f5;
+    --secondary-foreground: #0f0d1a;
+    --muted: #ede9f5;
+    --muted-foreground: #6b6584;
+    --accent: #ede9f5;
+    --accent-foreground: #5b21b6;
+    --accent-glow: rgba(91, 33, 182, 0.08);
+    --destructive: #e53e3e;
+    --destructive-foreground: #ffffff;
+    --border: #ddd9ee;
+    --input: #f5f3ff;
+    --ring: #5b21b6;
+    --chart-1: #5b21b6;
+    --chart-2: #38bdf8;
+    --chart-3: #fb923c;
+    --chart-4: #f43f5e;
+    --chart-5: #a855f7;
+    --radius: 0.625rem;
+    /* Nav sidebar : blanc en light (confondu avec les cards, c'est voulu ici) */
+    --sidebar: #ffffff;
+    --sidebar-foreground: #0f0d1a;
+    --sidebar-primary: #5b21b6;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: rgba(91, 33, 182, 0.08);
+    --sidebar-accent-foreground: #5b21b6;
+    --sidebar-border: #ddd9ee;
+    --sidebar-ring: #5b21b6;
+    /* Header de marque en light — quasi noir avec juste une trace de violet
+       foncé, plus JAMAIS un violet plein saturé même en light (correctif
+       2026-08-21bis) ; --header-mid ajoute le 3e stop du dégradé demandé,
+       avec fallback vers --header-to pour ne rien changer au rendu dark
+       (qui ne définit pas --header-mid — voir .header-brand plus bas). */
+    --header-from: #1a0a2e;
+    --header-mid: #0d0618;
+    --header-to: #080810;
+    /* Ombre de card propre au light — contraste net (0.08) + trace violette
+       diffuse (0.06), la séparation nécessaire entre le fond #f4f3f8 et les
+       cards blanches (correctif 2026-08-21ter). */
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(91, 33, 182, 0.06);
+    --shadow-card-elevated: 0 2px 6px rgba(0, 0, 0, 0.1), 0 8px 24px rgba(91, 33, 182, 0.1);
+    /* États "sélectionné" (onglets, filtres actifs, nav active) : dégradé plus
+       clair en light, cohérent avec --primary sans être plat. */
+    --gradient-selected: linear-gradient(90deg, #7c3aed, #a78bfa);
   }
+
+  /* Thème nuit — quasi noir, le violet n'est JAMAIS un fond de zone large :
+     réservé aux boutons primaires, nav active, badges, accents ponctuels.
+     Même accent foncé qu'en light (#5b21b6) — cohérence entre les deux thèmes. */
   .dark {
-    --background: oklch(0.14 0.015 260);
-    --foreground: oklch(0.96 0.005 260);
-    --card: oklch(0.19 0.02 260);
-    --card-foreground: oklch(0.96 0.005 260);
-    --popover: oklch(0.19 0.02 260);
-    --popover-foreground: oklch(0.96 0.005 260);
-    --primary: oklch(0.68 0.19 265);
-    --primary-foreground: oklch(0.14 0.02 260);
-    --secondary: oklch(0.24 0.02 260);
-    --secondary-foreground: oklch(0.96 0.005 260);
-    --muted: oklch(0.24 0.02 260);
-    --muted-foreground: oklch(0.65 0.02 260);
-    --accent: oklch(0.27 0.05 265);
-    --accent-foreground: oklch(0.85 0.08 265);
-    --destructive: oklch(0.704 0.191 22.216);
-    --destructive-foreground: oklch(0.985 0 0);
-    --border: oklch(1 0 0 / 8%);
-    --input: oklch(1 0 0 / 12%);
-    --ring: oklch(0.68 0.19 265);
-    --chart-1: oklch(0.68 0.19 265);
-    --chart-2: oklch(0.75 0.15 190);
-    --chart-3: oklch(0.75 0.18 45);
-    --chart-4: oklch(0.7 0.2 15);
-    --chart-5: oklch(0.68 0.16 320);
-    --sidebar: oklch(0.16 0.018 260);
-    --sidebar-foreground: oklch(0.96 0.005 260);
-    --sidebar-primary: oklch(0.68 0.19 265);
-    --sidebar-primary-foreground: oklch(0.14 0.02 260);
-    --sidebar-accent: oklch(0.27 0.05 265);
-    --sidebar-accent-foreground: oklch(0.85 0.08 265);
-    --sidebar-border: oklch(1 0 0 / 8%);
-    --sidebar-ring: oklch(0.68 0.19 265);
+    --background: #080810;
+    --foreground: #f1f0f5;
+    --card: #0f0d1a;
+    --card-foreground: #f1f0f5;
+    /* Entre-deux entre --card (#0f0d1a, les cards "plates" en dessous) et le
+       stop le plus sombre du bandeau dashboard (#0d0618) — assez proche des
+       cards voisines pour ne pas jurer, tout en restant légèrement plus
+       présent pour marquer la mise en avant (correctif 2026-08-21septies,
+       après plusieurs essais trop gris ou trop saturés). */
+    --card-elevated: #0e0a19;
+    --popover: #0f0d1a;
+    --popover-foreground: #f1f0f5;
+    --primary: #5b21b6;
+    --primary-hover: #4c1d95;
+    --primary-foreground: #ffffff;
+    --secondary: #0b0914;
+    --secondary-foreground: #f1f0f5;
+    --muted: #0b0914;
+    --muted-foreground: #6b6584;
+    --accent: #0b0914;
+    --accent-foreground: #c4b5fd;
+    --accent-glow: rgba(91, 33, 182, 0.15);
+    --destructive: #f87171;
+    --destructive-foreground: #1a0a0a;
+    --border: #1a1628;
+    --input: #0f0d1a;
+    --ring: #5b21b6;
+    --chart-1: #a78bfa;
+    --chart-2: #38bdf8;
+    --chart-3: #fb923c;
+    --chart-4: #fb7185;
+    --chart-5: #c084fc;
+    /* Nav sidebar : quasi-noir, distinct du fond des cards (#0f0d1a) */
+    --sidebar: #080810;
+    --sidebar-foreground: #f1f0f5;
+    --sidebar-primary: #5b21b6;
+    --sidebar-primary-foreground: #ffffff;
+    /* Hover violet en dark — retravaillé (correctif 2026-08-24) : l'ancien
+       rgba(91,33,182,0.08) était trop discret sur le fond quasi-noir de la
+       nav/des onglets. Même teinte vive que le 1er stop de --gradient-selected
+       ci-dessous, pour que hover et actif appartiennent à la même famille. */
+    --sidebar-accent: rgba(124, 58, 237, 0.16);
+    --sidebar-accent-foreground: #c4b5fd;
+    --sidebar-border: #1a1628;
+    --sidebar-ring: #5b21b6;
+    /* Header de marque — inchangé par le correctif light 2026-08-21bis */
+    --header-from: #1e0a4a;
+    --header-to: #080810;
+    /* Ombre de card dark — inchangée, équivalente à l'ancienne formule fixe
+       (0.06 + --accent-glow) désormais exprimée via ce token partagé. */
+    --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(91, 33, 182, 0.15);
+    --shadow-card-elevated: 0 2px 8px rgba(0, 0, 0, 0.3), 0 8px 32px rgba(91, 33, 182, 0.2);
+    /* États "sélectionné" en dark (correctif 2026-08-24, repasse après retour
+       utilisateur "toujours peu visible") : l'ancien dégradé 5b21b6→4c1d95
+       avait un écart de luminosité trop faible pour se lire comme un dégradé
+       sur un fond quasi-noir — rendait comme un aplat plat. Deux correctifs
+       cumulés : angle passé de 135deg à 90deg (horizontal pur — sur des pills
+       larges et basses comme la nav/les onglets, un angle diagonal ne
+       parcourt qu'une fraction de l'écart de couleur sur la largeur visible,
+       un angle 90deg l'étale sur toute la largeur du bouton) ; et 1er stop
+       éclairci de #7c3aed à #8b5cf6 pour creuser l'écart avec #4c1d95. */
+    --gradient-selected: linear-gradient(90deg, #8b5cf6, #4c1d95);
   }
+
   * {
     @apply border-border;
   }
@@ -144,6 +257,25 @@
   button:not(:disabled),
   [role='button']:not(:disabled) {
     cursor: pointer;
+  }
+
+  /* Aucun hover "collant" sur tactile — le hover:* de Tailwind ne s'applique
+     qu'aux pointeurs fins, le reste retombe sur les états active:* */
+  @media (hover: none) {
+    .hover-only {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
@@ -182,4 +314,23 @@
 }
 .animate-brand-particle {
   animation: brand-particle-float ease-in infinite;
+}
+
+/* Skeleton loaders (dashboard) — chatoiement violet qui balaie le bloc */
+@keyframes shimmer-sweep {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.animate-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.animate-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--accent-glow), transparent);
+  animation: shimmer-sweep 1.6s ease-in-out infinite;
 }
