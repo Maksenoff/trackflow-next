@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isAdmin, isCoach, isCompetitionManager, type Role } from '@/lib/roles'
+import { getClubSettings } from '@/lib/club-settings'
 import { PageTransition } from '@/components/motion/page-transition'
 import { SettingsTabs } from '@/components/settings/settings-tabs'
 
@@ -10,9 +11,19 @@ export default async function SettingsPage({ searchParams }: { searchParams: { t
   const roles = (session?.user.roles ?? []) as Role[]
   const canManageSessions = isAdmin(roles) || isCoach(roles)
   const canManageCompetitions = isAdmin(roles) || isCoach(roles) || isCompetitionManager(roles)
-  if (!canManageSessions && !canManageCompetitions) redirect('/dashboard')
+  const canManageConfiguration = isAdmin(roles)
+  if (!canManageSessions && !canManageCompetitions && !canManageConfiguration)
+    redirect('/dashboard')
 
-  const [trainingTypes, competitionTypes] = await Promise.all([
+  function resolveInitialTab(): 'sessions' | 'competitions' | 'configuration' {
+    if (searchParams.tab === 'configuration' && canManageConfiguration) return 'configuration'
+    if (searchParams.tab === 'competitions' && canManageCompetitions) return 'competitions'
+    if (canManageSessions) return 'sessions'
+    if (canManageCompetitions) return 'competitions'
+    return 'configuration'
+  }
+
+  const [trainingTypes, competitionTypes, clubSettings] = await Promise.all([
     prisma.trainingType.findMany({
       orderBy: { name: 'asc' },
       include: { _count: { select: { sessions: true } } },
@@ -21,6 +32,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: { t
       orderBy: { name: 'asc' },
       include: { _count: { select: { competitions: true } } },
     }),
+    canManageConfiguration ? getClubSettings() : Promise.resolve({ clubCode: null }),
   ])
 
   return (
@@ -34,13 +46,11 @@ export default async function SettingsPage({ searchParams }: { searchParams: { t
         </div>
 
         <SettingsTabs
-          initialTab={
-            searchParams.tab === 'competitions' || (!canManageSessions && canManageCompetitions)
-              ? 'competitions'
-              : 'sessions'
-          }
+          initialTab={resolveInitialTab()}
           showSessions={canManageSessions}
           showCompetitions={canManageCompetitions}
+          showConfiguration={canManageConfiguration}
+          initialClubCode={clubSettings.clubCode}
           sessionTypes={trainingTypes.map((t) => ({
             id: t.id,
             name: t.name,

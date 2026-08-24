@@ -1,13 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import Link from 'next/link'
 import { Plus, UsersRound } from 'lucide-react'
 import { TeamCard, type TeamCardData } from './team-card'
-import { TeamFormDialog } from './team-form-dialog'
 
 export function TeamsView({ teams, canManage }: { teams: TeamCardData[]; canManage: boolean }) {
-  const [createOpen, setCreateOpen] = useState(false)
-
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -18,14 +15,13 @@ export function TeamsView({ teams, canManage }: { teams: TeamCardData[]; canMana
           </p>
         </div>
         {canManage && (
-          <button
-            type="button"
-            onClick={() => setCreateOpen(true)}
+          <Link
+            href="/teams/new"
             className="group inline-flex shrink-0 items-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-primary/80 px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/35"
           >
             <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
             Nouvelle équipe
-          </button>
+          </Link>
         )}
       </div>
 
@@ -41,8 +37,6 @@ export function TeamsView({ teams, canManage }: { teams: TeamCardData[]; canMana
           ))}
         </div>
       )}
-
-      <TeamFormDialog open={createOpen} onOpenChange={setCreateOpen} />
     </div>
   )
 }

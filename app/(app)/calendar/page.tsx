@@ -6,6 +6,7 @@ import {
   getMonthCompetitions,
   getTrainingTypes,
   getCompetitionTypes,
+  getCoachUsers,
 } from '@/lib/calendar-data'
 import { PageTransition } from '@/components/motion/page-transition'
 import { CalendarView } from '@/components/calendar/calendar-view'
@@ -30,11 +31,12 @@ export default async function CalendarPage({
     linkedAthleteId = user?.linkedAthleteId ?? null
   }
 
-  const [sessions, competitions, trainingTypes, competitionTypes] = await Promise.all([
+  const [sessions, competitions, trainingTypes, competitionTypes, coaches] = await Promise.all([
     getMonthSessions(year, month),
     getMonthCompetitions(year, month, linkedAthleteId),
     getTrainingTypes(),
     getCompetitionTypes(),
+    getCoachUsers(),
   ])
 
   return (
@@ -56,6 +58,8 @@ export default async function CalendarPage({
             durationMinutes: s.durationMinutes,
             description: s.description,
             trainingType: s.trainingType,
+            coach: s.coach,
+            coachPresent: s.coachPresent,
           }))}
           competitions={competitions.map((c) => ({
             id: c.id,
@@ -71,6 +75,8 @@ export default async function CalendarPage({
           }))}
           trainingTypes={trainingTypes}
           competitionTypes={competitionTypes}
+          coaches={coaches}
+          currentUserId={session?.user.id}
           canManageSessions={canManageSessions}
           canManageCompetitions={canManageCompetitions}
         />

@@ -138,3 +138,48 @@ export function filterDisciplineGroups(codes: string[]): Record<string, Record<s
 
 /** Palette de couleurs vives pour les pastilles de discipline (choix Maksen). */
 export const DEFAULT_DISCIPLINE_COLORS = ['#f97316', '#10b981', '#3b82f6', '#8b5cf6', '#f43f5e']
+
+/**
+ * Épreuves standard catégorie Espoir/Senior (objectifs athlète, voir GoalForm) :
+ * exclut les épreuves jeunes (50m, 600m, 50m haies, triathlon, relais réduits...)
+ * qui n'ont pas de sens comme objectif pour un athlète Espoir/Senior.
+ */
+export const GOAL_DISCIPLINE_GROUPS: Record<string, Record<string, string>> = {
+  Sprints: { '60m': '60m', '100m': '100m', '200m': '200m', '400m': '400m' },
+  'Demi-fond / Fond': {
+    '800m': '800m',
+    '1500m': '1500m',
+    '3000m': '3000m',
+    '5000m': '5000m',
+    '10000m': '10000m',
+    'Semi-marathon': 'semi-marathon',
+    Marathon: 'marathon',
+  },
+  Haies: {
+    '60m haies': '60m-haies',
+    '100m haies (F)': '100m-haies',
+    '110m haies (H)': '110m-haies',
+    '400m haies': '400m-haies',
+  },
+  Sauts: ATHLETE_SPECIALTIES.Sauts,
+  Lancers: ATHLETE_SPECIALTIES.Lancers,
+  'Épreuves combinées': { Décathlon: 'decathlon', Heptathlon: 'heptathlon' },
+  Autres: {
+    'Cross country': 'cross',
+    Marche: 'marche',
+    'Relais 4x100': '4x100m',
+    'Relais 4x400': '4x400m',
+  },
+}
+
+const DISTANCE_DISCIPLINES = new Set(['longueur', 'hauteur', 'triple', 'perche'])
+const THROW_PREFIXES = ['poids', 'disque', 'javelot', 'marteau']
+const POINTS_DISCIPLINES = new Set(['decathlon', 'heptathlon', 'pentathlon', 'triathlon'])
+
+/** Unité attendue pour un objectif sur cette discipline : temps (s), distance (m) ou points. */
+export function disciplineUnit(discipline: string): 's' | 'm' | 'pts' {
+  if (POINTS_DISCIPLINES.has(discipline)) return 'pts'
+  if (DISTANCE_DISCIPLINES.has(discipline) || THROW_PREFIXES.some((p) => discipline.startsWith(p)))
+    return 'm'
+  return 's'
+}

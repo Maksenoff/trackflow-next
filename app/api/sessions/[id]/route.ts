@@ -30,6 +30,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       ...(data.durationMinutes !== undefined && { durationMinutes: data.durationMinutes }),
       ...(data.trainingTypeId !== undefined && { trainingTypeId: data.trainingTypeId || null }),
       ...(data.description !== undefined && { description: data.description }),
+      ...(data.coachId !== undefined && { coachId: data.coachId || null }),
+      ...(data.coachPresent !== undefined && { coachPresent: data.coachPresent }),
     },
   })
 

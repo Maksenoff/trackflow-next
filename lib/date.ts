@@ -18,6 +18,17 @@ export function formatFullDate(date: Date): string {
   return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
+export function formatTime(date: Date): string {
+  return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+}
+
+export function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`
+  const h = Math.floor(minutes / 60)
+  const rem = minutes % 60
+  return rem > 0 ? `${h}h${String(rem).padStart(2, '0')}` : `${h}h`
+}
+
 /** "Aujourd'hui" / "Demain" / "dans Nj" — reproduit la logique des templates dashboard Symfony */
 export function relativeDayLabel(date: Date): {
   label: string

@@ -1,106 +1,96 @@
-import { TrendingUp } from 'lucide-react'
+import { Suspense } from 'react'
+import Link from 'next/link'
+import { UserPlus } from 'lucide-react'
 import { auth } from '@/lib/auth'
 import { isAdmin, type Role } from '@/lib/roles'
-import { getDashboardData } from '@/lib/dashboard'
+import { getDashboardMeta } from '@/lib/dashboard'
 import { PageTransition } from '@/components/motion/page-transition'
-import { RoleBadge } from '@/components/role-badge'
-import { SessionWidget } from '@/components/dashboard/session-widget'
-import { CompetitionWidget } from '@/components/dashboard/competition-widget'
-import { PerformanceList } from '@/components/dashboard/performance-list'
-import { PerformancePanel } from '@/components/dashboard/performance-panel'
+import { DashboardWidgets } from '@/components/dashboard/dashboard-widgets'
+import { DashboardHeader } from '@/components/dashboard/dashboard-header'
+import { NewAthleteFab } from '@/components/dashboard/new-athlete-fab'
+import { MotionCta } from '@/components/dashboard/motion-cta'
+import { SessionsWidgetServer } from '@/components/dashboard/sessions-widget-server'
+import { CompetitionsWidgetServer } from '@/components/dashboard/competitions-widget-server'
+import { PerformancesWidgetServer } from '@/components/dashboard/performances-widget-server'
+import {
+  SessionsSkeleton,
+  CompetitionsSkeleton,
+  PerformancesSkeleton,
+} from '@/components/dashboard/skeletons'
 
 export default async function DashboardPage() {
   const session = await auth()
   const roles = (session?.user.roles ?? []) as Role[]
+  const userId = session!.user.id
+  const firstName = session?.user.name?.split(' ')[0] ?? null
   const today = new Date().toLocaleDateString('fr-FR', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
   })
 
-  const data = await getDashboardData(session!.user.id, roles)
+  const meta = await getDashboardMeta(userId, roles)
+  const canCreateAthlete = isAdmin(roles)
 
   return (
     <PageTransition>
-      <div className="space-y-6 p-4 lg:p-8 xl:p-10">
-        <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card via-card to-primary/[0.1] shadow-sm dark:to-primary/[0.06] p-5 lg:p-6">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -top-16 left-1/2 size-56 -translate-x-1/2 rounded-full bg-primary/25 blur-3xl dark:bg-primary/20"
-          />
+      <div className="space-y-6 p-4 pb-24 lg:p-8 lg:pb-10 xl:p-10">
+        <DashboardHeader
+          firstName={firstName}
+          roles={roles}
+          view={meta.view}
+          totalAthletes={meta.totalAthletes}
+          today={today}
+        />
 
-          <div className="relative flex flex-col items-center gap-2 text-center">
-            <h1 className="text-2xl font-extrabold tracking-tight lg:text-3xl">
-              Bienvenue sur{' '}
-              <span className="inline-block bg-gradient-to-r from-primary to-cyan-400 bg-clip-text pr-1 text-transparent italic">
-                TrackFlow
-              </span>
-            </h1>
-
-            <div className="flex flex-wrap items-center justify-center gap-1.5">
-              {roles.map((r) => (
-                <RoleBadge key={r} role={r} />
-              ))}
+        {meta.view === 'athlete' && !meta.hasLinkedAthlete ? (
+          <div className="flex flex-col items-center gap-4 rounded-3xl border border-primary/20 bg-primary/[0.04] p-8 text-center">
+            <div className="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/60 text-primary-foreground shadow-lg shadow-primary/25">
+              <UserPlus className="size-6" />
             </div>
-
-            <p className="text-xs text-muted-foreground capitalize">
-              {data.view === 'coach' && (
-                <>
-                  {data.totalAthletes} athlète{data.totalAthletes > 1 ? 's' : ''} suivi
-                  {data.totalAthletes > 1 ? 's' : ''} ·{' '}
-                </>
-              )}
-              {today}
-            </p>
-          </div>
-        </div>
-
-        {data.view === 'athlete' && !data.hasLinkedAthlete ? (
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-5 text-sm text-amber-700 dark:text-amber-400">
-            <strong>Compte non lié.</strong> Ton compte n&apos;est pas encore lié à un profil
-            athlète. Contacte ton coach.
+            <div className="space-y-1">
+              <h2 className="text-lg font-bold tracking-tight">Aucun profil athlète lié</h2>
+              <p className="max-w-sm text-sm text-muted-foreground">
+                Crée ton profil pour accéder à tes séances, tes compétitions et suivre tes
+                performances — ou demande à ton coach de le lier depuis l&apos;admin.
+              </p>
+            </div>
+            <MotionCta>
+              <Link
+                href="/athletes/new"
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary-hover"
+              >
+                <UserPlus className="size-4" />
+                Créer mon profil athlète
+              </Link>
+            </MotionCta>
           </div>
         ) : (
-          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-5 lg:gap-8">
-            <div className="space-y-6 lg:col-span-3">
-              <SessionWidget
-                nextSession={data.nextSession}
-                upcomingSessions={data.upcomingSessions}
-              />
-              <CompetitionWidget
-                nextCompetition={data.nextCompetition}
-                upcomingCompetitions={data.upcomingCompetitions}
-                showLinkedBadge={data.hasLinkedAthlete}
-                canCreate={isAdmin(roles)}
-              />
-            </div>
-
-            <div className="lg:col-span-2">
-              {data.view === 'coach' ? (
-                <PerformancePanel
-                  allPerformances={data.allPerformances}
-                  myPerformances={data.myPerformances}
-                  hasLinkedAthlete={data.hasLinkedAthlete}
-                  canCreateAthlete={isAdmin(roles)}
+          <DashboardWidgets
+            sessions={
+              <Suspense fallback={<SessionsSkeleton />}>
+                <SessionsWidgetServer />
+              </Suspense>
+            }
+            competitions={
+              <Suspense fallback={<CompetitionsSkeleton />}>
+                <CompetitionsWidgetServer userId={userId} canCreate={canCreateAthlete} />
+              </Suspense>
+            }
+            performances={
+              <Suspense fallback={<PerformancesSkeleton />}>
+                <PerformancesWidgetServer
+                  userId={userId}
+                  roles={roles}
+                  canCreateAthlete={canCreateAthlete}
                 />
-              ) : (
-                <div>
-                  <div className="mb-3 flex items-center justify-between">
-                    <h2 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      <TrendingUp className="size-3.5 text-primary" />
-                      Mes performances
-                    </h2>
-                  </div>
-                  <PerformanceList
-                    performances={data.recentPerformances}
-                    emptyMessage="Aucune performance enregistrée."
-                  />
-                </div>
-              )}
-            </div>
-          </div>
+              </Suspense>
+            }
+          />
         )}
       </div>
+
+      {canCreateAthlete && <NewAthleteFab />}
     </PageTransition>
   )
 }

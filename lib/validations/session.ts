@@ -7,6 +7,8 @@ export const sessionInputSchema = z.object({
   durationMinutes: z.number().int().positive().optional().nullable(),
   trainingTypeId: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
+  coachId: z.string().optional().nullable(),
+  coachPresent: z.boolean().optional(),
 })
 
 export type SessionInput = z.infer<typeof sessionInputSchema>

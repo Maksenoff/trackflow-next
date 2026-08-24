@@ -18,8 +18,10 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { toDateInputValue } from '@/lib/calendar-grid'
 import { TypePillPicker } from '@/components/calendar/type-pill-picker'
+import { CoachPillPicker } from '@/components/calendar/coach-pill-picker'
 
 export type TrainingTypeOption = { id: string; name: string; color: string }
+export type CoachOption = { id: string; firstName: string }
 
 export type SessionFormInitial = {
   title: string
@@ -28,6 +30,8 @@ export type SessionFormInitial = {
   durationMinutes: number | null
   trainingTypeId: string | null
   description: string | null
+  coachId: string | null
+  coachPresent: boolean
 }
 
 function toTimeInputValue(date: Date | null) {
@@ -40,15 +44,23 @@ export function SessionFormDialog({
   onOpenChange,
   date,
   trainingTypes,
+  coaches = [],
+  currentUserId,
   sessionId,
   initialData,
+  onSuccess,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   date: Date | null
   trainingTypes: TrainingTypeOption[]
+  coaches?: CoachOption[]
+  /** Utilisateur qui crée la séance — présélectionné comme coach par défaut. */
+  currentUserId?: string
   sessionId?: string
   initialData?: SessionFormInitial
+  /** Appelé après création/modification réussie, avant la fermeture du dialog. */
+  onSuccess?: () => void
 }) {
   const router = useRouter()
   const isEdit = !!sessionId
@@ -58,6 +70,8 @@ export function SessionFormDialog({
   const [durationMinutes, setDurationMinutes] = useState('')
   const [trainingTypeId, setTrainingTypeId] = useState<string | undefined>(undefined)
   const [description, setDescription] = useState('')
+  const [coachId, setCoachId] = useState<string | undefined>(undefined)
+  const [coachPresent, setCoachPresent] = useState(true)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -69,6 +83,8 @@ export function SessionFormDialog({
       setDurationMinutes(initialData.durationMinutes ? String(initialData.durationMinutes) : '')
       setTrainingTypeId(initialData.trainingTypeId ?? undefined)
       setDescription(initialData.description ?? '')
+      setCoachId(initialData.coachId ?? undefined)
+      setCoachPresent(initialData.coachPresent)
     } else {
       setTitle('')
       setSessionDate(toDateInputValue(date ?? new Date()))
@@ -76,8 +92,13 @@ export function SessionFormDialog({
       setDurationMinutes('')
       setTrainingTypeId(undefined)
       setDescription('')
+      // Par défaut : la personne qui créer la séance est le coach, présent.
+      setCoachId(
+        currentUserId && coaches.some((c) => c.id === currentUserId) ? currentUserId : undefined
+      )
+      setCoachPresent(true)
     }
-  }, [open, initialData, date])
+  }, [open, initialData, date, currentUserId, coaches])
 
   async function handleSubmit() {
     if (!title.trim() || !sessionDate) return
@@ -92,6 +113,8 @@ export function SessionFormDialog({
         durationMinutes: durationMinutes ? Number(durationMinutes) : null,
         trainingTypeId: trainingTypeId ?? null,
         description: description || null,
+        coachId: coachId ?? null,
+        coachPresent,
       }),
     })
     setLoading(false)
@@ -102,6 +125,7 @@ export function SessionFormDialog({
       return
     }
     toast.success(isEdit ? 'Séance mise à jour.' : 'Séance créée.')
+    onSuccess?.()
     onOpenChange(false)
     router.refresh()
   }
@@ -167,6 +191,14 @@ export function SessionFormDialog({
             types={trainingTypes}
             value={trainingTypeId}
             onChange={setTrainingTypeId}
+          />
+
+          <CoachPillPicker
+            coaches={coaches}
+            value={coachId}
+            onChange={setCoachId}
+            present={coachPresent}
+            onPresentChange={setCoachPresent}
           />
 
           <div className="space-y-1.5">

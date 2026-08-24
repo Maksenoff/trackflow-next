@@ -291,6 +291,28 @@ onglets profil athlète, onglets détail compétition Infos pratiques/Inscriptio
   beaucoup d'onglets, moche avec deux. Le pattern ci-dessus (boutons + state manuel)
   donne un résultat identique quel que soit le nombre d'onglets.
 
+**Bouton "Modifier" en pill sur les fiches détail** — norme validée sur la fiche
+athlète (`components/athletes/profile-header.tsx`), à reprendre tel quel sur toute
+nouvelle fiche détail (équipe, compétition...) plutôt que d'improviser un style de
+bouton différent :
+
+- Position : coin haut-droit du bandeau/header de la fiche, à côté des autres
+  actions contextuelles (ex: Podiums, Sync FFA)
+- Forme : pill `rounded-full`, icône `Pencil` (lucide) + libellé "Modifier"
+- Style **si le bouton est posé sur une bannière/photo** (donc le fond derrière
+  n'est pas prévisible) : verre dépoli neutre en blanc, indépendant du thème —
+  `inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10
+  px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm transition-colors
+  hover:bg-white/20`
+- Style **si le bouton est posé sur un fond de card normal** (pas de photo derrière,
+  ex: fiche équipe) : mêmes proportions mais sur les tokens de thème —
+  `inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50
+  px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-muted`
+- Sur une fiche qui bascule "vue / édition" (ex: équipe) : le bouton devient un
+  toggle plein (`bg-primary text-primary-foreground`) avec icône `Check` et
+  libellé "Terminé" tant que l'édition est active, plutôt que de garder l'icône
+  crayon — signale clairement l'état actif.
+
 ### shadcn/ui
 - Initialiser avec `npx shadcn-ui@latest init` en début de projet
 - Composants à installer au fil des besoins (pas tout d'un coup)

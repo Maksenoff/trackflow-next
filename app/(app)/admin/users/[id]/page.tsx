@@ -57,6 +57,7 @@ export default async function AdminUserEditPage({ params }: { params: { id: stri
             disabled: user.disabled,
             createdAt: user.createdAt,
             lastLoginAt: user.lastLoginAt,
+            lastActiveAt: user.lastActiveAt,
           }}
           athletes={athletes}
           isSelf={user.id === session?.user.id}

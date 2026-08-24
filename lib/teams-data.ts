@@ -5,7 +5,7 @@ export async function getTeamsList() {
     orderBy: { createdAt: 'desc' },
     include: {
       members: {
-        orderBy: { addedAt: 'asc' },
+        orderBy: [{ relayOrder: 'asc' }, { addedAt: 'asc' }],
         include: {
           athlete: {
             select: {
@@ -24,6 +24,9 @@ export async function getTeamsList() {
   return teams.map((t) => ({
     id: t.id,
     name: t.name,
+    color: t.color,
+    photoUrl: t.photoUrl,
+    photoConfig: JSON.parse(t.photoConfig) as { zoom?: number; x?: number; y?: number },
     createdAt: t.createdAt,
     members: t.members.map((m) => ({
       id: m.athlete.id,
@@ -31,6 +34,7 @@ export async function getTeamsList() {
       lastName: m.athlete.lastName,
       photoUrl: m.athlete.photoUrl,
       photoConfig: JSON.parse(m.athlete.photoConfig) as { zoom?: number; x?: number; y?: number },
+      relayOrder: m.relayOrder,
     })),
   }))
 }
@@ -40,7 +44,7 @@ export async function getTeamDetail(id: string) {
     where: { id },
     include: {
       members: {
-        orderBy: { addedAt: 'asc' },
+        orderBy: [{ relayOrder: 'asc' }, { addedAt: 'asc' }],
         include: {
           athlete: {
             select: {
@@ -51,10 +55,12 @@ export async function getTeamDetail(id: string) {
               photoConfig: true,
               disciplines: true,
               disciplineColors: true,
+              licenseNumber: true,
             },
           },
         },
       },
+      performances: { orderBy: { date: 'desc' } },
     },
   })
   if (!team) return null
@@ -62,6 +68,9 @@ export async function getTeamDetail(id: string) {
   return {
     id: team.id,
     name: team.name,
+    color: team.color,
+    photoUrl: team.photoUrl,
+    photoConfig: JSON.parse(team.photoConfig) as { zoom?: number; x?: number; y?: number },
     createdAt: team.createdAt,
     members: team.members.map((m) => ({
       id: m.athlete.id,
@@ -71,8 +80,20 @@ export async function getTeamDetail(id: string) {
       photoConfig: JSON.parse(m.athlete.photoConfig) as { zoom?: number; x?: number; y?: number },
       disciplines: JSON.parse(m.athlete.disciplines) as string[],
       disciplineColors: JSON.parse(m.athlete.disciplineColors) as Record<string, string>,
+      licenseNumber: m.athlete.licenseNumber,
+      relayOrder: m.relayOrder,
+      handoffMark: m.handoffMark,
+    })),
+    performances: team.performances.map((p) => ({
+      id: p.id,
+      time: p.time,
+      location: p.location,
+      date: p.date,
+      place: p.place,
     })),
   }
 }
 
 export type TeamDetail = NonNullable<Awaited<ReturnType<typeof getTeamDetail>>>
+export type TeamDetailMember = TeamDetail['members'][number]
+export type TeamPerformanceEntry = TeamDetail['performances'][number]

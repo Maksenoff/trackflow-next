@@ -3,11 +3,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Trophy, Zap } from 'lucide-react'
+import { Trophy, Zap, Settings2 } from 'lucide-react'
 import { TypeManager, type ManagedType } from '@/components/admin/type-manager'
+import { ClubConfigPanel } from '@/components/settings/club-config-panel'
 import { cn } from '@/lib/utils'
 
-type TabKey = 'sessions' | 'competitions'
+type TabKey = 'sessions' | 'competitions' | 'configuration'
 
 export function SettingsTabs({
   initialTab,
@@ -15,12 +16,16 @@ export function SettingsTabs({
   competitionTypes,
   showSessions = true,
   showCompetitions = true,
+  showConfiguration = false,
+  initialClubCode = null,
 }: {
   initialTab: TabKey
   sessionTypes: ManagedType[]
   competitionTypes: ManagedType[]
   showSessions?: boolean
   showCompetitions?: boolean
+  showConfiguration?: boolean
+  initialClubCode?: string | null
 }) {
   const router = useRouter()
 
@@ -42,6 +47,16 @@ export function SettingsTabs({
             label: 'Types de compétitions',
             icon: Trophy,
             count: competitionTypes.length,
+          },
+        ]
+      : []),
+    ...(showConfiguration
+      ? [
+          {
+            key: 'configuration' as const,
+            label: 'Configuration',
+            icon: Settings2,
+            count: null,
           },
         ]
       : []),
@@ -88,16 +103,22 @@ export function SettingsTabs({
                 <t.icon className="size-3.5" />
                 <span className="hidden sm:inline">{t.label}</span>
                 <span className="sm:hidden">
-                  {t.key === 'sessions' ? 'Séances' : 'Compétitions'}
+                  {t.key === 'sessions'
+                    ? 'Séances'
+                    : t.key === 'competitions'
+                      ? 'Compétitions'
+                      : 'Config'}
                 </span>
-                <span
-                  className={cn(
-                    'rounded-full px-1.5 text-[10px] font-bold',
-                    isActive ? 'bg-white/20' : 'bg-muted'
-                  )}
-                >
-                  {t.count}
-                </span>
+                {t.count !== null && (
+                  <span
+                    className={cn(
+                      'rounded-full px-1.5 text-[10px] font-bold',
+                      isActive ? 'bg-white/20' : 'bg-muted'
+                    )}
+                  >
+                    {t.count}
+                  </span>
+                )}
               </button>
             )
           })}
@@ -115,8 +136,10 @@ export function SettingsTabs({
         >
           {active === 'sessions' ? (
             <TypeManager kind="session" initialTypes={sessionTypes} />
-          ) : (
+          ) : active === 'competitions' ? (
             <TypeManager kind="competition" initialTypes={competitionTypes} />
+          ) : (
+            <ClubConfigPanel initialClubCode={initialClubCode} />
           )}
         </motion.div>
       </AnimatePresence>

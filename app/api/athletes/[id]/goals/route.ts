@@ -23,6 +23,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
       unit: data.unit ?? null,
       deadline: data.deadline ? new Date(data.deadline) : null,
       status: data.status,
+      autoValidateFfa: data.autoValidateFfa,
       notes: data.notes ?? null,
     },
   })

@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { ArrowRight, Plus, TrendingUp, Users, User } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { PerformanceList } from '@/components/dashboard/performance-list'
+import { MotionCta } from '@/components/dashboard/motion-cta'
 import type { PerformanceWidgetItem } from '@/lib/dashboard'
 import { cn } from '@/lib/utils'
 
@@ -33,23 +34,27 @@ export function PerformancePanel({
         </h2>
         <div className="flex items-center gap-1.5">
           {canCreateAthlete && (
-            <Link
-              href="/athletes/new"
-              title="Nouvel athlète"
-              aria-label="Nouvel athlète"
-              className="group inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-sm shadow-primary/25 transition-all duration-300 hover:shadow-md hover:shadow-primary/35 active:scale-90"
-            >
-              <Plus className="size-3.5 transition-transform duration-300 group-hover:rotate-90" />
-            </Link>
+            <MotionCta>
+              <Link
+                href="/athletes/new"
+                title="Nouvel athlète"
+                aria-label="Nouvel athlète"
+                className="group inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm shadow-primary/25 transition-shadow duration-300 hover:bg-primary-hover hover:shadow-md hover:shadow-primary/35"
+              >
+                <Plus className="size-3.5 transition-transform duration-300 group-hover:rotate-90" />
+              </Link>
+            </MotionCta>
           )}
           <div className="relative flex rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
             {(['all', 'mine'] as const).map((value) => (
-              <button
+              <motion.button
                 key={value}
                 type="button"
                 onClick={() => setMode(value)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.95 }}
                 className={cn(
-                  'relative z-10 flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-medium transition-all duration-200 active:scale-95',
+                  'relative z-10 flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-medium transition-colors duration-200',
                   mode === value
                     ? 'text-primary-foreground'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -58,7 +63,7 @@ export function PerformancePanel({
                 {mode === value && (
                   <motion.span
                     layoutId="dashboard-perf-mode"
-                    className="absolute inset-0 rounded-full bg-gradient-to-r from-primary to-primary/80 shadow-sm shadow-primary/30 -z-10"
+                    className="absolute inset-0 -z-10 rounded-full bg-primary shadow-sm shadow-primary/30"
                     transition={{ duration: 0.2, ease: 'easeOut' }}
                   />
                 )}
@@ -66,7 +71,7 @@ export function PerformancePanel({
                 <span className="hidden md:inline">
                   {value === 'all' ? 'Vue coach' : 'Vue athlète'}
                 </span>
-              </button>
+              </motion.button>
             ))}
           </div>
           <Link

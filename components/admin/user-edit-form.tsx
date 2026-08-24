@@ -93,6 +93,7 @@ export function UserEditForm({
     disabled: boolean
     createdAt: Date
     lastLoginAt: Date | null
+    lastActiveAt: Date | null
   }
   athletes: AthleteOption[]
   isSelf: boolean
@@ -462,7 +463,21 @@ export function UserEditForm({
                 <span className="font-medium">{formatDateTime(user.createdAt)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Dernière connexion</span>
+                <span
+                  className="text-muted-foreground"
+                  title="Dernière requête authentifiée reçue de ce compte — plus fiable que la connexion si la session reste ouverte."
+                >
+                  Dernière activité
+                </span>
+                <span className="font-medium">{formatDateTime(user.lastActiveAt)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span
+                  className="text-muted-foreground"
+                  title="Dernière authentification réussie — ne bouge pas tant que la session reste ouverte."
+                >
+                  Dernière connexion
+                </span>
                 <span className="font-medium">{formatDateTime(user.lastLoginAt)}</span>
               </div>
             </div>

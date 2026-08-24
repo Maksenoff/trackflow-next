@@ -28,6 +28,7 @@ export async function PATCH(
         deadline: data.deadline ? new Date(data.deadline) : null,
       }),
       ...(data.status !== undefined && { status: data.status }),
+      ...(data.autoValidateFfa !== undefined && { autoValidateFfa: data.autoValidateFfa }),
       ...(data.notes !== undefined && { notes: data.notes }),
     },
   })

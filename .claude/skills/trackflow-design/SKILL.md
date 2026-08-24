@@ -75,13 +75,13 @@ Quatre rôles existent : `ROLE_ADMIN`, `ROLE_COACH`, `ROLE_COMPETITION_MANAGER`,
 visibles) — ne pas générer une interface générique qui ignore cette hiérarchie de
 permissions.
 
-## Points ouverts à valider avec Maksen
+## Palette et tokens de thème
 
-Cette skill ne connaît pas encore la palette de couleurs exacte ni les tokens de
-thème définitifs (couleurs claires/sombres, radius, police). Si une tâche nécessite
-ces valeurs précises et qu'elles ne sont pas présentes dans le repo ou communiquées par
-Maksen, demander plutôt que d'inventer une palette — puis, une fois données, les ajouter
-au fichier `references/design-tokens.md` de cette skill pour les sessions suivantes.
+Validés par Maksen le 2026-08-21 — voir `references/design-tokens.md` pour le détail
+complet (couleurs dark/light, inputs, boutons). Toujours réutiliser ces valeurs plutôt
+que d'en inventer de nouvelles ; si un besoin de token sort de ce qui est documenté
+(nouvelle couleur sémantique, variante non couverte), demander à Maksen plutôt que
+d'improviser, puis mettre à jour ce fichier de référence.
 
 ## Contexte projet (pour ne jamais le redemander)
 

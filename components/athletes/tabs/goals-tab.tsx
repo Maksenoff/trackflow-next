@@ -3,11 +3,32 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Target, Plus, Loader2, CheckCircle2, XCircle, Circle } from 'lucide-react'
+import {
+  Target,
+  Plus,
+  CheckCircle2,
+  XCircle,
+  Circle,
+  RefreshCw,
+  Pencil,
+  Trash2,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
 import { formatFullDate } from '@/lib/date'
+import { disciplineUnit } from '@/lib/disciplines'
+import { formatDiscipline, formatPerformanceValue } from '@/lib/performance'
+import { GoalFormDialog } from '@/components/athletes/goal-form-dialog'
 import type { AthleteDetail } from '@/lib/athletes-data'
 
 type Goal = AthleteDetail['goals'][number]
@@ -32,26 +53,17 @@ export function GoalsTab({
   canEdit: boolean
 }) {
   const router = useRouter()
-  const [showForm, setShowForm] = useState(false)
-  const [title, setTitle] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [formOpen, setFormOpen] = useState(false)
+  const [editing, setEditing] = useState<Goal | null>(null)
+  const [deleting, setDeleting] = useState<Goal | null>(null)
 
-  async function handleCreate() {
-    if (!title.trim()) return
-    setLoading(true)
-    const res = await fetch(`/api/athletes/${athleteId}/goals`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title }),
-    })
-    setLoading(false)
-    if (!res.ok) {
-      toast.error("Impossible d'ajouter l'objectif.")
-      return
-    }
-    setTitle('')
-    setShowForm(false)
-    router.refresh()
+  function openCreate() {
+    setEditing(null)
+    setFormOpen(true)
+  }
+  function openEdit(goal: Goal) {
+    setEditing(goal)
+    setFormOpen(true)
   }
 
   async function updateStatus(goalId: string, status: Goal['status']) {
@@ -67,42 +79,28 @@ export function GoalsTab({
     router.refresh()
   }
 
+  async function handleDelete() {
+    if (!deleting) return
+    const res = await fetch(`/api/athletes/${athleteId}/goals/${deleting.id}`, {
+      method: 'DELETE',
+    })
+    if (!res.ok) {
+      toast.error("Impossible de supprimer l'objectif.")
+      return
+    }
+    toast.success('Objectif supprimé.')
+    setDeleting(null)
+    router.refresh()
+  }
+
   return (
     <div className="space-y-3">
       {canEdit && (
-        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-          {showForm ? (
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <Input
-                autoFocus
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Titre de l'objectif..."
-                onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-                className="sm:flex-1"
-              />
-              <div className="flex items-center gap-2">
-                <Button onClick={handleCreate} disabled={loading} className="flex-1 sm:flex-none">
-                  {loading ? <Loader2 className="size-4 animate-spin" /> : 'Ajouter'}
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowForm(false)}
-                  className="flex-1 sm:flex-none"
-                >
-                  Annuler
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowForm(true)}
-              className="flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-            >
-              <Plus className="size-4" />
-              Ajouter un objectif
-            </button>
-          )}
+        <div className="flex justify-end">
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="size-4" />
+            Nouvel objectif
+          </Button>
         </div>
       )}
 
@@ -112,18 +110,19 @@ export function GoalsTab({
           <p className="text-sm text-muted-foreground">Aucun objectif défini.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {goals.map((goal) => {
             const config =
               STATUS_CONFIG[goal.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.in_progress
             const StatusIcon = config.icon
+            const unit = goal.unit ?? (goal.discipline ? disciplineUnit(goal.discipline) : null)
             return (
               <div
                 key={goal.id}
-                className="flex items-center justify-between gap-3 border-b border-border px-5 py-3.5 last:border-b-0"
+                className="flex flex-col gap-2.5 rounded-2xl border border-border bg-card p-4 shadow-sm"
               >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <StatusIcon className={cn('size-4 shrink-0', config.className)} />
                     <span
                       className={cn(
@@ -134,16 +133,58 @@ export function GoalsTab({
                       {goal.title}
                     </span>
                   </div>
-                  {(goal.discipline || goal.deadline) && (
-                    <div className="mt-0.5 ml-6 text-xs text-muted-foreground">
-                      {goal.discipline}
-                      {goal.discipline && goal.deadline && ' · '}
-                      {goal.deadline && `avant le ${formatFullDate(goal.deadline)}`}
+                  {canEdit && (
+                    <div className="flex shrink-0 items-center gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => openEdit(goal)}
+                        className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        aria-label="Modifier"
+                      >
+                        <Pencil className="size-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleting(goal)}
+                        className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                        aria-label="Supprimer"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
                     </div>
                   )}
                 </div>
+
+                <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                  {goal.discipline && (
+                    <span className="rounded-full border border-border bg-muted/50 px-2 py-0.5 font-semibold">
+                      {formatDiscipline(goal.discipline)}
+                    </span>
+                  )}
+                  {goal.targetValue != null && unit && (
+                    <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 font-semibold text-primary">
+                      Cible : {formatPerformanceValue(goal.targetValue, unit)}
+                    </span>
+                  )}
+                  {goal.autoValidateFfa && (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-muted-foreground"
+                      title="Validation automatique via FFA activée"
+                    >
+                      <RefreshCw className="size-3" />
+                      Auto FFA
+                    </span>
+                  )}
+                </div>
+
+                {goal.deadline && (
+                  <div className="text-xs text-muted-foreground">
+                    Échéance : {formatFullDate(goal.deadline)}
+                  </div>
+                )}
+
                 {canEdit && (
-                  <div className="flex shrink-0 gap-1">
+                  <div className="mt-1 flex gap-1 border-t border-border pt-2.5">
                     {(['in_progress', 'achieved', 'abandoned'] as const).map((s) => (
                       <button
                         key={s}
@@ -165,6 +206,41 @@ export function GoalsTab({
           })}
         </div>
       )}
+
+      {canEdit && (
+        <GoalFormDialog
+          open={formOpen}
+          onOpenChange={setFormOpen}
+          athleteId={athleteId}
+          initial={
+            editing
+              ? {
+                  id: editing.id,
+                  title: editing.title,
+                  discipline: editing.discipline,
+                  targetValue: editing.targetValue,
+                  deadline: editing.deadline,
+                  autoValidateFfa: editing.autoValidateFfa,
+                }
+              : undefined
+          }
+        />
+      )}
+
+      <AlertDialog open={!!deleting} onOpenChange={(open) => !open && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cet objectif ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              &laquo;&nbsp;{deleting?.title}&nbsp;&raquo; sera définitivement supprimé.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Supprimer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

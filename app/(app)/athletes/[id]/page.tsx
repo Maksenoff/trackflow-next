@@ -9,10 +9,9 @@ import { ProfileHeader } from '@/components/athletes/profile-header'
 import { ProfileTabs } from '@/components/athletes/profile-tabs'
 
 export default async function AthleteProfilePage({ params }: { params: { id: string } }) {
-  const athlete = await getAthleteDetail(params.id)
+  const [athlete, session] = await Promise.all([getAthleteDetail(params.id), auth()])
   if (!athlete) notFound()
 
-  const session = await auth()
   const roles = (session?.user.roles ?? []) as Role[]
   const isManager = isAdmin(roles) || isCoach(roles)
 

@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils'
 import {
   SessionFormDialog,
   type TrainingTypeOption,
+  type CoachOption,
 } from '@/components/calendar/session-form-dialog'
 import { type ColorTypeOption } from '@/components/calendar/type-pill-picker'
 
@@ -42,6 +43,8 @@ type CalSession = {
   durationMinutes: number | null
   description: string | null
   trainingType: { id: string; name: string; color: string } | null
+  coach: { id: string; firstName: string } | null
+  coachPresent: boolean
 }
 
 type CalCompetition = {
@@ -68,6 +71,8 @@ export function CalendarView({
   competitions,
   trainingTypes,
   competitionTypes,
+  coaches,
+  currentUserId,
   canManageSessions,
   canManageCompetitions,
 }: {
@@ -77,6 +82,8 @@ export function CalendarView({
   competitions: CalCompetition[]
   trainingTypes: TrainingTypeOption[]
   competitionTypes: ColorTypeOption[]
+  coaches: CoachOption[]
+  currentUserId?: string
   canManageSessions: boolean
   canManageCompetitions: boolean
 }) {
@@ -670,6 +677,9 @@ export function CalendarView({
         onOpenChange={setCreateOpen}
         date={selectedDay ?? today}
         trainingTypes={trainingTypes}
+        coaches={coaches}
+        currentUserId={currentUserId}
+        onSuccess={() => setSelectedDay(null)}
       />
     </div>
   )
@@ -727,6 +737,17 @@ function HoverPreview({
             <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
               <Clock className="size-3 shrink-0" />
               {session.durationMinutes} min
+            </div>
+          )}
+          {session.coach && (
+            <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+              <span
+                className={cn(
+                  'size-2 shrink-0 rounded-full',
+                  session.coachPresent ? 'bg-emerald-500' : 'bg-rose-500'
+                )}
+              />
+              {session.coach.firstName}
             </div>
           )}
           <p className="mt-2 line-clamp-3 text-muted-foreground italic">

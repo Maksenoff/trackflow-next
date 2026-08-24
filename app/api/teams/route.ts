@@ -16,6 +16,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const team = await prisma.team.create({ data: { name: parsed.data.name } })
+  const { name, color, photoUrl, photoConfig, members } = parsed.data
+
+  const team = await prisma.team.create({
+    data: {
+      name,
+      color: color ?? null,
+      photoUrl: photoUrl ?? null,
+      ...(photoConfig !== undefined && { photoConfig: JSON.stringify(photoConfig) }),
+      members: members?.length
+        ? {
+            create: members.map((m) => ({
+              athleteId: m.athleteId,
+              relayOrder: m.relayOrder ?? null,
+              handoffMark: m.handoffMark ?? null,
+            })),
+          }
+        : undefined,
+    },
+  })
+
   return NextResponse.json({ id: team.id }, { status: 201 })
 }

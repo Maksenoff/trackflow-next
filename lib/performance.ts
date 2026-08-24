@@ -48,6 +48,12 @@ export function computeSeason(date: Date): {
   }
 }
 
+/** Fin de la saison (sept->août) contenant `date`, ex: 31/08/2026 pour tout `date` dans la saison 2025-26 */
+export function seasonEndDate(date: Date): Date {
+  const { seasonStart } = computeSeason(date)
+  return new Date(seasonStart + 1, 7, 31, 23, 59, 59)
+}
+
 /** Catégorie FFA (âge au 31/12 de l'année de la perf). Reproduit AthleteController::show() */
 export function computeCategory(recordedAt: Date, birthDate: Date | null): string | null {
   if (!birthDate) return null

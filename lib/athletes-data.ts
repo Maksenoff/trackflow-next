@@ -28,6 +28,7 @@ export async function getAthletesList(query?: string) {
     gender: a.gender,
     disciplines: JSON.parse(a.disciplines) as string[],
     disciplineColors: JSON.parse(a.disciplineColors) as Record<string, string>,
+    licenseNumber: a.licenseNumber,
     sessionsCount: a._count.athleteSessions,
     performancesCount: a._count.performances,
     goalsCount: a._count.goals,

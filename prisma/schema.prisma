@@ -17,26 +17,28 @@ datasource db {
 // ---------------------------------------------------------------------------
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  firstName String
-  lastName  String
-  password  String
+  id           String    @id @default(cuid())
+  email        String    @unique
+  firstName    String
+  lastName     String
+  password     String
   // Plusieurs rôles simultanés possibles: ROLE_ADMIN, ROLE_COACH, ROLE_COMPETITION_MANAGER, ROLE_ATHLETE
-  roles       String    @default("[]") // JSON string: ROLE_ADMIN, ROLE_COACH, ROLE_COMPETITION_MANAGER, ROLE_ATHLETE
-  disabled    Boolean   @default(false) // compte désactivé par un admin : connexion bloquée
-  createdAt   DateTime  @default(now())
-  lastLoginAt DateTime?
+  roles        String    @default("[]") // JSON string: ROLE_ADMIN, ROLE_COACH, ROLE_COMPETITION_MANAGER, ROLE_ATHLETE
+  disabled     Boolean   @default(false) // compte désactivé par un admin : connexion bloquée
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime? // horodatage de la dernière authentification réussie — peu parlant si la session reste ouverte des jours
+  lastActiveAt DateTime? // dernière requête authentifiée reçue de cet utilisateur (voir components/activity-ping.tsx) — reflète le réel dernier usage de l'app
 
   linkedAthleteId String?  @unique
   linkedAthlete   Athlete? @relation("UserLinkedAthlete", fields: [linkedAthleteId], references: [id], onDelete: SetNull)
 
-  feedbacks         Feedback[]
-  notifications     Notification[]
+  feedbacks          Feedback[]
+  notifications      Notification[]
   dismissedReminders DismissedReminder[]
-  pushSubscriptions PushSubscription[]
-  createdPolls      Poll[]
-  pollVotes         PollVote[]
+  pushSubscriptions  PushSubscription[]
+  createdPolls       Poll[]
+  pollVotes          PollVote[]
+  coachedSessions    Session[]
 
   @@map("app_user")
 }
@@ -90,6 +92,7 @@ model AthleteNote {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([athleteId])
   @@map("athlete_note")
 }
 
@@ -105,6 +108,7 @@ model AthleteSession {
   loggedAt   DateTime @default(now())
 
   @@unique([athleteId, sessionId])
+  @@index([sessionId])
   @@map("athlete_session")
 }
 
@@ -118,6 +122,7 @@ model AthleteCustomSession {
   performedAt DateTime @default(now())
   createdAt   DateTime @default(now())
 
+  @@index([athleteId])
   @@map("athlete_custom_session")
 }
 
@@ -130,6 +135,7 @@ model AthleteVideo {
   url        String
   createdAt  DateTime @default(now())
 
+  @@index([athleteId])
   @@map("athlete_video")
 }
 
@@ -137,28 +143,64 @@ model AthleteVideo {
 // Équipes
 // ---------------------------------------------------------------------------
 
-// Structure volontairement générique (pas seulement relais) : groupes d'athlètes
-// réutilisables pour d'autres usages futurs (compétitions par équipe, groupes
-// d'entraînement...). Un athlète peut appartenir à plusieurs équipes.
+// Équipes de relais (4x100/4x400...) : jusqu'à 4 athlètes, ordonnés (relayOrder)
+// avec une marque de transmission (handoffMark) entre chaque coureur et le
+// suivant — non structurellement limité à 4 côté schéma (un athlète peut être
+// ajouté sans position, ex: remplaçant), mais l'UI plafonne à 4 positions.
 model Team {
-  id        String       @id @default(cuid())
-  name      String
-  createdAt DateTime     @default(now())
-  members   TeamMember[]
+  id           String            @id @default(cuid())
+  name         String
+  color        String? // hex, palette DEFAULT_DISCIPLINE_COLORS (même que les profils)
+  photoUrl     String?
+  photoConfig  String            @default("{}") // JSON string object: { zoom, x, y } — même éditeur de cadrage que la photo athlète
+  createdAt    DateTime          @default(now())
+  members      TeamMember[]
+  performances TeamPerformance[]
 
   @@map("team")
 }
 
-model TeamMember {
+// Historique des performances de l'équipe (temps de relais lors des compétitions).
+model TeamPerformance {
   id        String   @id @default(cuid())
   teamId    String
   team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  athleteId String
-  athlete   Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
-  addedAt   DateTime @default(now())
+  time      String // format libre : "42.15", "3:24.50"...
+  location  String?
+  date      DateTime
+  place     Int? // classement à la course
+  createdAt DateTime @default(now())
+
+  @@index([teamId])
+  @@map("team_performance")
+}
+
+model TeamMember {
+  id          String   @id @default(cuid())
+  teamId      String
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  athleteId   String
+  athlete     Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  relayOrder  Int? // position 1-4 dans le relais, null = pas encore positionné
+  handoffMark String? // repère de transmission vers le coureur suivant (pieds, marque au sol...) — sans objet pour la position 4
+  addedAt     DateTime @default(now())
 
   @@unique([teamId, athleteId])
+  @@index([athleteId])
   @@map("team_member")
+}
+
+// ---------------------------------------------------------------------------
+// Configuration club (singleton)
+// ---------------------------------------------------------------------------
+
+// Une seule ligne (id fixe "main") — réglages globaux du club, affichés sur les
+// documents générés (ex: numéro de club sur les fiches relais).
+model ClubSettings {
+  id       String  @id @default("main")
+  clubCode String?
+
+  @@map("club_settings")
 }
 
 // ---------------------------------------------------------------------------
@@ -184,6 +226,8 @@ model Performance {
   levelPoints    Int?
   wind           String?
 
+  @@index([athleteId])
+  @@index([sessionId])
   @@map("performance")
 }
 
@@ -206,18 +250,23 @@ model Podium {
 }
 
 model Goal {
-  id          String    @id @default(cuid())
-  athleteId   String
-  athlete     Athlete   @relation(fields: [athleteId], references: [id], onDelete: Cascade)
-  title       String
-  discipline  String?
-  targetValue Float?
-  unit        String?
-  deadline    DateTime?
-  status      String    @default("in_progress") // in_progress | achieved | abandoned
-  notes       String?
-  createdAt   DateTime  @default(now())
+  id              String    @id @default(cuid())
+  athleteId       String
+  athlete         Athlete   @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  title           String
+  discipline      String?
+  targetValue     Float?
+  unit            String?
+  deadline        DateTime?
+  status          String    @default("in_progress") // in_progress | achieved | abandoned
+  // Si true : à chaque sync FFA, une performance de cette discipline postérieure
+  // à createdAt qui dépasse targetValue fait passer status à "achieved" tout seul
+  // (voir lib/goals.ts::autoValidateGoalsForAthlete, appelé depuis lib/ffa-scraper.ts).
+  autoValidateFfa Boolean   @default(false)
+  notes           String?
+  createdAt       DateTime  @default(now())
 
+  @@index([athleteId])
   @@map("goal")
 }
 
@@ -243,9 +292,15 @@ model Session {
   description     String?
   durationMinutes Int?
   startTime       DateTime?
+  coachId         String?
+  coach           User?            @relation(fields: [coachId], references: [id], onDelete: SetNull)
+  coachPresent    Boolean          @default(true)
   athleteSessions AthleteSession[]
   performances    Performance[]
 
+  @@index([date])
+  @@index([trainingTypeId])
+  @@index([coachId])
   @@map("session")
 }
 
@@ -278,6 +333,8 @@ model Competition {
   createdAt            DateTime                  @default(now())
   registrations        CompetitionRegistration[]
 
+  @@index([date])
+  @@index([competitionTypeId])
   @@map("competition")
 }
 
@@ -294,6 +351,7 @@ model CompetitionRegistration {
   debrief              CompetitionDebrief?
 
   @@unique([athleteId, competitionId])
+  @@index([competitionId])
   @@map("competition_registration")
 }
 
@@ -353,21 +411,22 @@ model PushSubscription {
   authToken String
   createdAt DateTime @default(now())
 
+  @@index([userId])
   @@map("push_subscription")
 }
 
 model Feedback {
-  id          String    @id @default(cuid())
-  type        String    @default("bug") // bug | suggestion
+  id          String      @id @default(cuid())
+  type        String      @default("bug") // bug | suggestion
   description String
   page        String?
-  status      String    @default("new") // new | in_progress | done
+  status      String      @default("new") // new | in_progress | done
   authorId    String?
-  author      User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author      User?       @relation(fields: [authorId], references: [id], onDelete: SetNull)
   authorName  String?
   authorEmail String?
   adminNote   String?
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime    @default(now())
   resolvedAt  DateTime?
   pollOption  PollOption?
 

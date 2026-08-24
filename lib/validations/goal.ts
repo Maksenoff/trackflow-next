@@ -7,6 +7,7 @@ export const goalInputSchema = z.object({
   unit: z.string().optional().nullable(),
   deadline: z.string().optional().nullable(),
   status: z.enum(['in_progress', 'achieved', 'abandoned']).default('in_progress'),
+  autoValidateFfa: z.boolean().default(false),
   notes: z.string().optional().nullable(),
 })
 

@@ -2,11 +2,17 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isAdmin, isCoach } from '@/lib/roles'
+import { isTeamMember } from '@/lib/team-permissions'
 import { teamUpdateSchema } from '@/lib/validations/team'
 
+// Un seul PATCH bundle tout ce que le formulaire d'équipe modifie (identité,
+// photo, couleur, ordre du relais + marques, remplaçants) — la page d'édition
+// n'a qu'un unique bouton "Enregistrer", pas d'auto-save au fil de l'eau.
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const session = await auth()
-  if (!session || (!isAdmin(session.user.roles) && !isCoach(session.user.roles))) {
+  const staff = !!session && (isAdmin(session.user.roles) || isCoach(session.user.roles))
+  const member = !staff && !!session && (await isTeamMember(session.user.id, params.id))
+  if (!staff && !member) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
   }
 
@@ -15,8 +21,51 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
+  const { name, color, photoUrl, photoConfig, members } = parsed.data
 
-  await prisma.team.update({ where: { id: params.id }, data: { name: parsed.data.name } })
+  await prisma.$transaction(async (tx) => {
+    await tx.team.update({
+      where: { id: params.id },
+      data: {
+        // Renommer reste réservé à coach/admin — un membre peut modifier les
+        // données du relais (couleur, photo) mais pas l'identité de l'équipe.
+        ...(staff && name !== undefined && { name }),
+        ...(color !== undefined && { color }),
+        ...(photoUrl !== undefined && { photoUrl }),
+        ...(photoConfig !== undefined && { photoConfig: JSON.stringify(photoConfig) }),
+      },
+    })
+
+    if (members) {
+      const existing = await tx.teamMember.findMany({ where: { teamId: params.id } })
+      const existingIds = new Set(existing.map((m) => m.athleteId))
+      // Un simple membre (pas staff) ne peut pas ajouter/retirer d'athlètes de
+      // l'équipe — seulement réordonner/repositionner ceux déjà présents.
+      const incoming = staff ? members : members.filter((m) => existingIds.has(m.athleteId))
+
+      for (const m of incoming) {
+        await tx.teamMember.upsert({
+          where: { teamId_athleteId: { teamId: params.id, athleteId: m.athleteId } },
+          update: { relayOrder: m.relayOrder ?? null, handoffMark: m.handoffMark ?? null },
+          create: {
+            teamId: params.id,
+            athleteId: m.athleteId,
+            relayOrder: m.relayOrder ?? null,
+            handoffMark: m.handoffMark ?? null,
+          },
+        })
+      }
+
+      if (staff) {
+        const incomingIds = new Set(incoming.map((m) => m.athleteId))
+        const toRemove = existing.filter((m) => !incomingIds.has(m.athleteId))
+        if (toRemove.length > 0) {
+          await tx.teamMember.deleteMany({ where: { id: { in: toRemove.map((m) => m.id) } } })
+        }
+      }
+    }
+  })
+
   return NextResponse.json({ ok: true })
 }
 

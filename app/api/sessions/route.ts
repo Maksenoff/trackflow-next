@@ -26,6 +26,9 @@ export async function POST(request: Request) {
       durationMinutes: data.durationMinutes ?? null,
       trainingTypeId: data.trainingTypeId || null,
       description: data.description ?? null,
+      // Par défaut, le créateur de la séance est le coach renseigné.
+      coachId: data.coachId !== undefined ? data.coachId || null : session.user.id,
+      coachPresent: data.coachPresent ?? true,
     },
   })
 

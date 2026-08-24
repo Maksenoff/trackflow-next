@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
@@ -25,6 +25,7 @@ export function RpeLogForm({
   const [comment, setComment] = useState(initial?.comment ?? '')
   const [skipped, setSkipped] = useState(initial?.skipped ?? false)
   const [loading, setLoading] = useState(false)
+  const color = rpeColor(difficulty)
 
   async function handleSubmit() {
     setLoading(true)
@@ -65,14 +66,14 @@ export function RpeLogForm({
       </div>
 
       {!skipped && (
-        <div className="mb-4 space-y-3">
+        <div className="mb-4 space-y-3" style={{ '--rpe-color': color } as CSSProperties}>
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground">
               Difficulté ressentie (RPE)
             </span>
             <span
               className="rounded-full px-2.5 py-1 text-sm font-extrabold"
-              style={{ backgroundColor: `${rpeColor(difficulty)}22`, color: rpeColor(difficulty) }}
+              style={{ backgroundColor: `${color}22`, color }}
             >
               {difficulty}/10 · {rpeLabel(difficulty)}
             </span>
@@ -83,6 +84,7 @@ export function RpeLogForm({
             max={10}
             step={1}
             onValueChange={(v) => setDifficulty(Array.isArray(v) ? v[0] : v)}
+            className="[&_[data-slot=slider-range]]:bg-[var(--rpe-color)] [&_[data-slot=slider-thumb]]:border-[var(--rpe-color)] [&_[data-slot=slider-thumb]]:ring-[var(--rpe-color)]/25 [&_[data-slot=slider-thumb]]:size-4 [&_[data-slot=slider-thumb]]:ring-4"
           />
         </div>
       )}

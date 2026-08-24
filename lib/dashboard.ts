@@ -21,7 +21,11 @@ export type SessionWidgetItem = {
   title: string
   date: Date
   description: string | null
+  startTime: Date | null
+  durationMinutes: number | null
   trainingType: { name: string; color: string } | null
+  coach: { firstName: string } | null
+  coachPresent: boolean
 }
 
 export type CompetitionWidgetItem = {
@@ -52,16 +56,20 @@ async function getUpcomingSessions(limit = 4): Promise<SessionWidgetItem[]> {
     where: { date: { gte: startOfToday() } },
     orderBy: { date: 'asc' },
     take: limit,
-    include: { trainingType: true },
+    include: { trainingType: true, coach: { select: { firstName: true } } },
   })
   return sessions.map((s) => ({
     id: s.id,
     title: s.title,
     date: s.date,
     description: s.description,
+    startTime: s.startTime,
+    durationMinutes: s.durationMinutes,
     trainingType: s.trainingType
       ? { name: s.trainingType.name, color: s.trainingType.color }
       : null,
+    coach: s.coach ? { firstName: s.coach.firstName } : null,
+    coachPresent: s.coachPresent,
   }))
 }
 
@@ -164,59 +172,85 @@ function toWidgetPerf(
   }
 }
 
-export type AthleteDashboardData = {
-  view: 'athlete'
-  hasLinkedAthlete: boolean
-  nextSession: SessionWidgetItem | null
-  upcomingSessions: SessionWidgetItem[]
-  nextCompetition: CompetitionWidgetItem | null
-  upcomingCompetitions: CompetitionWidgetItem[]
-  recentPerformances: PerformanceWidgetItem[]
+/** Un utilisateur Admin/Coach voit toujours la vue coach, même s'il a aussi ROLE_ATHLETE */
+function resolveView(roles: string[]): 'athlete' | 'coach' {
+  const pureAthlete = isAthlete(roles) && !isCoach(roles) && !isAdmin(roles)
+  return pureAthlete ? 'athlete' : 'coach'
 }
 
-export type CoachDashboardData = {
-  view: 'coach'
-  totalAthletes: number
-  nextSession: SessionWidgetItem | null
-  upcomingSessions: SessionWidgetItem[]
-  nextCompetition: CompetitionWidgetItem | null
-  upcomingCompetitions: CompetitionWidgetItem[]
-  allPerformances: PerformanceWidgetItem[]
-  myPerformances: PerformanceWidgetItem[]
-  hasLinkedAthlete: boolean
-}
-
-export async function getDashboardData(
-  userId: string,
-  roles: string[]
-): Promise<AthleteDashboardData | CoachDashboardData> {
+async function getLinkedAthlete(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: { linkedAthlete: true },
   })
-  const linkedAthlete = user?.linkedAthlete ?? null
+  return user?.linkedAthlete ?? null
+}
 
-  // Un utilisateur Admin/Coach voit toujours la vue coach, même s'il a aussi ROLE_ATHLETE
-  const pureAthlete = isAthlete(roles) && !isCoach(roles) && !isAdmin(roles)
+/**
+ * Données minimales pour le rendu synchrone de la page (header + décision
+ * d'afficher les widgets ou l'écran "aucun profil lié") — chaque widget
+ * re-résout ensuite ses propres données indépendamment sous son <Suspense>,
+ * la petite duplication de requête (lookup du compte lié) est le prix d'un
+ * vrai streaming par widget plutôt qu'un seul gros fetch bloquant.
+ */
+export async function getDashboardMeta(
+  userId: string,
+  roles: string[]
+): Promise<{ view: 'athlete' | 'coach'; totalAthletes: number | null; hasLinkedAthlete: boolean }> {
+  const view = resolveView(roles)
+  const [linkedAthlete, totalAthletes] = await Promise.all([
+    getLinkedAthlete(userId),
+    view === 'coach' ? prisma.athlete.count() : Promise.resolve(null),
+  ])
+  return { view, totalAthletes, hasLinkedAthlete: !!linkedAthlete }
+}
 
-  if (pureAthlete) {
-    const [upcomingSessions, upcomingCompetitions] = await Promise.all([
-      getUpcomingSessions(4),
-      getUpcomingCompetitions(linkedAthlete?.id ?? null, 4),
-    ])
+export async function getSessionsWidgetData(): Promise<{
+  nextSession: SessionWidgetItem | null
+  upcomingSessions: SessionWidgetItem[]
+}> {
+  const upcomingSessions = await getUpcomingSessions(4)
+  return { nextSession: upcomingSessions[0] ?? null, upcomingSessions }
+}
 
+export async function getCompetitionsWidgetData(userId: string): Promise<{
+  nextCompetition: CompetitionWidgetItem | null
+  upcomingCompetitions: CompetitionWidgetItem[]
+  hasLinkedAthlete: boolean
+}> {
+  const linkedAthlete = await getLinkedAthlete(userId)
+  const upcomingCompetitions = await getUpcomingCompetitions(linkedAthlete?.id ?? null, 4)
+  return {
+    nextCompetition: upcomingCompetitions[0] ?? null,
+    upcomingCompetitions,
+    hasLinkedAthlete: !!linkedAthlete,
+  }
+}
+
+export type AthletePerformancesData = {
+  view: 'athlete'
+  hasLinkedAthlete: boolean
+  recentPerformances: PerformanceWidgetItem[]
+}
+
+export type CoachPerformancesData = {
+  view: 'coach'
+  hasLinkedAthlete: boolean
+  allPerformances: PerformanceWidgetItem[]
+  myPerformances: PerformanceWidgetItem[]
+}
+
+export async function getPerformancesWidgetData(
+  userId: string,
+  roles: string[]
+): Promise<AthletePerformancesData | CoachPerformancesData> {
+  const view = resolveView(roles)
+  const linkedAthlete = await getLinkedAthlete(userId)
+
+  if (view === 'athlete') {
     if (!linkedAthlete) {
-      return {
-        view: 'athlete',
-        hasLinkedAthlete: false,
-        nextSession: upcomingSessions[0] ?? null,
-        upcomingSessions,
-        nextCompetition: upcomingCompetitions[0] ?? null,
-        upcomingCompetitions,
-        recentPerformances: [],
-      }
+      return { view: 'athlete', hasLinkedAthlete: false, recentPerformances: [] }
     }
-
     const perfs = await prisma.performance.findMany({
       where: { athleteId: linkedAthlete.id },
       orderBy: { recordedAt: 'desc' },
@@ -227,30 +261,18 @@ export async function getDashboardData(
       buildPerfTrends(perfs),
     ])
     const athleteName = `${linkedAthlete.firstName} ${linkedAthlete.lastName}`
-
     return {
       view: 'athlete',
       hasLinkedAthlete: true,
-      nextSession: upcomingSessions[0] ?? null,
-      upcomingSessions,
-      nextCompetition: upcomingCompetitions[0] ?? null,
-      upcomingCompetitions,
       recentPerformances: perfs.map((p) => toWidgetPerf(p, athleteName, sbIds, trends)),
     }
   }
 
-  // Vue coach / admin
-  const [totalAthletes, upcomingSessions, upcomingCompetitions, coachPerfs] = await Promise.all([
-    prisma.athlete.count(),
-    getUpcomingSessions(4),
-    getUpcomingCompetitions(linkedAthlete?.id ?? null, 4),
-    prisma.performance.findMany({
-      orderBy: { recordedAt: 'desc' },
-      take: 10,
-      include: { athlete: true },
-    }),
-  ])
-
+  const coachPerfs = await prisma.performance.findMany({
+    orderBy: { recordedAt: 'desc' },
+    take: 10,
+    include: { athlete: true },
+  })
   const coachTrends = await buildPerfTrends(coachPerfs)
   const sbCache = new Map<string, Set<string>>()
   const allPerformances: PerformanceWidgetItem[] = []
@@ -283,15 +305,5 @@ export async function getDashboardData(
     myPerformances = myPerfs.map((p) => toWidgetPerf(p, athleteName, mySbIds, myTrends))
   }
 
-  return {
-    view: 'coach',
-    totalAthletes,
-    nextSession: upcomingSessions[0] ?? null,
-    upcomingSessions,
-    nextCompetition: upcomingCompetitions[0] ?? null,
-    upcomingCompetitions,
-    allPerformances,
-    myPerformances,
-    hasLinkedAthlete: !!linkedAthlete,
-  }
+  return { view: 'coach', hasLinkedAthlete: !!linkedAthlete, allPerformances, myPerformances }
 }

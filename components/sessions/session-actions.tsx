@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button'
 import {
   SessionFormDialog,
+  type CoachOption,
   type SessionFormInitial,
   type TrainingTypeOption,
 } from '@/components/calendar/session-form-dialog'
@@ -26,10 +27,12 @@ export function SessionActions({
   sessionId,
   initialData,
   trainingTypes,
+  coaches,
 }: {
   sessionId: string
   initialData: SessionFormInitial
   trainingTypes: TrainingTypeOption[]
+  coaches: CoachOption[]
 }) {
   const router = useRouter()
   const [editOpen, setEditOpen] = useState(false)
@@ -91,6 +94,7 @@ export function SessionActions({
         onOpenChange={setEditOpen}
         date={initialData.date}
         trainingTypes={trainingTypes}
+        coaches={coaches}
         sessionId={sessionId}
         initialData={initialData}
       />

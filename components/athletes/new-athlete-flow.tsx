@@ -16,6 +16,7 @@ type LookupResult = {
   gender: string | null
   discipline: string[]
   licenseNumber: string | null
+  earliestSeasonStart: number | null
   error: string | null
 }
 
@@ -26,6 +27,7 @@ export function NewAthleteFlow() {
   const [error, setError] = useState<string | null>(null)
   const [prefilled, setPrefilled] = useState(false)
   const [initialData, setInitialData] = useState<Partial<AthleteFormValues>>({})
+  const [earliestSeasonStart, setEarliestSeasonStart] = useState<number | undefined>(undefined)
 
   async function lookup() {
     const url = urlInput.trim()
@@ -56,6 +58,7 @@ export function NewAthleteFlow() {
       ffaProfileUrl: url,
       disciplines: data.discipline,
     })
+    setEarliestSeasonStart(data.earliestSeasonStart ?? undefined)
     setStep('form')
   }
 
@@ -91,6 +94,7 @@ export function NewAthleteFlow() {
           onClick={() => {
             setInitialData({})
             setPrefilled(false)
+            setEarliestSeasonStart(undefined)
             setStep('form')
           }}
           className="group relative flex flex-col overflow-hidden rounded-3xl border border-border bg-card p-7 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-foreground/20 hover:shadow-xl"
@@ -192,7 +196,11 @@ export function NewAthleteFlow() {
           </span>
         )}
       </div>
-      <AthleteForm mode="create" initialData={initialData} />
+      <AthleteForm
+        mode="create"
+        initialData={initialData}
+        earliestSeasonStart={earliestSeasonStart}
+      />
     </div>
   )
 }

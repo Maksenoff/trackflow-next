@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { isAdmin, isCoach } from '@/lib/roles'
 
 function monthRange(year: number, month: number) {
   const start = new Date(year, month - 1, 1)
@@ -14,11 +15,29 @@ export async function getCompetitionTypes() {
   return prisma.competitionType.findMany({ orderBy: { name: 'asc' } })
 }
 
+/** Utilisateurs sélectionnables comme coach d'une séance — rôle ROLE_COACH ou ROLE_ADMIN. */
+export async function getCoachUsers() {
+  const users = await prisma.user.findMany({
+    select: { id: true, firstName: true, roles: true },
+    orderBy: { firstName: 'asc' },
+  })
+  return users
+    .filter((u) => {
+      const roles = JSON.parse(u.roles) as string[]
+      return isCoach(roles) || isAdmin(roles)
+    })
+    .map((u) => ({ id: u.id, firstName: u.firstName }))
+}
+
 export async function getMonthSessions(year: number, month: number) {
   const { start, end } = monthRange(year, month)
   return prisma.session.findMany({
     where: { date: { gte: start, lte: end } },
-    include: { trainingType: true, athleteSessions: { select: { id: true } } },
+    include: {
+      trainingType: true,
+      athleteSessions: { select: { id: true } },
+      coach: { select: { id: true, firstName: true } },
+    },
     orderBy: { date: 'asc' },
   })
 }
@@ -73,6 +92,7 @@ export async function getSessionDetail(id: string) {
     where: { id },
     include: {
       trainingType: true,
+      coach: { select: { id: true, firstName: true } },
       athleteSessions: {
         include: { athlete: true },
         orderBy: { loggedAt: 'desc' },

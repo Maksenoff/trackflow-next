@@ -10,13 +10,13 @@ import { CompetitionHeader } from '@/components/competitions/competition-header'
 import { CompetitionTabs } from '@/components/competitions/competition-tabs'
 
 export default async function CompetitionDetailPage({ params }: { params: { id: string } }) {
-  const [competition, registrationAthletes] = await Promise.all([
+  const [competition, registrationAthletes, session] = await Promise.all([
     getCompetitionDetail(params.id),
     getAthletesForRegistration(params.id),
+    auth(),
   ])
   if (!competition) notFound()
 
-  const session = await auth()
   const roles = (session?.user.roles ?? []) as Role[]
   const canManage = isAdmin(roles) || isCoach(roles) || isCompetitionManager(roles)
 

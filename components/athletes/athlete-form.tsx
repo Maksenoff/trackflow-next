@@ -25,6 +25,7 @@ import {
   DISCIPLINE_LABELS,
 } from '@/lib/disciplines'
 import { uploadFile } from '@/lib/upload-file'
+import type { FfaSyncResult } from '@/lib/ffa-scraper'
 import { cn } from '@/lib/utils'
 
 export type AthleteFormValues = z.input<typeof athleteInputSchema>
@@ -177,6 +178,20 @@ export function AthleteForm({
     const data = await res.json()
     const id = mode === 'create' ? data.id : athleteId
     toast.success(mode === 'create' ? 'Athlète créé avec succès.' : 'Profil mis à jour.')
+
+    // Sync FFA déclenchée automatiquement côté serveur si un profil athle.fr est lié —
+    // on informe juste du résultat, rien à cliquer.
+    const ffaSync = mode === 'create' ? (data.ffaSync as FfaSyncResult | null) : null
+    if (ffaSync) {
+      if (ffaSync.error) {
+        toast.warning(`Sync FFA : ${ffaSync.error}`)
+      } else if (ffaSync.imported > 0 || ffaSync.podiumsImported > 0) {
+        toast.success(
+          `Sync FFA : ${ffaSync.imported} performance${ffaSync.imported > 1 ? 's' : ''} et ${ffaSync.podiumsImported} podium${ffaSync.podiumsImported > 1 ? 's' : ''} importés.`
+        )
+      }
+    }
+
     router.push(`/athletes/${id}`)
     router.refresh()
   }

@@ -3,6 +3,7 @@
 
 import * as cheerio from 'cheerio'
 import { prisma } from '@/lib/prisma'
+import { autoValidateGoalsForAthlete } from '@/lib/goals'
 
 const ATHLETE_PAGE_URL = (id: string) => `https://www.athle.fr/athletes/${id}/resultats`
 const PODIUMS_PAGE_URL = (id: string) => `https://www.athle.fr/athletes/${id}/podiums`
@@ -141,6 +142,8 @@ export type FfaProfile = {
   gender: string | null
   discipline: string[]
   licenseNumber: string | null
+  /** Saison la plus ancienne disponible dans l'historique athle.fr (ex: 2015 = saison 2015/2016). */
+  earliestSeasonStart: number | null
   error: string | null
 }
 
@@ -169,7 +172,12 @@ export async function lookupFfaProfile(url: string): Promise<FfaProfile> {
     return emptyProfile('Impossible de charger la page athlète. Vérifiez l’URL.')
   }
 
-  return parseProfile(html)
+  const profile = parseProfile(html)
+  const years = extractAvailableYears(html)
+  return {
+    ...profile,
+    earliestSeasonStart: years.length > 0 ? Math.min(...years) : null,
+  }
 }
 
 /** Import all competition results for an athlete linked via `ffaProfileUrl`. */
@@ -301,6 +309,8 @@ export async function syncAthleteFfa(athleteId: string): Promise<FfaSyncResult> 
 
   await prisma.athlete.update({ where: { id: athleteId }, data: { lastSyncedAt: new Date() } })
 
+  if (imported > 0) await autoValidateGoalsForAthlete(athleteId)
+
   return { imported, skipped, podiumsImported, error: null }
 }
 
@@ -394,6 +404,7 @@ function emptyProfile(error: string): FfaProfile {
     gender: null,
     discipline: [],
     licenseNumber: null,
+    earliestSeasonStart: null,
     error,
   }
 }
@@ -616,6 +627,7 @@ function parseProfile(html: string): FfaProfile {
     gender,
     discipline: discipline ? [discipline] : [],
     licenseNumber,
+    earliestSeasonStart: null, // renseigné par lookupFfaProfile() à partir des années disponibles
     error:
       !firstName && !lastName
         ? 'Nom introuvable. Vérifiez l’URL (format : https://www.athle.fr/athletes/XXXXX/resultats).'
