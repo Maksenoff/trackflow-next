@@ -1,0 +1,18 @@
+name: Keep-alive Neon
+
+# Remplace le cron Vercel (vercel.json) : le plan Hobby limite les cron jobs
+# à une exécution par jour, incompatible avec le rythme nécessaire pour éviter
+# le cold start Neon. GitHub Actions n'a pas cette limite, mais ne garantit pas
+# la précision en dessous de 5 min (le planificateur peut retarder/sauter un
+# run sous forte charge) — 5 min est le minimum documenté comme fiable.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /api/keep-alive
+        run: curl -fsS https://trackflow.run/api/keep-alive
