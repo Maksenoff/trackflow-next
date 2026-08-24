@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { Sidebar } from '@/components/nav/sidebar'
 import { MobileNav } from '@/components/nav/mobile-nav'
 import { FeedbackWidget } from '@/components/feedback/feedback-widget'
+import { ActivityPing } from '@/components/activity-ping'
 import type { Role } from '@/lib/roles'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -31,6 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="relative flex min-h-dvh">
+      <ActivityPing />
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 -z-10"
@@ -39,7 +41,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             'radial-gradient(ellipse 80% 50% at 50% -10%, color-mix(in oklab, var(--primary) 7%, transparent), transparent)',
         }}
       />
-      <Sidebar roles={roles} name={name} email={email} linkedAthlete={linkedAthlete} />
+      <Sidebar roles={roles} name={name} linkedAthlete={linkedAthlete} />
       <div className="flex min-w-0 flex-1 flex-col">
         <main className="flex-1 pb-24 lg:pb-0">{children}</main>
       </div>

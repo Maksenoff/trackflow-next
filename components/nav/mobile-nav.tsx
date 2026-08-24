@@ -219,16 +219,18 @@ export function MobileNav({
           <SheetTitle className="sr-only">Communauté</SheetTitle>
           <div className="mx-auto mt-1 h-1 w-9 shrink-0 rounded-full bg-muted" />
 
-          <div className="space-y-1 px-2 pt-2 pb-2">
+          <div className="grid grid-cols-3 gap-3 px-4 pt-3 pb-4">
             {communityLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setCommunityOpen(false)}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors hover:bg-muted/60"
+                className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-muted/30 py-4 text-center transition-colors active:bg-primary/10"
               >
-                <link.icon className="size-4 text-muted-foreground" />
-                {link.label}
+                <span className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <link.icon className="size-5" />
+                </span>
+                <span className="text-xs font-semibold">{link.label}</span>
               </Link>
             ))}
           </div>
@@ -244,25 +246,29 @@ export function MobileNav({
           <SheetTitle className="sr-only">Système</SheetTitle>
           <div className="mx-auto mt-1 h-1 w-9 shrink-0 rounded-full bg-muted" />
 
-          <div className="space-y-1 px-2 pt-2 pb-2">
+          <div className="grid grid-cols-2 gap-3 px-4 pt-3 pb-4">
             {allowed.some((l) => l.href === '/settings') && (
               <Link
                 href="/settings"
                 onClick={() => setSystemOpen(false)}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors hover:bg-muted/60"
+                className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-muted/30 py-4 text-center transition-colors active:bg-primary/10"
               >
-                <Settings className="size-4 text-muted-foreground" />
-                Paramètres
+                <span className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Settings className="size-5" />
+                </span>
+                <span className="text-xs font-semibold">Paramètres</span>
               </Link>
             )}
             {allowed.some((l) => l.href === '/admin') && (
               <Link
                 href="/admin"
                 onClick={() => setSystemOpen(false)}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors hover:bg-muted/60"
+                className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-muted/30 py-4 text-center transition-colors active:bg-primary/10"
               >
-                <ShieldCheck className="size-4 text-muted-foreground" />
-                Admin
+                <span className="flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <ShieldCheck className="size-5" />
+                </span>
+                <span className="text-xs font-semibold">Admin</span>
               </Link>
             )}
           </div>
