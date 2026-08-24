@@ -30,7 +30,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { tint } from '@/lib/color'
 import { useIsLightTheme } from '@/lib/use-is-light-theme'
 import { cn } from '@/lib/utils'
 import type { AthleteDetail } from '@/lib/athletes-data'
@@ -38,8 +37,14 @@ import type { AthleteDetail } from '@/lib/athletes-data'
 type Performance = AthleteDetail['performances'][number]
 type EnvFilter = 'all' | 'indoor' | 'outdoor'
 
-const GOLD =
-  'bg-gradient-to-br from-yellow-300 via-amber-400 to-yellow-600 bg-clip-text text-transparent'
+// PB : dégradé gold exact demandé (135deg, #f59e0b -> #fbbf24), pas l'ancien
+// dégradé Tailwind jaune/ambre à 3 stops.
+const GOLD_STYLE = {
+  backgroundImage: 'linear-gradient(135deg, #f59e0b, #fbbf24)',
+  WebkitBackgroundClip: 'text' as const,
+  backgroundClip: 'text' as const,
+  color: 'transparent',
+}
 const SILVER =
   'bg-gradient-to-br from-slate-200 via-slate-400 to-slate-500 bg-clip-text text-transparent'
 
@@ -81,9 +86,30 @@ export function PerformancesTab({
     return Array.from(set).sort().reverse()
   }, [performances])
 
-  const seasonBestIds = useMemo(() => {
-    const bests = computeSeasonBests(performances)
-    return new Set(Array.from(bests.values()).map((p) => p.id))
+  const seasonBests = useMemo(() => computeSeasonBests(performances), [performances])
+  const seasonBestIds = useMemo(
+    () => new Set(Array.from(seasonBests.values()).map((p) => p.id)),
+    [seasonBests]
+  )
+
+  // Record all-time (PB) par discipline, calculé sur l'historique complet de
+  // l'athlète — jamais sur `filtered`, sinon le badge "PB" de l'en-tête varie
+  // avec le filtre saison/indoor-outdoor et se confond avec le SB (correctif
+  // 2026-08-24 : le PB doit rester le record all-time quel que soit le filtre actif).
+  const allTimeBests = useMemo(() => {
+    const map = new Map<string, Performance>()
+    for (const perf of performances) {
+      const current = map.get(perf.discipline)
+      if (!current) {
+        map.set(perf.discipline, perf)
+        continue
+      }
+      const better = isLowerBetter(perf.unit)
+        ? perf.value < current.value
+        : perf.value > current.value
+      if (better) map.set(perf.discipline, perf)
+    }
+    return map
   }, [performances])
 
   const filtered = useMemo(() => {
@@ -114,10 +140,8 @@ export function PerformancesTab({
       )
       const recentFirst = [...chronological].reverse()
       const unit = perfs[0]?.unit ?? 's'
-      const lowerBetter = isLowerBetter(unit)
-      const best = recentFirst.reduce((acc, p) =>
-        !acc || (lowerBetter ? p.value < acc.value : p.value > acc.value) ? p : acc
-      )
+      const best = allTimeBests.get(discipline) ?? recentFirst[0]
+      const seasonBest = seasonBests.get(discipline) ?? null
       const chartData = chronological.map((p) => ({
         date: formatFullDate(p.recordedAt),
         value: p.value,
@@ -127,13 +151,14 @@ export function PerformancesTab({
         discipline,
         performances: recentFirst,
         best,
+        seasonBest,
         unit,
         chartData,
         domain,
         ticks,
       }
     })
-  }, [filtered, disciplineColors])
+  }, [filtered, disciplineColors, seasonBests, allTimeBests])
 
   if (performances.length === 0) {
     return (
@@ -148,7 +173,7 @@ export function PerformancesTab({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Select value={season} onValueChange={(v) => v && setSeason(v)}>
-          <SelectTrigger className="w-full gap-1.5 rounded-full border-primary/40 bg-primary/10 px-3.5 text-xs font-semibold text-primary sm:hidden">
+          <SelectTrigger className="w-full gap-1.5 rounded-full border-none bg-gradient-selected px-3.5 text-xs font-semibold text-white shadow-sm shadow-primary/25 sm:hidden">
             {season === 'all' ? (
               <Layers className="size-3.5 shrink-0" />
             ) : (
@@ -173,10 +198,10 @@ export function PerformancesTab({
             type="button"
             onClick={() => setSeason('all')}
             className={cn(
-              'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+              'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
               season === 'all'
-                ? 'border-primary/40 bg-primary/10 text-primary'
-                : 'border-border text-muted-foreground hover:text-foreground'
+                ? 'bg-gradient-selected text-white shadow-sm shadow-primary/25'
+                : 'border border-border text-muted-foreground hover:border-primary/30 hover:text-foreground'
             )}
           >
             <Layers className="size-3.5" />
@@ -188,10 +213,10 @@ export function PerformancesTab({
               type="button"
               onClick={() => setSeason(s)}
               className={cn(
-                'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+                'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
                 season === s
-                  ? 'border-primary/40 bg-primary/10 text-primary'
-                  : 'border-border text-muted-foreground hover:text-foreground'
+                  ? 'bg-gradient-selected text-white shadow-sm shadow-primary/25'
+                  : 'border border-border text-muted-foreground hover:border-primary/30 hover:text-foreground'
               )}
             >
               <CalendarRange className="size-3.5" />
@@ -200,7 +225,7 @@ export function PerformancesTab({
           ))}
         </div>
 
-        <div className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted p-1">
+        <div className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted/60 p-1">
           {(
             [
               { key: 'all', label: 'Tous', icon: Layers },
@@ -249,27 +274,26 @@ export function PerformancesTab({
       ) : (
         <div className="space-y-3">
           {byDiscipline.map(
-            ({ discipline, performances: perfs, best, unit, chartData, domain, ticks }) => {
+            (
+              { discipline, performances: perfs, best, seasonBest, unit, chartData, domain, ticks },
+              i
+            ) => {
               const isOpen = openDiscipline === discipline
               const lowerBetter = isLowerBetter(unit)
               const color = disciplineColors[discipline] ?? null
               return (
-                <div
+                <motion.div
                   key={discipline}
-                  className={cn(
-                    'overflow-hidden rounded-2xl border shadow-sm',
-                    color ? undefined : 'border-border bg-card'
-                  )}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, delay: Math.min(i, 8) * 0.04, ease: 'easeOut' }}
+                  className="overflow-hidden rounded-lg border border-border bg-card shadow-sm dark:shadow-none"
                   style={
                     color
                       ? {
-                          background: [
-                            // Filet de "vitesse" — lignes diagonales très discrètes, façon lignes
-                            // de sprint, à peine visibles.
-                            `repeating-linear-gradient(115deg, ${isLight ? 'rgba(0,0,0,.035)' : 'rgba(255,255,255,.05)'} 0px, ${isLight ? 'rgba(0,0,0,.035)' : 'rgba(255,255,255,.05)'} 1px, transparent 1px, transparent 13px)`,
-                            `linear-gradient(to right, ${tint(color, isLight ? 22 : 13)}, ${tint(color, isLight ? 6 : 3)})`,
-                          ].join(', '),
-                          borderColor: tint(color, isLight ? 45 : 24),
+                          borderLeftWidth: 3,
+                          borderLeftColor: color,
+                          backgroundColor: `color-mix(in srgb, ${color} ${isLight ? 5 : 9}%, var(--card))`,
                         }
                       : undefined
                   }
@@ -278,7 +302,7 @@ export function PerformancesTab({
                     type="button"
                     onClick={() => setOpenDiscipline(isOpen ? null : discipline)}
                     aria-expanded={isOpen}
-                    className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.03]"
+                    className="flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-black/[0.03] dark:hover:bg-[#161228]"
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       <motion.span
@@ -302,13 +326,25 @@ export function PerformancesTab({
                         </div>
                       </div>
                     </div>
-                    <div className="shrink-0 text-right">
-                      <div className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
-                        Record
+                    <div className="flex shrink-0 items-start gap-4">
+                      {seasonBest && (
+                        <div className="text-right">
+                          <div className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                            SB
+                          </div>
+                          <span className={cn('text-base font-extrabold', SILVER)}>
+                            {formatPerformanceValue(seasonBest.value, seasonBest.unit)}
+                          </span>
+                        </div>
+                      )}
+                      <div className="text-right">
+                        <div className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                          PB
+                        </div>
+                        <span className="text-base font-extrabold" style={GOLD_STYLE}>
+                          {formatPerformanceValue(best.value, best.unit)}
+                        </span>
                       </div>
-                      <span className={cn('text-base font-extrabold', GOLD)}>
-                        {formatPerformanceValue(best.value, best.unit)}
-                      </span>
                     </div>
                   </button>
 
@@ -377,17 +413,25 @@ export function PerformancesTab({
                         )}
 
                         <div className="divide-y divide-border sm:hidden">
-                          {perfs.map((perf) => {
+                          {perfs.map((perf, idx) => {
                             const isSB = seasonBestIds.has(perf.id) && !perf.isPersonalBest
                             const { seasonShort } = computeSeason(perf.recordedAt)
                             return (
-                              <div key={perf.id} className="px-4 py-3">
+                              <motion.div
+                                key={perf.id}
+                                initial={{ opacity: 0, y: 6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                whileHover={{ x: 4 }}
+                                transition={{ duration: 0.2, delay: Math.min(idx, 12) * 0.02 }}
+                                className="px-4 py-3"
+                              >
                                 <div className="flex items-center gap-2">
                                   <span
                                     className={cn(
                                       'w-6 shrink-0 text-right text-[10px] font-extrabold',
-                                      perf.isPersonalBest ? GOLD : isSB ? SILVER : ''
+                                      !perf.isPersonalBest && isSB ? SILVER : ''
                                     )}
+                                    style={perf.isPersonalBest ? GOLD_STYLE : undefined}
                                   >
                                     {perf.isPersonalBest ? 'PB' : isSB ? 'SB' : ''}
                                   </span>
@@ -445,7 +489,7 @@ export function PerformancesTab({
                                   </span>
                                   <span className="shrink-0">{seasonShort}</span>
                                 </div>
-                              </div>
+                              </motion.div>
                             )
                           })}
                         </div>
@@ -486,8 +530,9 @@ export function PerformancesTab({
                                         <span
                                           className={cn(
                                             'w-6 shrink-0 text-right text-[10px] font-extrabold',
-                                            perf.isPersonalBest ? GOLD : isSB ? SILVER : ''
+                                            !perf.isPersonalBest && isSB ? SILVER : ''
                                           )}
+                                          style={perf.isPersonalBest ? GOLD_STYLE : undefined}
                                         >
                                           {perf.isPersonalBest ? 'PB' : isSB ? 'SB' : ''}
                                         </span>
@@ -561,7 +606,7 @@ export function PerformancesTab({
                       </motion.div>
                     )}
                   </AnimatePresence>
-                </div>
+                </motion.div>
               )
             }
           )}
