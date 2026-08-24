@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { RefreshCw, RotateCcw, Loader2 } from 'lucide-react'
 
+// Lignes pleine largeur dans le menu déroulant "···" de ProfileHeader — plus de
+// style "pill glassy" à part sur la bannière (correctif 2026-08-22 : ça créait
+// une couleur différente des autres actions).
 export function FfaSyncButtons({
   athleteId,
   showFullResync,
@@ -59,34 +62,34 @@ export function FfaSyncButtons({
   }
 
   return (
-    <div className="flex items-center gap-1.5 sm:gap-2">
+    <div className="space-y-1">
       <button
         type="button"
         onClick={sync}
         disabled={loading !== null}
-        className="inline-flex items-center gap-1.5 rounded-full bg-black/30 px-2 py-1.5 text-xs font-semibold text-white backdrop-blur-sm transition-colors hover:bg-black/45 disabled:opacity-60 sm:px-3"
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted/60 disabled:opacity-60"
       >
         {loading === 'sync' ? (
-          <Loader2 className="size-3.5 animate-spin" />
+          <Loader2 className="size-4 animate-spin text-muted-foreground" />
         ) : (
-          <RefreshCw className="size-3.5" />
+          <RefreshCw className="size-4 text-muted-foreground" />
         )}
-        <span className="hidden sm:inline">Sync FFA</span>
+        Sync FFA
       </button>
       {showFullResync && (
         <button
           type="button"
           onClick={fullResync}
           disabled={loading !== null}
-          className="inline-flex items-center gap-1.5 rounded-full bg-black/30 px-2 py-1.5 text-xs font-semibold text-white backdrop-blur-sm transition-colors hover:bg-black/45 disabled:opacity-60 sm:px-3"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted/60 disabled:opacity-60"
           title="Supprime toutes les performances FFA et les réimporte depuis zéro"
         >
           {loading === 'resync' ? (
-            <Loader2 className="size-3.5 animate-spin" />
+            <Loader2 className="size-4 animate-spin text-muted-foreground" />
           ) : (
-            <RotateCcw className="size-3.5" />
+            <RotateCcw className="size-4 text-muted-foreground" />
           )}
-          <span className="hidden sm:inline">Resync complet</span>
+          Resync complet
         </button>
       )}
     </div>
