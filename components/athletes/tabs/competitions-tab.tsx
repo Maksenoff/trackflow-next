@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Trophy, Check, CalendarCheck, MessageCircleQuestion } from 'lucide-react'
+import { Trophy, Check, CalendarCheck, MessageCircleQuestion, Ban } from 'lucide-react'
 import { formatFullDate } from '@/lib/date'
 import { rpeColor } from '@/lib/rpe'
 import { computeDebriefStatus, type DebriefStatus } from '@/lib/session-debrief'
@@ -17,16 +17,17 @@ import type { AthleteDetail } from '@/lib/athletes-data'
 
 type Registration = AthleteDetail['competitionRegistrations'][number]
 
-type FilterKey = 'not_debriefed' | 'debriefed'
+type FilterKey = 'to_debrief' | 'logged' | 'not_done'
 
 const FILTERS: { key: FilterKey; label: string; icon: typeof CalendarCheck }[] = [
-  { key: 'not_debriefed', label: 'Non débriefée', icon: MessageCircleQuestion },
-  { key: 'debriefed', label: 'Débriefée', icon: CalendarCheck },
+  { key: 'to_debrief', label: 'À débriefer', icon: MessageCircleQuestion },
+  { key: 'logged', label: 'Faites', icon: CalendarCheck },
+  { key: 'not_done', label: 'Non faites', icon: Ban },
 ]
 
 function matchesFilter(status: DebriefStatus, filter: FilterKey): boolean {
-  const isDebriefed = status === 'logged' || status === 'skipped'
-  return filter === 'debriefed' ? isDebriefed : !isDebriefed
+  if (filter === 'not_done') return status === 'skipped' || status === 'auto_skipped'
+  return status === filter
 }
 
 function feelingColor(v: number): string {
@@ -47,7 +48,7 @@ export function CompetitionsTab({
   registrations: Registration[]
   canEdit: boolean
 }) {
-  const [filter, setFilter] = useState<FilterKey>('not_debriefed')
+  const [filter, setFilter] = useState<FilterKey>('to_debrief')
   const [typeFilter, setTypeFilter] = useState<string | null>(null)
   const [dialogReg, setDialogReg] = useState<DebriefCompetitionInfo | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -66,9 +67,11 @@ export function CompetitionsTab({
   )
 
   const counts = useMemo(() => {
-    const c: Record<FilterKey, number> = { not_debriefed: 0, debriefed: 0 }
+    const c: Record<FilterKey, number> = { to_debrief: 0, logged: 0, not_done: 0 }
     for (const r of withStatus) {
-      c[matchesFilter(r.status, 'debriefed') ? 'debriefed' : 'not_debriefed']++
+      if (r.status === 'to_debrief') c.to_debrief++
+      else if (r.status === 'logged') c.logged++
+      else if (r.status === 'skipped' || r.status === 'auto_skipped') c.not_done++
     }
     return c
   }, [withStatus])

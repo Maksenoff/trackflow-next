@@ -8,12 +8,20 @@ import { auth } from '@/lib/auth'
 // athlète et circulaire/horaires de compétition — tous derrière des formulaires déjà
 // gated par rôle côté page.
 export async function POST(request: Request): Promise<NextResponse> {
-  const session = await auth()
-  if (!session) {
-    return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
-  }
-
   const body = (await request.json()) as HandleUploadBody
+
+  // Seule l'étape "generate-client-token" vient du navigateur (avec le cookie de
+  // session) — l'étape "upload-completed" est un webhook appelé serveur à serveur
+  // par l'infra Vercel Blob une fois le fichier stocké, sans cookie de session.
+  // Exiger `auth()` sur les deux bloquait ce webhook en prod (où Vercel peut
+  // joindre l'URL publique), alors qu'en local le webhook est simplement
+  // ignoré (URL non joignable), masquant le bug.
+  if (body.type === 'blob.generate-client-token') {
+    const session = await auth()
+    if (!session) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+    }
+  }
 
   try {
     const jsonResponse = await handleUpload({

@@ -136,40 +136,109 @@ export function filterDisciplineGroups(codes: string[]): Record<string, Record<s
   return groups
 }
 
-/** Palette de couleurs vives pour les pastilles de discipline (choix Maksen). */
-export const DEFAULT_DISCIPLINE_COLORS = ['#f97316', '#10b981', '#3b82f6', '#8b5cf6', '#f43f5e']
+/**
+ * Palette de couleurs vives pour les pastilles de discipline (choix Maksen).
+ * Volontairement large (12, pas 5) pour qu'un athlète avec beaucoup de
+ * spécialités n'ait pas de couleurs qui se répètent avant la 13e discipline
+ * (correctif 2026-08-25 : avec 5 couleurs seulement, ça bouclait vite et se
+ * confondait avec l'accent violet de l'appli, qui n'a plus rien d'unique).
+ */
+export const DEFAULT_DISCIPLINE_COLORS = [
+  '#f97316',
+  '#10b981',
+  '#3b82f6',
+  '#8b5cf6',
+  '#f43f5e',
+  '#eab308',
+  '#06b6d4',
+  '#ec4899',
+  '#84cc16',
+  '#7c3aed',
+  '#f472b6',
+  '#14b8a6',
+]
+
+/**
+ * Couleur par défaut d'une discipline sans couleur explicitement choisie —
+ * dérivée de sa position dans la liste (stable, pas un violet unique pour
+ * toutes) plutôt qu'une couleur fixe qui rendait toutes les pastilles sans
+ * couleur indiscernables les unes des autres.
+ */
+export function defaultDisciplineColor(index: number): string {
+  return DEFAULT_DISCIPLINE_COLORS[index % DEFAULT_DISCIPLINE_COLORS.length]
+}
 
 /**
  * Épreuves standard catégorie Espoir/Senior (objectifs athlète, voir GoalForm) :
  * exclut les épreuves jeunes (50m, 600m, 50m haies, triathlon, relais réduits...)
  * qui n'ont pas de sens comme objectif pour un athlète Espoir/Senior.
  */
-export const GOAL_DISCIPLINE_GROUPS: Record<string, Record<string, string>> = {
-  Sprints: { '60m': '60m', '100m': '100m', '200m': '200m', '400m': '400m' },
-  'Demi-fond / Fond': {
-    '800m': '800m',
-    '1500m': '1500m',
-    '3000m': '3000m',
-    '5000m': '5000m',
-    '10000m': '10000m',
-    'Semi-marathon': 'semi-marathon',
-    Marathon: 'marathon',
+export type GoalDisciplineCategory = {
+  key: string
+  label: string
+  color: string
+  disciplines: Record<string, string>
+}
+
+export const GOAL_DISCIPLINE_CATEGORIES: GoalDisciplineCategory[] = [
+  {
+    key: 'sprints',
+    label: 'Sprints',
+    color: '#f97316',
+    disciplines: { '60m': '60m', '100m': '100m', '200m': '200m', '400m': '400m' },
   },
-  Haies: {
-    '60m haies': '60m-haies',
-    '100m haies (F)': '100m-haies',
-    '110m haies (H)': '110m-haies',
-    '400m haies': '400m-haies',
+  {
+    key: 'demi-fond',
+    label: 'Demi-fond / Fond',
+    color: '#3b82f6',
+    disciplines: {
+      '800m': '800m',
+      '1500m': '1500m',
+      '3000m': '3000m',
+      '5000m': '5000m',
+      '10000m': '10000m',
+      'Semi-marathon': 'semi-marathon',
+      Marathon: 'marathon',
+    },
   },
-  Sauts: ATHLETE_SPECIALTIES.Sauts,
-  Lancers: ATHLETE_SPECIALTIES.Lancers,
-  'Épreuves combinées': { Décathlon: 'decathlon', Heptathlon: 'heptathlon' },
-  Autres: {
-    'Cross country': 'cross',
-    Marche: 'marche',
-    'Relais 4x100': '4x100m',
-    'Relais 4x400': '4x400m',
+  {
+    key: 'haies',
+    label: 'Haies',
+    color: '#a855f7',
+    disciplines: {
+      '60m haies': '60m-haies',
+      '100m haies (F)': '100m-haies',
+      '110m haies (H)': '110m-haies',
+      '400m haies': '400m-haies',
+    },
   },
+  { key: 'sauts', label: 'Sauts', color: '#10b981', disciplines: ATHLETE_SPECIALTIES.Sauts },
+  { key: 'lancers', label: 'Lancers', color: '#f43f5e', disciplines: ATHLETE_SPECIALTIES.Lancers },
+  {
+    key: 'combinees',
+    label: 'Épreuves combinées',
+    color: '#eab308',
+    disciplines: { Décathlon: 'decathlon', Heptathlon: 'heptathlon' },
+  },
+  {
+    key: 'autres',
+    label: 'Autres',
+    color: '#06b6d4',
+    disciplines: {
+      'Cross country': 'cross',
+      Marche: 'marche',
+      'Relais 4x100': '4x100m',
+      'Relais 4x400': '4x400m',
+    },
+  },
+]
+
+/** Couleur de la catégorie (sprint, sauts, relais...) à laquelle appartient une discipline. */
+export function goalDisciplineColor(discipline: string): string {
+  const category = GOAL_DISCIPLINE_CATEGORIES.find((c) =>
+    Object.values(c.disciplines).includes(discipline)
+  )
+  return category?.color ?? '#6366f1'
 }
 
 const DISTANCE_DISCIPLINES = new Set(['longueur', 'hauteur', 'triple', 'perche'])

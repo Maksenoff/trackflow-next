@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { AnimatePresence, motion } from 'framer-motion'
 import { toast } from 'sonner'
-import { Loader2, RefreshCw } from 'lucide-react'
+import { Loader2, RefreshCw, Hand, Ban, CalendarDays, GraduationCap } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -15,9 +16,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
 import { GoalDisciplinePicker } from '@/components/athletes/goal-discipline-picker'
-import { disciplineUnit } from '@/lib/disciplines'
+import { disciplineUnit, goalDisciplineColor } from '@/lib/disciplines'
 import { seasonEndDate, formatDiscipline } from '@/lib/performance'
 import { toDateInputValue } from '@/lib/calendar-grid'
 import { cn } from '@/lib/utils'
@@ -36,6 +36,17 @@ const UNIT_LABEL: Record<string, string> = {
   m: 'Distance (m)',
   pts: 'Points',
 }
+
+const DEADLINE_OPTIONS = [
+  { key: 'none' as const, label: 'Aucune', icon: Ban },
+  { key: 'date' as const, label: 'Date précise', icon: CalendarDays },
+  { key: 'season' as const, label: 'Fin de saison', icon: GraduationCap },
+]
+
+const VALIDATION_OPTIONS = [
+  { key: false, label: 'Manuelle', icon: Hand },
+  { key: true, label: 'Automatique (FFA)', icon: RefreshCw },
+]
 
 export function GoalFormDialog({
   open,
@@ -78,6 +89,7 @@ export function GoalFormDialog({
   }, [open, initial])
 
   const unit = discipline ? disciplineUnit(discipline) : null
+  const color = discipline ? goalDisciplineColor(discipline) : 'var(--primary)'
 
   async function handleSubmit() {
     if (!title.trim()) return
@@ -103,7 +115,7 @@ export function GoalFormDialog({
           targetValue: targetValue ? Number(targetValue) : null,
           unit,
           deadline,
-          autoValidateFfa,
+          autoValidateFfa: targetValue ? autoValidateFfa : false,
         }),
       }
     )
@@ -121,14 +133,14 @@ export function GoalFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle className="text-lg">
             {isEdit ? "Modifier l'objectif" : 'Nouvel objectif'}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="max-h-[70vh] space-y-5 overflow-y-auto py-1">
+        <div className="max-h-[80vh] space-y-5 overflow-y-auto py-1">
           <div className="space-y-1.5">
             <Label htmlFor="goal-title">Titre</Label>
             <Input
@@ -140,85 +152,139 @@ export function GoalFormDialog({
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Discipline</Label>
-            <GoalDisciplinePicker value={discipline} onChange={setDiscipline} />
-          </div>
-
-          {discipline && (
-            <div className="space-y-1.5">
-              <Label htmlFor="goal-target">{UNIT_LABEL[unit ?? 's']}</Label>
-              <Input
-                id="goal-target"
-                type="number"
-                step="0.01"
-                min={0}
-                value={targetValue}
-                onChange={(e) => setTargetValue(e.target.value)}
-                placeholder={unit === 's' ? 'Ex : 11.85' : 'Ex : 6.20'}
-              />
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-5">
+            <div className="space-y-1.5 sm:col-span-3">
+              <Label>Discipline</Label>
+              <GoalDisciplinePicker value={discipline} onChange={setDiscipline} />
             </div>
-          )}
 
-          {discipline && targetValue && (
-            <label className="flex items-start gap-2.5 rounded-2xl border border-border bg-muted/40 p-3.5">
-              <Checkbox
-                checked={autoValidateFfa}
-                onCheckedChange={(checked) => setAutoValidateFfa(checked === true)}
-                className="mt-0.5"
-              />
-              <span className="text-xs">
-                <span className="flex items-center gap-1.5 font-semibold">
-                  <RefreshCw className="size-3.5 text-primary" />
-                  Validation automatique via FFA
-                </span>
-                <span className="mt-0.5 block text-muted-foreground">
-                  Dès qu&apos;une performance en {formatDiscipline(discipline)} synchronisée depuis
-                  athle.fr après la création de l&apos;objectif dépasse la cible, il passe
-                  automatiquement en &laquo;&nbsp;Atteint&nbsp;&raquo;.
-                </span>
-              </span>
-            </label>
-          )}
+            <div className="space-y-5 sm:col-span-2">
+              <AnimatePresence initial={false}>
+                {discipline && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                    className="space-y-5 overflow-hidden"
+                  >
+                    <div className="space-y-1.5">
+                      <Label htmlFor="goal-target">{UNIT_LABEL[unit ?? 's']}</Label>
+                      <Input
+                        id="goal-target"
+                        type="number"
+                        step="0.01"
+                        min={0}
+                        value={targetValue}
+                        onChange={(e) => setTargetValue(e.target.value)}
+                        placeholder={unit === 's' ? 'Ex : 11.85' : 'Ex : 6.20'}
+                        className="border-2"
+                        style={{ borderColor: `color-mix(in srgb, ${color} 35%, transparent)` }}
+                      />
+                    </div>
 
-          <div className="space-y-1.5">
-            <Label>Échéance</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {(
-                [
-                  { key: 'none', label: 'Aucune' },
-                  { key: 'date', label: 'Date précise' },
-                  { key: 'season', label: 'Fin de saison' },
-                ] as const
-              ).map((opt) => (
-                <button
-                  key={opt.key}
-                  type="button"
-                  onClick={() => setDeadlineMode(opt.key)}
-                  className={cn(
-                    'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
-                    deadlineMode === opt.key
-                      ? 'border-primary/40 bg-primary/10 text-primary'
-                      : 'border-border text-muted-foreground hover:bg-muted/50'
+                    <AnimatePresence initial={false}>
+                      {targetValue && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.15 }}
+                          className="space-y-2 overflow-hidden"
+                        >
+                          <Label>Validation</Label>
+                          <div className="grid grid-cols-2 gap-1.5 rounded-2xl border border-border bg-muted/40 p-1.5">
+                            {VALIDATION_OPTIONS.map((opt) => {
+                              const active = autoValidateFfa === opt.key
+                              return (
+                                <button
+                                  key={String(opt.key)}
+                                  type="button"
+                                  onClick={() => setAutoValidateFfa(opt.key)}
+                                  className={cn(
+                                    'flex flex-col items-center gap-1 rounded-xl px-2 py-2.5 text-[11px] font-semibold transition-colors',
+                                    active
+                                      ? 'bg-gradient-selected text-white shadow-sm shadow-primary/25'
+                                      : 'text-muted-foreground hover:bg-card'
+                                  )}
+                                >
+                                  <opt.icon className="size-4" />
+                                  {opt.label}
+                                </button>
+                              )
+                            })}
+                          </div>
+                          {autoValidateFfa && (
+                            <p className="text-xs text-muted-foreground">
+                              Dès qu&apos;une performance en {formatDiscipline(discipline)}{' '}
+                              synchronisée depuis athle.fr après la création dépasse la cible,
+                              l&apos;objectif passe automatiquement en
+                              &laquo;&nbsp;Atteint&nbsp;&raquo;.
+                            </p>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="space-y-2">
+                <Label>Échéance</Label>
+                <div className="grid grid-cols-3 gap-1.5 rounded-2xl border border-border bg-muted/40 p-1.5">
+                  {DEADLINE_OPTIONS.map((opt) => {
+                    const active = deadlineMode === opt.key
+                    return (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        onClick={() => setDeadlineMode(opt.key)}
+                        className={cn(
+                          'flex flex-col items-center gap-1 rounded-xl px-2 py-2.5 text-[11px] font-semibold transition-colors',
+                          active
+                            ? 'bg-gradient-selected text-white shadow-sm shadow-primary/25'
+                            : 'text-muted-foreground hover:bg-card'
+                        )}
+                      >
+                        <opt.icon className="size-4" />
+                        {opt.label}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <AnimatePresence initial={false} mode="wait">
+                  {deadlineMode === 'date' && (
+                    <motion.div
+                      key="date"
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <Input
+                        type="date"
+                        value={deadlineDate}
+                        onChange={(e) => setDeadlineDate(e.target.value)}
+                      />
+                    </motion.div>
                   )}
-                >
-                  {opt.label}
-                </button>
-              ))}
+                  {deadlineMode === 'season' && (
+                    <motion.div
+                      key="season"
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.15 }}
+                      className="flex items-center gap-2 rounded-xl bg-primary/10 px-3 py-2.5 text-xs font-semibold text-primary"
+                    >
+                      <GraduationCap className="size-4 shrink-0" />
+                      Échéance fixée au 31/08/{seasonEndDate(new Date()).getFullYear()}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
-            {deadlineMode === 'date' && (
-              <Input
-                type="date"
-                className="mt-2"
-                value={deadlineDate}
-                onChange={(e) => setDeadlineDate(e.target.value)}
-              />
-            )}
-            {deadlineMode === 'season' && (
-              <p className="mt-2 text-xs text-muted-foreground">
-                Échéance fixée au 31/08/{seasonEndDate(new Date()).getFullYear()}.
-              </p>
-            )}
           </div>
         </div>
 

@@ -3,8 +3,9 @@
 import { forwardRef, useEffect, useState, type CSSProperties } from 'react'
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
 import { toast } from 'sonner'
-import { StickyNote, Plus, Pin, Trash2, Loader2 } from 'lucide-react'
+import { StickyNote, Pin, Trash2, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { AddTile } from '@/components/ui/add-tile'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -161,20 +162,7 @@ export function NotesTab({
   }
 
   return (
-    <div className="space-y-5">
-      {canEdit && (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={openCreate}
-            className="group inline-flex items-center gap-1.5 rounded-full border border-dashed border-border bg-card px-3.5 py-1.5 text-xs font-semibold text-muted-foreground shadow-sm transition-colors hover:border-primary/40 hover:text-primary"
-          >
-            <Plus className="size-3.5 transition-transform duration-300 group-hover:rotate-90" />
-            Ajouter une note
-          </button>
-        </div>
-      )}
-
+    <div className="space-y-3">
       <Dialog
         open={dialogOpen}
         onOpenChange={(open) => {
@@ -296,7 +284,7 @@ export function NotesTab({
         </DialogContent>
       </Dialog>
 
-      {notes.length === 0 ? (
+      {notes.length === 0 && !canEdit ? (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -325,7 +313,7 @@ export function NotesTab({
 
             <NoteSection
               icon={StickyNote}
-              label={pinned.length > 0 ? 'Toutes les notes' : 'Mes notes'}
+              label={pinned.length > 0 ? 'Toutes les notes' : undefined}
               count={others.length}
               notes={others}
               canEdit={canEdit}
@@ -333,6 +321,7 @@ export function NotesTab({
               onOpen={openEdit}
               onTogglePin={togglePin}
               onDelete={handleDelete}
+              leadingTile={canEdit ? <AddTile label="+ Note" onClick={openCreate} /> : undefined}
             />
           </div>
         </LayoutGroup>
@@ -352,9 +341,10 @@ function NoteSection({
   onOpen,
   onTogglePin,
   onDelete,
+  leadingTile,
 }: {
   icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>
-  label: string
+  label?: string
   count: number
   accentColor?: string
   notes: Note[]
@@ -363,25 +353,29 @@ function NoteSection({
   onOpen: (note: Note) => void
   onTogglePin: (note: Note) => void
   onDelete: (id: string) => void
+  leadingTile?: React.ReactNode
 }) {
-  if (notes.length === 0) return null
+  if (notes.length === 0 && !leadingTile) return null
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-1.5">
-        <Icon className="size-3.5" style={accentColor ? { color: accentColor } : undefined} />
-        <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
-          {label}
-        </h3>
-        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-bold text-muted-foreground">
-          {count}
-        </span>
-      </div>
+      {label && (
+        <div className="flex items-center gap-1.5">
+          <Icon className="size-3.5" style={accentColor ? { color: accentColor } : undefined} />
+          <h3 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
+            {label}
+          </h3>
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-bold text-muted-foreground">
+            {count}
+          </span>
+        </div>
+      )}
 
       <motion.div
         layout
         className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       >
+        {leadingTile}
         <AnimatePresence>
           {notes.map((note) => (
             <NoteCard

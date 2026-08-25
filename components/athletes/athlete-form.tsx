@@ -4,9 +4,10 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Reorder } from 'framer-motion'
 import type { z } from 'zod'
 import { toast } from 'sonner'
-import { Loader2, User, ListChecks, ImageIcon, X } from 'lucide-react'
+import { Loader2, User, ListChecks, ImageIcon, X, GripVertical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -23,6 +24,7 @@ import {
   ATHLETE_SPECIALTIES,
   DEFAULT_DISCIPLINE_COLORS,
   DISCIPLINE_LABELS,
+  defaultDisciplineColor,
 } from '@/lib/disciplines'
 import { uploadFile } from '@/lib/upload-file'
 import type { FfaSyncResult } from '@/lib/ffa-scraper'
@@ -115,8 +117,10 @@ export function AthleteForm({
       : [...disciplines, value]
     setValue('disciplines', next)
     if (!disciplineColors[value] && !disciplines.includes(value)) {
-      const color = DEFAULT_DISCIPLINE_COLORS[next.length % DEFAULT_DISCIPLINE_COLORS.length]
-      setValue('disciplineColors', { ...disciplineColors, [value]: color })
+      setValue('disciplineColors', {
+        ...disciplineColors,
+        [value]: defaultDisciplineColor(disciplines.length),
+      })
     }
   }
 
@@ -330,18 +334,32 @@ export function AthleteForm({
 
             {disciplines.length > 0 && (
               <div className="mt-5 border-t border-border pt-4">
-                <p className="mb-3 text-xs font-semibold text-muted-foreground">
-                  Couleurs par discipline
+                <p className="mb-1 text-xs font-semibold text-muted-foreground">Ordre & couleurs</p>
+                <p className="mb-3 text-[11px] text-muted-foreground">
+                  Glisse une discipline pour changer l&apos;ordre d&apos;affichage sur ton profil.
                 </p>
-                <div className="space-y-2.5">
-                  {disciplines.map((d) => {
-                    const current = disciplineColors[d] ?? DEFAULT_DISCIPLINE_COLORS[0]
+                <Reorder.Group
+                  axis="y"
+                  values={disciplines}
+                  onReorder={(next) => setValue('disciplines', next)}
+                  className="space-y-2"
+                >
+                  {disciplines.map((d, i) => {
+                    const current = disciplineColors[d] ?? defaultDisciplineColor(i)
                     return (
-                      <div key={d} className="flex items-center justify-between gap-3">
-                        <span className="truncate text-xs font-medium text-muted-foreground">
-                          {DISCIPLINE_LABELS[d] ?? d}
-                        </span>
-                        <div className="flex shrink-0 gap-1.5">
+                      <Reorder.Item
+                        key={d}
+                        value={d}
+                        className="flex flex-col gap-2 rounded-xl bg-muted/40 p-2.5 select-none"
+                        whileDrag={{ scale: 1.02, boxShadow: '0 8px 20px -6px rgba(0,0,0,0.35)' }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <GripVertical className="size-4 shrink-0 cursor-grab touch-none text-muted-foreground/60 active:cursor-grabbing" />
+                          <span className="min-w-0 flex-1 truncate text-xs font-medium">
+                            {DISCIPLINE_LABELS[d] ?? d}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 pl-6">
                           {DEFAULT_DISCIPLINE_COLORS.map((c) => {
                             const active = current === c
                             return (
@@ -352,7 +370,7 @@ export function AthleteForm({
                                   setValue('disciplineColors', { ...disciplineColors, [d]: c })
                                 }
                                 className={cn(
-                                  'size-6 rounded-full transition-transform',
+                                  'size-5 shrink-0 rounded-full transition-transform',
                                   active
                                     ? 'scale-110 ring-2 ring-foreground ring-offset-2 ring-offset-card'
                                     : 'hover:scale-105'
@@ -362,11 +380,14 @@ export function AthleteForm({
                               />
                             )
                           })}
+                          {/* Couleur personnalisée (input type=color) désactivée pour
+                              l'instant à la demande de Maksen le 2026-08-25 — la
+                              palette de 12 couleurs suffit, à réévaluer plus tard. */}
                         </div>
-                      </div>
+                      </Reorder.Item>
                     )
                   })}
-                </div>
+                </Reorder.Group>
               </div>
             )}
           </section>

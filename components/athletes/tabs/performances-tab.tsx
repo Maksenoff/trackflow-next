@@ -22,6 +22,7 @@ import {
   isLowerBetter,
 } from '@/lib/performance'
 import { formatFullDate } from '@/lib/date'
+import { DisciplinePictogram } from '@/components/athletes/discipline-pictogram'
 import { Badge } from '@/components/ui/badge'
 import {
   Select,
@@ -287,22 +288,29 @@ export function PerformancesTab({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.25, delay: Math.min(i, 8) * 0.04, ease: 'easeOut' }}
-                  className="overflow-hidden rounded-lg border border-border bg-card shadow-sm dark:shadow-none"
+                  className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm dark:shadow-none"
                   style={
                     color
                       ? {
                           borderLeftWidth: 3,
                           borderLeftColor: color,
-                          backgroundColor: `color-mix(in srgb, ${color} ${isLight ? 5 : 9}%, var(--card))`,
+                          backgroundColor: `color-mix(in srgb, ${color} ${isLight ? 16 : 14}%, var(--card))`,
                         }
                       : undefined
                   }
                 >
+                  {color && (
+                    <DisciplinePictogram
+                      discipline={discipline}
+                      className="pointer-events-none absolute top-1/2 right-2 h-[105%] w-auto -translate-y-1/2 opacity-[0.22]"
+                      style={{ color }}
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={() => setOpenDiscipline(isOpen ? null : discipline)}
                     aria-expanded={isOpen}
-                    className="flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-black/[0.03] dark:hover:bg-[#161228]"
+                    className="relative flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-black/[0.03] dark:hover:bg-[#161228]"
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       <motion.span

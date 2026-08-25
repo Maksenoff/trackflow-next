@@ -6,7 +6,12 @@ const { auth } = NextAuth(authConfig)
 
 // /api/keep-alive : appelé par le cron Vercel (vercel.json) sans session —
 // doit rester joignable sans redirection vers /login.
-const PUBLIC_PATHS = ['/login', '/register', '/api/keep-alive']
+// /api/upload : la validation de token de dépôt (POST initial du navigateur) reste
+// gérée par la session dans app/api/upload/route.ts, mais le webhook
+// "blob.upload-completed" est appelé serveur à serveur par l'infra Vercel Blob
+// une fois le fichier stocké, sans cookie de session — le middleware ne doit pas
+// le rediriger vers /login avant qu'il n'atteigne la route.
+const PUBLIC_PATHS = ['/login', '/register', '/api/keep-alive', '/api/upload']
 
 export default auth((req) => {
   const { pathname } = req.nextUrl

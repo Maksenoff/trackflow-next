@@ -313,6 +313,33 @@ bouton différent :
   libellé "Terminé" tant que l'édition est active, plutôt que de garder l'icône
   crayon — signale clairement l'état actif.
 
+**Bouton "+ Ajouter" (créer un élément dans une liste)** — composant partagé
+`components/ui/add-button.tsx` (`<AddButton label="..." onClick={...} />`),
+norme validée d'abord sur "+ Nouvelle séance"/"+ Nouvelle compétition"
+(`components/calendar/calendar-view.tsx`) puis reprise sur les onglets Objectifs
+et Notes de la fiche athlète (harmonisation 2026-08-25, qui remplaçait
+jusque-là un `<Button size="sm">` plein sur Objectifs et un bouton pointillé
+discret sur Notes — deux styles différents pour la même action). Toujours ce
+composant pour toute nouvelle action "+ Ajouter", jamais une variante
+improvisée : pill `rounded-full bg-gradient-to-r from-primary to-primary/80`,
+icône `Plus` qui pivote au hover (`group-hover:rotate-90`), `shadow-lg
+shadow-primary/25` avec lift au hover, libellé masqué sous `sm:` (icône seule
+sur mobile via `<span className="hidden sm:inline">`). Position par défaut :
+alignée à droite (`flex justify-end`) au-dessus du contenu de la liste.
+
+**Ne jamais intégrer ce bouton dans la barre `ProfileTabs`** (tenté puis
+rejeté le 2026-08-25 après deux passes) : une version le mettait à côté de la
+pill-bar en `flex-1`, faisant redistribuer visiblement les pills à chaque
+changement d'onglet ; la version corrigée réservait un slot de largeur fixe
+toujours présent, mais ça revenait à changer la taille "de base" de la barre
+à onglets elle-même — explicitement refusé ("laisse la taille de la bannière
+d'onglet de base"). La barre `ProfileTabs` doit rester strictement identique
+quel que soit l'onglet actif, sans aucune dépendance au contenu affiché en
+dessous. Le bouton reste dans sa propre ligne au-dessus du contenu de l'onglet
+concerné (Objectifs, Notes), géré entièrement par le composant de cet
+onglet — pas de `forwardRef`/`useImperativeHandle` remontés vers
+`ProfileTabs`, pas de logique partagée entre `ProfileTabs` et les tabs.
+
 ### shadcn/ui
 - Initialiser avec `npx shadcn-ui@latest init` en début de projet
 - Composants à installer au fil des besoins (pas tout d'un coup)

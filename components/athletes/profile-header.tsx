@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Pencil, ExternalLink, BarChart3, Trophy, MoreHorizontal } from 'lucide-react'
 import { calcAge, initials, GENDER_LABELS, formatFollowedSince } from '@/lib/athlete'
-import { DISCIPLINE_LABELS, ATHLETE_SPECIALTIES } from '@/lib/disciplines'
+import { DISCIPLINE_LABELS, defaultDisciplineColor } from '@/lib/disciplines'
 import { FfaSyncButtons } from '@/components/athletes/ffa-sync-buttons'
 import {
   DropdownMenu,
@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { CountUp } from '@/components/dashboard/count-up'
+import { useIsLightTheme } from '@/lib/use-is-light-theme'
 import type { AthleteDetail } from '@/lib/athletes-data'
 
 // Bannière toujours sombre, dans les deux thèmes, quand il n'y a pas de photo —
@@ -27,70 +28,6 @@ const BANNER_TO = '#2d1060'
 const OVERLAY_BUTTON_CLASS =
   'inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-black/35 px-2.5 py-1.5 text-xs font-semibold text-white backdrop-blur-sm transition-colors hover:bg-black/50 sm:px-3 dark:bg-black/55 dark:hover:bg-black/70'
 
-type PatternKind = 'track' | 'hurdles' | 'jump' | 'throw'
-
-function patternKindFor(disciplines: string[]): PatternKind {
-  const first = disciplines[0]
-  if (!first) return 'track'
-  for (const [group, entries] of Object.entries(ATHLETE_SPECIALTIES)) {
-    if (Object.values(entries).includes(first)) {
-      if (group === 'Haies') return 'hurdles'
-      if (group === 'Sauts') return 'jump'
-      if (group === 'Lancers') return 'throw'
-      return 'track'
-    }
-  }
-  return 'track'
-}
-
-// Motifs discrets par spécialité principale — opacité 0.1, posés sur le
-// dégradé de la bannière (pas une illustration littérale, juste une texture).
-function BannerPattern({ kind, id }: { kind: PatternKind; id: string }) {
-  return (
-    <svg
-      aria-hidden
-      className="absolute inset-0 size-full opacity-[0.1]"
-      preserveAspectRatio="none"
-    >
-      <defs>
-        {kind === 'track' && (
-          <pattern
-            id={id}
-            width="16"
-            height="16"
-            patternUnits="userSpaceOnUse"
-            patternTransform="rotate(45)"
-          >
-            <line x1="0" y1="0" x2="0" y2="16" stroke="white" strokeWidth="2" />
-          </pattern>
-        )}
-        {kind === 'hurdles' && (
-          <pattern id={id} width="100%" height="26" patternUnits="userSpaceOnUse">
-            <line x1="0" y1="4" x2="100%" y2="4" stroke="white" strokeWidth="3" />
-          </pattern>
-        )}
-        {kind === 'jump' && (
-          <pattern id={id} width="40" height="20" patternUnits="userSpaceOnUse">
-            <polyline
-              points="0,20 10,0 20,20 30,0 40,20"
-              fill="none"
-              stroke="white"
-              strokeWidth="2"
-            />
-          </pattern>
-        )}
-        {kind === 'throw' && (
-          <pattern id={id} width="50" height="50" patternUnits="userSpaceOnUse">
-            <circle cx="25" cy="25" r="10" fill="none" stroke="white" strokeWidth="2" />
-            <circle cx="25" cy="25" r="20" fill="none" stroke="white" strokeWidth="1.5" />
-          </pattern>
-        )}
-      </defs>
-      <rect width="100%" height="100%" fill={`url(#${id})`} />
-    </svg>
-  )
-}
-
 export function ProfileHeader({
   athlete,
   canEdit,
@@ -102,6 +39,7 @@ export function ProfileHeader({
   canEditProfile: boolean
   isAdmin: boolean
 }) {
+  const isLight = useIsLightTheme()
   const age = calcAge(athlete.birthDate)
   const goalsAchieved = athlete.goals.filter((g) => g.status === 'achieved').length
   const goalsInProgress = athlete.goals.filter((g) => g.status === 'in_progress').length
@@ -109,7 +47,6 @@ export function ProfileHeader({
   const isBannerPhoto = athlete.bannerConfig.mode === 'photo' && athlete.bannerUrl
   const hasFfa = canEdit && !!athlete.ffaProfileUrl
   const hasPerformances = athlete.performances.length > 0
-  const patternKind = patternKindFor(athlete.disciplines)
 
   return (
     <div className="overflow-hidden rounded-3xl border border-border">
@@ -136,9 +73,7 @@ export function ProfileHeader({
           <div
             className="absolute inset-0"
             style={{ background: `linear-gradient(135deg, ${BANNER_FROM}, ${BANNER_TO})` }}
-          >
-            <BannerPattern kind={patternKind} id={`banner-pattern-${athlete.id}`} />
-          </div>
+          />
         )}
 
         {/* Actions — mêmes boutons sur mobile et desktop, juste le libellé qui
@@ -242,16 +177,16 @@ export function ProfileHeader({
 
             {athlete.disciplines.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
-                {athlete.disciplines.map((d) => {
-                  const color = athlete.disciplineColors[d] ?? '#6366f1'
+                {athlete.disciplines.map((d, i) => {
+                  const color = athlete.disciplineColors[d] ?? defaultDisciplineColor(i)
                   return (
                     <span
                       key={d}
                       className="rounded-full border px-2 py-0.5 text-xs font-semibold"
                       style={{
-                        backgroundColor: `${color}26`,
+                        backgroundImage: `linear-gradient(135deg, color-mix(in srgb, ${color} ${isLight ? 55 : 30}%, transparent), color-mix(in srgb, ${color} ${isLight ? 26 : 12}%, transparent))`,
                         color,
-                        borderColor: `${color}40`,
+                        borderColor: `color-mix(in srgb, ${color} ${isLight ? 65 : 45}%, transparent)`,
                       }}
                     >
                       {DISCIPLINE_LABELS[d] ?? d}
