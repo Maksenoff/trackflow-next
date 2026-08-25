@@ -19,6 +19,8 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (body.type === 'blob.generate-client-token') {
     const session = await auth()
     if (!session) {
+      // eslint-disable-next-line no-console
+      console.error('[upload] generate-client-token refusé : pas de session')
       return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
     }
   }
@@ -46,6 +48,8 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     return NextResponse.json(jsonResponse)
   } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('[upload] handleUpload a échoué :', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Upload impossible' },
       { status: 400 }
