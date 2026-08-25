@@ -100,7 +100,7 @@ export function FeedbackWidget() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               onSubmit={handleSubmit}
-              className="flex h-full flex-col space-y-4"
+              className="space-y-4"
             >
               <div>
                 <p className="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
@@ -127,7 +127,7 @@ export function FeedbackWidget() {
                 </div>
               </div>
 
-              <div className="flex min-h-0 flex-1 flex-col">
+              <div>
                 <p className="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
                   Description
                 </p>
@@ -135,7 +135,7 @@ export function FeedbackWidget() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Décris le problème ou ton idée…"
-                  className="min-h-56 flex-1 resize-none"
+                  className="min-h-32 resize-y text-base"
                   required
                 />
                 <p className="mt-1 text-right text-[10px] text-muted-foreground">
