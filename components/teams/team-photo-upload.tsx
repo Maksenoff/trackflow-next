@@ -26,8 +26,12 @@ export function TeamPhotoUpload({
       const url = await uploadFile(file, 'teams/photos')
       onConfigChange({ zoom: 1, x: 50, y: 50 })
       onPhotoChange(url)
-    } catch {
-      toast.error("Impossible d'uploader l'image.")
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Upload photo équipe échoué :', err)
+      toast.error(
+        `Impossible d'uploader l'image${err instanceof Error ? ` : ${err.message}` : ''}.`
+      )
     } finally {
       setUploading(false)
     }
