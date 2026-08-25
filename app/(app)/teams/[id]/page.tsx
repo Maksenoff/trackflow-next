@@ -30,6 +30,10 @@ export default async function TeamDetailPage({ params }: { params: { id: string 
   const isTeamMember =
     !canManage && !!linkedAthleteId && team.members.some((m) => m.id === linkedAthleteId)
 
+  // Suppression : staff toujours, ou l'auteur de la création (lui seul, pas
+  // les autres membres même s'ils peuvent éditer le relais).
+  const canDelete = canManage || (!!session && team.createdByUserId === session.user.id)
+
   return (
     <PageTransition>
       <div className="mx-auto max-w-[1600px] space-y-6 p-4 lg:p-8 xl:p-10">
@@ -38,6 +42,7 @@ export default async function TeamDetailPage({ params }: { params: { id: string 
           team={team}
           canManage={canManage}
           isTeamMember={isTeamMember}
+          canDelete={canDelete}
           clubCode={clubSettings.clubCode}
         />
       </div>

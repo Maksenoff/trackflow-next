@@ -30,6 +30,10 @@ export default async function TeamEditPage({ params }: { params: { id: string } 
   // tout autre visiteur est renvoyé sur la fiche en lecture seule.
   if (!canManage && !isTeamMember) redirect(`/teams/${team.id}`)
 
+  // Suppression : staff toujours, ou l'auteur de la création (lui seul, pas
+  // les autres membres même s'ils peuvent éditer le relais).
+  const canDelete = canManage || (!!session && team.createdByUserId === session.user.id)
+
   const allAthletes = canManage ? await getAthletesList() : []
 
   const positioned = team.members
@@ -45,8 +49,10 @@ export default async function TeamEditPage({ params }: { params: { id: string } 
           mode="edit"
           teamId={team.id}
           canManageMembers={canManage}
+          canDelete={canDelete}
           initialData={{
             name: team.name,
+            discipline: team.discipline,
             color: team.color,
             photoUrl: team.photoUrl,
             photoConfig: team.photoConfig,

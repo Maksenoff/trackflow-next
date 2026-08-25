@@ -11,7 +11,10 @@ const { auth } = NextAuth(authConfig)
 // "blob.upload-completed" est appelé serveur à serveur par l'infra Vercel Blob
 // une fois le fichier stocké, sans cookie de session — le middleware ne doit pas
 // le rediriger vers /login avant qu'il n'atteigne la route.
-const PUBLIC_PATHS = ['/login', '/register', '/api/keep-alive', '/api/upload']
+// /api/cron : appelé par GitHub Actions (session-reminders.yml) sans cookie —
+// protégé par son propre secret partagé (voir app/api/cron/session-reminders/route.ts),
+// pas par l'auth de session.
+const PUBLIC_PATHS = ['/login', '/register', '/api/keep-alive', '/api/upload', '/api/cron']
 
 export default auth((req) => {
   const { pathname } = req.nextUrl

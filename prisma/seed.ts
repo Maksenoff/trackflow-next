@@ -10,6 +10,38 @@ function daysFromNow(days: number): Date {
   return d
 }
 
+/** Crée un duel de vote complet (2 feedbacks "suggestion" + poll + options + votes). */
+async function createDuel(opts: {
+  labelA: string
+  labelB: string
+  startsAt: Date
+  expiresAt: Date
+  votesA: string[]
+  votesB: string[]
+}) {
+  const feedbackA = await prisma.feedback.create({
+    data: { type: 'suggestion', description: opts.labelA, status: 'done' },
+  })
+  const feedbackB = await prisma.feedback.create({
+    data: { type: 'suggestion', description: opts.labelB, status: 'done' },
+  })
+  const poll = await prisma.poll.create({
+    data: { startsAt: opts.startsAt, expiresAt: opts.expiresAt },
+  })
+  const optionA = await prisma.pollOption.create({
+    data: { pollId: poll.id, feedbackId: feedbackA.id, label: opts.labelA },
+  })
+  const optionB = await prisma.pollOption.create({
+    data: { pollId: poll.id, feedbackId: feedbackB.id, label: opts.labelB },
+  })
+  for (const userId of opts.votesA) {
+    await prisma.pollVote.create({ data: { pollId: poll.id, optionId: optionA.id, userId } })
+  }
+  for (const userId of opts.votesB) {
+    await prisma.pollVote.create({ data: { pollId: poll.id, optionId: optionB.id, userId } })
+  }
+}
+
 async function main() {
   const password = await bcrypt.hash('password', 10)
 
@@ -512,6 +544,64 @@ async function main() {
       discipline: '100m',
       url: 'https://example.com/video/depart-100m',
     },
+  })
+
+  // Votes (duels) — fixtures pour couvrir les 4 états de l'onglet Votes : programmé,
+  // en cours, terminé récemment (clairement tranché, pour le recap "dernier vote"),
+  // terminé plus anciennement (à égalité, pour vérifier l'affichage du cas tie).
+  const voters = await Promise.all(
+    ['Sacha', 'Camille', 'Lucas', 'Inès', 'Tom', 'Manon'].map((firstName, i) =>
+      prisma.user.create({
+        data: {
+          email: `voter${i + 1}@trackflow.app`,
+          firstName,
+          lastName: 'Voter',
+          password,
+          roles: JSON.stringify(['ROLE_ATHLETE']),
+        },
+      })
+    )
+  )
+  const [v1, v2, v3, v4, v5, v6] = voters.map((v) => v.id)
+
+  // Terminé il y a 1 jour, gagnant net → devient le "dernier vote" mis en avant.
+  await createDuel({
+    labelA: 'Tenue d’entraînement bleue',
+    labelB: 'Tenue d’entraînement noire',
+    startsAt: daysFromNow(-8),
+    expiresAt: daysFromNow(-1),
+    votesA: [coach.id, v1, v2, v3, v4],
+    votesB: [v5, v6],
+  })
+
+  // Terminé il y a 10 jours, égalité parfaite → vérifie l'affichage "tie" dans la liste.
+  await createDuel({
+    labelA: 'Nouveau logo — version ronde',
+    labelB: 'Nouveau logo — version carrée',
+    startsAt: daysFromNow(-20),
+    expiresAt: daysFromNow(-10),
+    votesA: [coach.id, v1, v2],
+    votesB: [v3, v4, v5],
+  })
+
+  // En cours — quelques votes déjà là pour un rendu "vivant", ferme dans 3 jours.
+  await createDuel({
+    labelA: 'Stage en bord de mer',
+    labelB: 'Stage en altitude',
+    startsAt: daysFromNow(-2),
+    expiresAt: daysFromNow(3),
+    votesA: [v1, v2, v3, v4],
+    votesB: [coach.id, v5],
+  })
+
+  // Programmé, pas encore ouvert.
+  await createDuel({
+    labelA: 'Newsletter mensuelle',
+    labelB: 'Newsletter hebdomadaire',
+    startsAt: daysFromNow(2),
+    expiresAt: daysFromNow(9),
+    votesA: [],
+    votesB: [],
   })
 
   console.log('Seed terminé.')

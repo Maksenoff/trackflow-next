@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion, useMotionValue, animate } from 'framer-motion'
+import { toast } from 'sonner'
 import {
   Bell,
   BellRing,
   Check,
   ChevronRight,
   Clock,
+  CalendarClock,
   Dumbbell,
   KeyRound,
   MessageSquare,
@@ -42,6 +44,7 @@ const TYPE_ICONS: Record<string, typeof Bell> = {
   feedback: MessageSquare,
   debrief: Dumbbell,
   'session-soon': Clock,
+  'session-moved': CalendarClock,
   competition: Trophy,
   ffa: BadgeCheck,
   account: KeyRound,
@@ -51,6 +54,7 @@ const TYPE_ICON_STYLES: Record<string, string> = {
   feedback: 'bg-violet-500/10 text-violet-500',
   debrief: 'bg-orange-500/10 text-orange-500',
   'session-soon': 'bg-sky-500/10 text-sky-500',
+  'session-moved': 'bg-fuchsia-500/10 text-fuchsia-500',
   competition: 'bg-amber-500/10 text-amber-500',
   ffa: 'bg-emerald-500/10 text-emerald-500',
   account: 'bg-rose-500/10 text-rose-500',
@@ -352,22 +356,48 @@ export function NotificationBell({
 
   async function handleTogglePush() {
     setPushLoading(true)
-    if (pushEnabled) {
-      const ok = await unsubscribeFromPush()
-      if (ok) setPushEnabled(false)
-    } else {
+    try {
+      if (pushEnabled) {
+        const ok = await unsubscribeFromPush()
+        if (ok) {
+          setPushEnabled(false)
+        } else {
+          toast.error('Impossible de désactiver les notifications push.')
+        }
+        return
+      }
+
+      if (!isPushSupported()) {
+        toast.error(
+          "Notifications push non supportées sur cet appareil (sur iOS : ajoute d'abord l'app à l'écran d'accueil)."
+        )
+        return
+      }
       if (Notification.permission === 'denied') {
-        setPushLoading(false)
+        toast.error(
+          'Notifications bloquées — autorise-les dans les réglages du navigateur pour ce site.'
+        )
         return
       }
       const permission =
         Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission()
-      if (permission === 'granted') {
-        const ok = await subscribeToPush()
-        if (ok) setPushEnabled(true)
+      if (permission !== 'granted') {
+        toast.error('Autorisation refusée.')
+        return
       }
+      const ok = await subscribeToPush()
+      if (ok) {
+        setPushEnabled(true)
+      } else {
+        toast.error("Impossible d'activer les notifications push.")
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Push toggle échoué :', err)
+      toast.error(`Erreur notifications push${err instanceof Error ? ` : ${err.message}` : ''}.`)
+    } finally {
+      setPushLoading(false)
     }
-    setPushLoading(false)
   }
 
   const triggerContent = (

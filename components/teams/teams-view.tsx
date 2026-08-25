@@ -1,7 +1,7 @@
 'use client'
 
-import Link from 'next/link'
-import { Plus, UsersRound } from 'lucide-react'
+import { UsersRound } from 'lucide-react'
+import { AddButton } from '@/components/ui/add-button'
 import { TeamCard, type TeamCardData } from './team-card'
 
 export function TeamsView({ teams, canManage }: { teams: TeamCardData[]; canManage: boolean }) {
@@ -14,15 +14,7 @@ export function TeamsView({ teams, canManage }: { teams: TeamCardData[]; canMana
             {teams.length} équipe{teams.length > 1 ? 's' : ''}
           </p>
         </div>
-        {canManage && (
-          <Link
-            href="/teams/new"
-            className="group inline-flex shrink-0 items-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-primary/80 px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/35"
-          >
-            <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
-            Nouvelle équipe
-          </Link>
-        )}
+        {canManage && <AddButton label="Créer son équipe" href="/teams/new" />}
       </div>
 
       {teams.length === 0 ? (

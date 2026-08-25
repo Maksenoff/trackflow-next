@@ -21,13 +21,21 @@ import {
   Ban,
   Video,
   ListChecks,
+  Trash2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
@@ -109,6 +117,9 @@ export function UserEditForm({
   const [athleteVideosEnabled, setAthleteVideosEnabled] = useState(
     linkedAthlete?.videosEnabled ?? true
   )
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   const {
     register,
@@ -191,6 +202,21 @@ export function UserEditForm({
     setResetConfirm('')
   }
 
+  async function handleDeleteAccount() {
+    if (deleteConfirmText !== user.email) return
+    setDeleteLoading(true)
+    const res = await fetch(`/api/users/${user.id}`, { method: 'DELETE' })
+    const body = await res.json().catch(() => null)
+    setDeleteLoading(false)
+    if (!res.ok) {
+      toast.error(body?.error ?? 'Impossible de supprimer ce compte.')
+      return
+    }
+    toast.success('Compte supprimé.')
+    router.push('/admin/users')
+    router.refresh()
+  }
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Barre d'action — nom, email, Annuler/Enregistrer toujours visibles sans scroller */}
@@ -237,21 +263,36 @@ export function UserEditForm({
               <SectionTitle icon={User}>Identité</SectionTitle>
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="firstName">Prénom</Label>
+                  <Label
+                    htmlFor="firstName"
+                    className="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                  >
+                    Prénom
+                  </Label>
                   <Input id="firstName" {...register('firstName')} />
                   {errors.firstName && (
                     <p className="text-xs text-destructive">{errors.firstName.message}</p>
                   )}
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="lastName">Nom</Label>
+                  <Label
+                    htmlFor="lastName"
+                    className="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                  >
+                    Nom
+                  </Label>
                   <Input id="lastName" {...register('lastName')} />
                   {errors.lastName && (
                     <p className="text-xs text-destructive">{errors.lastName.message}</p>
                   )}
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="email">Email</Label>
+                  <Label
+                    htmlFor="email"
+                    className="text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                  >
+                    Email
+                  </Label>
                   <Input id="email" type="email" {...register('email')} />
                   {errors.email && (
                     <p className="text-xs text-destructive">{errors.email.message}</p>
@@ -391,6 +432,33 @@ export function UserEditForm({
               </Button>
             </div>
           </section>
+
+          {!isSelf && (
+            <section className="rounded-2xl border border-destructive/30 bg-destructive/5 p-5 shadow-sm sm:p-6">
+              <h2 className="mb-4 flex items-center gap-2 text-sm font-bold tracking-wider text-destructive uppercase">
+                <Trash2 className="size-4" />
+                Zone dangereuse
+              </h2>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs text-muted-foreground">
+                  Supprime définitivement ce compte et toutes ses données associées (feedbacks,
+                  notifications, votes...). Le profil athlète lié n&apos;est pas supprimé.
+                </p>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    setDeleteConfirmText('')
+                    setDeleteOpen(true)
+                  }}
+                >
+                  <Trash2 className="size-3.5" />
+                  Supprimer le compte
+                </Button>
+              </div>
+            </section>
+          )}
         </div>
 
         {/* Colonne droite */}
@@ -409,7 +477,7 @@ export function UserEditForm({
                     onClick={() => selectRole(role)}
                     aria-pressed={isSelected}
                     className={cn(
-                      'flex w-full items-center gap-2.5 rounded-xl border p-2.5 text-left transition-all',
+                      'flex w-full items-start gap-2.5 rounded-xl border p-2.5 text-left transition-all',
                       isSelected ? 'shadow-sm' : 'border-border hover:bg-muted/40'
                     )}
                     style={
@@ -427,14 +495,14 @@ export function UserEditForm({
                     >
                       <Icon className="size-4" />
                     </span>
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 pt-0.5">
                       <div className="text-[13px] font-bold">{ROLE_LABELS[role]}</div>
-                      <div className="truncate text-[11px] text-muted-foreground">
+                      <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
                         {ROLE_DESCRIPTIONS[role]}
                       </div>
                     </div>
                     <span
-                      className="flex size-4.5 shrink-0 items-center justify-center rounded-full border-2 transition-colors"
+                      className="mt-1 flex size-4.5 shrink-0 items-center justify-center rounded-full border-2 transition-colors"
                       style={{ borderColor: isSelected ? color : 'var(--border)' }}
                     >
                       {isSelected && (
@@ -549,6 +617,53 @@ export function UserEditForm({
               Réinitialiser
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="size-4" />
+              Supprimer ce compte ?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Cette action est <span className="font-semibold text-foreground">irréversible</span>.
+              Le compte de{' '}
+              <span className="font-semibold text-foreground">
+                {user.firstName} {user.lastName}
+              </span>{' '}
+              et toutes ses données (feedbacks, notifications, votes...) seront définitivement
+              supprimés.
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="delete-confirm" className="text-xs">
+                Pour confirmer, tape l&apos;email du compte :{' '}
+                <span className="font-mono font-semibold text-foreground">{user.email}</span>
+              </Label>
+              <Input
+                id="delete-confirm"
+                autoComplete="off"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder={user.email}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline">Annuler</Button>} />
+            <Button
+              type="button"
+              className="border bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteLoading || deleteConfirmText !== user.email}
+              onClick={handleDeleteAccount}
+            >
+              {deleteLoading && <Loader2 className="size-4 animate-spin" />}
+              Supprimer définitivement
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </form>

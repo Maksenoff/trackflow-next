@@ -21,7 +21,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
-  const { name, color, photoUrl, photoConfig, members } = parsed.data
+  const { name, discipline, color, photoUrl, photoConfig, members } = parsed.data
 
   await prisma.$transaction(async (tx) => {
     await tx.team.update({
@@ -30,6 +30,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         // Renommer reste réservé à coach/admin — un membre peut modifier les
         // données du relais (couleur, photo) mais pas l'identité de l'équipe.
         ...(staff && name !== undefined && { name }),
+        ...(staff && discipline !== undefined && { discipline }),
         ...(color !== undefined && { color }),
         ...(photoUrl !== undefined && { photoUrl }),
         ...(photoConfig !== undefined && { photoConfig: JSON.stringify(photoConfig) }),
@@ -71,8 +72,21 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
 export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
   const session = await auth()
-  if (!session || (!isAdmin(session.user.roles) && !isCoach(session.user.roles))) {
+  if (!session) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+  }
+
+  const staff = isAdmin(session.user.roles) || isCoach(session.user.roles)
+  if (!staff) {
+    // Un utilisateur non-staff ne peut supprimer que l'équipe qu'il a lui-même
+    // créée — pas les autres, même s'il en est membre.
+    const team = await prisma.team.findUnique({
+      where: { id: params.id },
+      select: { createdByUserId: true },
+    })
+    if (!team || team.createdByUserId !== session.user.id) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+    }
   }
 
   await prisma.team.delete({ where: { id: params.id } })

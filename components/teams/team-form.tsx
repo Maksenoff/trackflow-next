@@ -10,7 +10,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { fullName } from '@/lib/athlete'
+import { TEAM_RELAY_DISCIPLINES } from '@/lib/disciplines'
+import { cn } from '@/lib/utils'
 import { AthleteAvatar } from './athlete-avatar'
+import { DeleteTeamButton } from './delete-team-button'
 import { TeamColorPicker } from './team-color-picker'
 import { TeamPhotoUpload } from './team-photo-upload'
 import { RelayBuilder, type RelaySlot, type RelaySlotAthlete } from './relay-builder'
@@ -19,6 +22,7 @@ import type { CropConfig } from '@/components/athletes/image-position-editor'
 
 export type TeamFormInitialData = {
   name: string
+  discipline: string | null
   color: string | null
   photoUrl: string | null
   photoConfig: CropConfig
@@ -38,6 +42,7 @@ export function TeamForm({
   initialData,
   allAthletes,
   canManageMembers = true,
+  canDelete = false,
 }: {
   mode: 'create' | 'edit'
   teamId?: string
@@ -45,10 +50,13 @@ export function TeamForm({
   allAthletes: SelectableAthlete[]
   /** Ajouter/retirer des athlètes de l'équipe reste réservé coach/admin. */
   canManageMembers?: boolean
+  /** Staff, ou l'auteur de la création de l'équipe (lui seul). */
+  canDelete?: boolean
 }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [name, setName] = useState(initialData?.name ?? '')
+  const [discipline, setDiscipline] = useState<string | null>(initialData?.discipline ?? null)
   const [color, setColor] = useState<string | null>(initialData?.color ?? null)
   const [photoUrl, setPhotoUrl] = useState<string | null>(initialData?.photoUrl ?? null)
   const [photoConfig, setPhotoConfig] = useState<CropConfig>(initialData?.photoConfig ?? {})
@@ -83,7 +91,7 @@ export function TeamForm({
   }
 
   async function handleSubmit() {
-    if (!name.trim()) return
+    if (!name.trim() || !discipline) return
     setLoading(true)
 
     const members = [
@@ -98,7 +106,14 @@ export function TeamForm({
     const res = await fetch(mode === 'edit' ? `/api/teams/${teamId}` : '/api/teams', {
       method: mode === 'edit' ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: name.trim(), color, photoUrl, photoConfig, members }),
+      body: JSON.stringify({
+        name: name.trim(),
+        discipline,
+        color,
+        photoUrl,
+        photoConfig,
+        members,
+      }),
     })
     setLoading(false)
 
@@ -119,14 +134,17 @@ export function TeamForm({
         href={mode === 'edit' ? `/teams/${teamId}` : '/teams'}
       />
 
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          {mode === 'edit' ? "Modifier l'équipe" : 'Nouvelle équipe de relais'}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Ajoute jusqu&apos;à 4 athlètes, ordonne-les et renseigne les marques de transmission — tu
-          peux valider sans tous les avoir.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {mode === 'edit' ? "Modifier l'équipe" : 'Nouvelle équipe de relais'}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Ajoute jusqu&apos;à 4 athlètes, ordonne-les et renseigne les marques de transmission —
+            tu peux valider sans tous les avoir.
+          </p>
+        </div>
+        {mode === 'edit' && canDelete && teamId && <DeleteTeamButton teamId={teamId} />}
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_1.3fr] xl:items-start">
@@ -147,6 +165,32 @@ export function TeamForm({
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>
+              Discipline <span className="text-destructive">*</span>
+            </Label>
+            <div className="flex flex-wrap gap-1.5">
+              {TEAM_RELAY_DISCIPLINES.map((d) => {
+                const active = discipline === d.value
+                return (
+                  <button
+                    key={d.value}
+                    type="button"
+                    onClick={() => setDiscipline(d.value)}
+                    className={cn(
+                      'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                      active
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                    )}
+                  >
+                    {d.label}
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
           <div className="space-y-1.5">
@@ -240,7 +284,7 @@ export function TeamForm({
       </div>
 
       <div className="flex justify-end">
-        <Button size="lg" onClick={handleSubmit} disabled={loading || !name.trim()}>
+        <Button size="lg" onClick={handleSubmit} disabled={loading || !name.trim() || !discipline}>
           {loading && <Loader2 className="size-4 animate-spin" />}
           {mode === 'edit' ? 'Enregistrer' : "Créer l'équipe"}
         </Button>

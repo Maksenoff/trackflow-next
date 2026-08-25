@@ -1,14 +1,28 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, X } from 'lucide-react'
+import { Check, Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ATHLETE_SPECIALTIES } from '@/lib/disciplines'
-import { cn } from '@/lib/utils'
+import { DISCIPLINE_CATEGORIES } from '@/lib/disciplines'
 
+const FALLBACK_COLOR = '#6366f1'
+const CATEGORY_COLOR_BY_LABEL: Record<string, string> = Object.fromEntries(
+  DISCIPLINE_CATEGORIES.map((c) => [c.label, c.color])
+)
+
+/**
+ * Sélecteur multi-choix de disciplines, coloré par famille — même traitement
+ * visuel que `GoalDisciplinePicker` (pastilles teintées par la couleur de la
+ * famille en permanence, remplissage plus fort + anneau à la sélection),
+ * décliné en multi-sélection pour les compétitions (§10 CLAUDE.md,
+ * harmonisation 2026-08-25 : "comme objectif"). `groups` (optionnel) restreint
+ * aux familles/épreuves déjà filtrées par `filterDisciplineGroups` (formulaire
+ * d'inscription) — sinon toutes les familles standard sont proposées (couleur
+ * de repli pour un groupe hors nomenclature, ex. "Personnalisées").
+ */
 export function DisciplinePicker({
-  groups = ATHLETE_SPECIALTIES,
+  groups,
   value,
   onChange,
   allowCustom = false,
@@ -20,7 +34,16 @@ export function DisciplinePicker({
 }) {
   const [customInput, setCustomInput] = useState('')
 
-  const allCodes = Object.values(groups).flatMap((g) => Object.values(g))
+  const categories = groups
+    ? Object.entries(groups).map(([label, disciplines]) => ({
+        key: label,
+        label,
+        color: CATEGORY_COLOR_BY_LABEL[label] ?? FALLBACK_COLOR,
+        disciplines,
+      }))
+    : DISCIPLINE_CATEGORIES
+
+  const allCodes = categories.flatMap((c) => Object.values(c.disciplines))
   const knownCodes = new Set(allCodes)
   const customValues = value.filter((c) => !knownCodes.has(c))
 
@@ -64,44 +87,77 @@ export function DisciplinePicker({
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {Object.entries(groups).map(([groupLabel, entries]) => {
-          const codes = Object.values(entries)
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {categories.map((category) => {
+          const codes = Object.values(category.disciplines)
           const allSelected = codes.length > 0 && codes.every((c) => value.includes(c))
           return (
-            <div key={groupLabel}>
-              <div className="mb-1.5 flex items-center justify-between">
-                <span className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
-                  {groupLabel}
+            <div
+              key={category.key}
+              className="rounded-xl border p-3"
+              style={{
+                borderColor: `color-mix(in srgb, ${category.color} 25%, var(--border))`,
+                backgroundColor: `color-mix(in srgb, ${category.color} 5%, transparent)`,
+              }}
+            >
+              <div className="mb-2 flex items-center justify-between border-b border-dashed pb-1.5">
+                <span
+                  className="flex items-center gap-1.5 text-xs font-bold tracking-wide uppercase"
+                  style={{ color: category.color }}
+                >
+                  <span
+                    className="size-2.5 shrink-0 rounded-full"
+                    style={{ background: category.color }}
+                  />
+                  {category.label}
                 </span>
                 <button
                   type="button"
                   onClick={() => toggleGroup(codes)}
-                  className={cn(
-                    'rounded-full border px-2 py-0.5 text-[10px] font-bold transition-colors',
+                  className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold transition-all"
+                  style={
                     allSelected
-                      ? 'border-primary/40 bg-primary/10 text-primary'
-                      : 'border-border text-muted-foreground hover:bg-muted/50'
-                  )}
+                      ? {
+                          backgroundColor: category.color,
+                          color: 'white',
+                          borderColor: category.color,
+                        }
+                      : {
+                          backgroundColor: `color-mix(in srgb, ${category.color} 10%, transparent)`,
+                          color: `color-mix(in srgb, ${category.color} 85%, var(--foreground))`,
+                          borderColor: `color-mix(in srgb, ${category.color} 30%, transparent)`,
+                        }
+                  }
                 >
+                  {allSelected && <Check className="size-2.5 shrink-0" strokeWidth={3} />}
                   Tous
                 </button>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {Object.entries(entries).map(([label, code]) => {
+                {Object.entries(category.disciplines).map(([label, code]) => {
                   const active = value.includes(code)
                   return (
                     <button
                       key={code}
                       type="button"
                       onClick={() => toggle(code)}
-                      className={cn(
-                        'rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors',
+                      className="inline-flex min-w-16 items-center justify-center gap-1 rounded-full border px-2.5 py-1.5 text-xs font-semibold transition-all"
+                      style={
                         active
-                          ? 'border-primary/40 bg-primary/10 text-primary'
-                          : 'border-border text-muted-foreground hover:bg-muted/50'
-                      )}
+                          ? {
+                              backgroundColor: category.color,
+                              color: 'white',
+                              borderColor: category.color,
+                              boxShadow: `0 2px 8px -2px color-mix(in srgb, ${category.color} 60%, transparent)`,
+                            }
+                          : {
+                              backgroundColor: 'var(--card)',
+                              color: `color-mix(in srgb, ${category.color} 85%, var(--foreground))`,
+                              borderColor: `color-mix(in srgb, ${category.color} 30%, transparent)`,
+                            }
+                      }
                     >
+                      {active && <Check className="size-3 shrink-0" strokeWidth={3} />}
                       {label}
                     </button>
                   )
@@ -113,7 +169,7 @@ export function DisciplinePicker({
       </div>
 
       {allowCustom && (
-        <div>
+        <div className="rounded-xl border border-dashed border-border p-3">
           <div className="mb-1.5 text-xs font-bold tracking-wide text-muted-foreground uppercase">
             Épreuves personnalisées
           </div>

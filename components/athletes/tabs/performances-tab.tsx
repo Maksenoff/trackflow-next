@@ -22,6 +22,7 @@ import {
   isLowerBetter,
 } from '@/lib/performance'
 import { formatFullDate } from '@/lib/date'
+import { baseDisciplineCode } from '@/lib/disciplines'
 import { DisciplinePictogram } from '@/components/athletes/discipline-pictogram'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -67,14 +68,28 @@ function formatWind(raw: string): string {
   return `${n > 0 ? '+' : ''}${n.toFixed(1)}`
 }
 
+/** Couleur choisie pour la spécialité — la perf réelle peut être enregistrée sous un
+ * code variant (ex: "110m-haies-107cm"), on retombe sur le code de base au besoin. */
+function colorForDiscipline(
+  discipline: string,
+  disciplineColors: Record<string, string>
+): string | null {
+  return disciplineColors[discipline] ?? disciplineColors[baseDisciplineCode(discipline)] ?? null
+}
+
 export function PerformancesTab({
   performances,
   birthDate,
   disciplineColors,
+  disciplineOrder,
 }: {
   performances: Performance[]
   birthDate: Date | null
   disciplineColors: Record<string, string>
+  /** Ordre choisi par l'athlète (drag & drop sur le formulaire d'édition) — les
+   * bandeaux de discipline suivent cet ordre plutôt que l'ordre d'apparition
+   * des performances. */
+  disciplineOrder: string[]
 }) {
   const isLight = useIsLightTheme()
   const [openDiscipline, setOpenDiscipline] = useState<string | null>(null)
@@ -131,8 +146,17 @@ export function PerformancesTab({
     }
     const entries = Array.from(groups.entries())
     entries.sort(([a], [b]) => {
-      const scoreA = disciplineColors[a] ? 0 : 1
-      const scoreB = disciplineColors[b] ? 0 : 1
+      // Priorité à l'ordre choisi par l'athlète (drag & drop sur son profil) — via le
+      // code de base pour matcher aussi les codes variants FFA (ex: "110m-haies-107cm").
+      const idxA = disciplineOrder.indexOf(baseDisciplineCode(a))
+      const idxB = disciplineOrder.indexOf(baseDisciplineCode(b))
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB
+      if (idxA !== -1) return -1
+      if (idxB !== -1) return 1
+      // Ni l'une ni l'autre dans les spécialités choisies (ex: discipline découverte
+      // via sync FFA sans avoir été ajoutée en spécialité) : coloré d'abord.
+      const scoreA = colorForDiscipline(a, disciplineColors) ? 0 : 1
+      const scoreB = colorForDiscipline(b, disciplineColors) ? 0 : 1
       return scoreA - scoreB
     })
     return entries.map(([discipline, perfs]) => {
@@ -159,7 +183,7 @@ export function PerformancesTab({
         ticks,
       }
     })
-  }, [filtered, disciplineColors, seasonBests, allTimeBests])
+  }, [filtered, disciplineColors, disciplineOrder, seasonBests, allTimeBests])
 
   if (performances.length === 0) {
     return (
@@ -281,7 +305,7 @@ export function PerformancesTab({
             ) => {
               const isOpen = openDiscipline === discipline
               const lowerBetter = isLowerBetter(unit)
-              const color = disciplineColors[discipline] ?? null
+              const color = colorForDiscipline(discipline, disciplineColors)
               return (
                 <motion.div
                   key={discipline}
@@ -299,52 +323,76 @@ export function PerformancesTab({
                       : undefined
                   }
                 >
-                  {color && (
-                    <DisciplinePictogram
-                      discipline={discipline}
-                      className="pointer-events-none absolute top-1/2 right-2 h-[105%] w-auto -translate-y-1/2 opacity-[0.22]"
-                      style={{ color }}
-                    />
-                  )}
                   <button
                     type="button"
                     onClick={() => setOpenDiscipline(isOpen ? null : discipline)}
                     aria-expanded={isOpen}
-                    className="relative flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-black/[0.03] dark:hover:bg-[#161228]"
+                    className="relative flex w-full items-center gap-3 overflow-hidden p-4 text-left transition-colors hover:bg-foreground/[0.03]"
                   >
-                    <div className="flex min-w-0 items-center gap-3">
+                    {/* Pictogramme desktop : colonne à largeur fixe tout à gauche de la
+                        card — toujours à la même position d'un bandeau à l'autre (pas
+                        d'absolute qui dérive selon la largeur du nom ou des stats).
+                        Correctif 2026-08-26ter : déplacé de entre nom/stats vers la
+                        gauche de la card, à la demande de Maksen. */}
+                    {color && (
+                      <div className="hidden h-10 w-14 shrink-0 items-center justify-center overflow-hidden sm:flex">
+                        <DisciplinePictogram
+                          discipline={discipline}
+                          className="h-10 w-14 opacity-60"
+                          style={{ color }}
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
                       <motion.span
                         animate={{ rotate: isOpen ? 180 : 0 }}
                         transition={{ duration: 0.2 }}
-                        className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
+                        className="relative flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
                       >
                         <ChevronDown className="size-3.5" />
                       </motion.span>
                       {color && (
                         <span
                           aria-hidden
-                          className="size-2.5 shrink-0 rounded-full"
+                          className="relative size-2.5 shrink-0 rounded-full"
                           style={{ background: color }}
                         />
                       )}
-                      <div className="min-w-0">
-                        <div className="truncate font-bold">{formatDiscipline(discipline)}</div>
-                        <div className="truncate text-xs text-muted-foreground">
+                      <div className="relative min-w-0 overflow-hidden">
+                        {/* Pictogramme mobile : en filigrane derrière le nom (pas de place à
+                            droite sur petit écran, masqué par les stats sinon). */}
+                        {color && (
+                          <DisciplinePictogram
+                            discipline={discipline}
+                            className="pointer-events-none absolute top-1/2 left-0 h-8 w-auto -translate-y-1/2 opacity-[0.25] sm:hidden"
+                            style={{ color }}
+                          />
+                        )}
+                        <div className="relative truncate font-bold">
+                          {formatDiscipline(discipline)}
+                        </div>
+                        <div className="relative truncate text-xs text-muted-foreground">
                           {perfs.length} performance{perfs.length > 1 ? 's' : ''}
                         </div>
                       </div>
                     </div>
+
                     <div className="flex shrink-0 items-start gap-4">
-                      {seasonBest && (
-                        <div className="text-right">
-                          <div className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
-                            SB
-                          </div>
+                      <div className="w-11 text-right">
+                        <div className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                          SB
+                        </div>
+                        {seasonBest ? (
                           <span className={cn('text-base font-extrabold', SILVER)}>
                             {formatPerformanceValue(seasonBest.value, seasonBest.unit)}
                           </span>
-                        </div>
-                      )}
+                        ) : (
+                          <span className="text-base font-extrabold text-muted-foreground/40">
+                            —
+                          </span>
+                        )}
+                      </div>
                       <div className="text-right">
                         <div className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
                           PB
@@ -433,25 +481,25 @@ export function PerformancesTab({
                                 transition={{ duration: 0.2, delay: Math.min(idx, 12) * 0.02 }}
                                 className="px-4 py-3"
                               >
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1.5">
                                   <span
                                     className={cn(
-                                      'w-6 shrink-0 text-right text-[10px] font-extrabold',
+                                      'w-5 shrink-0 text-right text-[9px] font-extrabold',
                                       !perf.isPersonalBest && isSB ? SILVER : ''
                                     )}
                                     style={perf.isPersonalBest ? GOLD_STYLE : undefined}
                                   >
                                     {perf.isPersonalBest ? 'PB' : isSB ? 'SB' : ''}
                                   </span>
-                                  <span className="w-16 shrink-0 font-mono text-base font-bold tabular-nums">
+                                  <span className="w-14 shrink-0 font-mono text-sm font-bold tabular-nums">
                                     {formatPerformanceValue(perf.value, perf.unit)}
                                   </span>
-                                  <span className="w-10 shrink-0">
+                                  <span className="w-9 shrink-0">
                                     {perf.isIndoor !== null && (
                                       <Badge
                                         variant="outline"
                                         className={cn(
-                                          'h-4.5 px-1.5 text-[9px]',
+                                          'h-4 px-1 text-[8px]',
                                           perf.isIndoor
                                             ? 'border-transparent bg-[var(--chart-2)]/15 text-[var(--chart-2)]'
                                             : 'border-transparent bg-[var(--chart-3)]/15 text-[var(--chart-3)]'
@@ -461,28 +509,28 @@ export function PerformancesTab({
                                       </Badge>
                                     )}
                                   </span>
-                                  <span className="flex flex-1 items-center gap-1 font-mono text-sm text-muted-foreground">
+                                  <span className="flex flex-1 items-center gap-1 font-mono text-xs text-muted-foreground">
                                     {perf.wind && (
                                       <>
-                                        <Wind className="size-4 shrink-0" />
+                                        <Wind className="size-3.5 shrink-0" />
                                         {formatWind(perf.wind)}
                                       </>
                                     )}
                                   </span>
-                                  <div className="flex w-20 shrink-0 items-center justify-end gap-1.5">
+                                  <div className="flex w-16 shrink-0 items-center justify-end gap-1">
                                     {perf.level && (
                                       <>
                                         <Badge
                                           variant="outline"
                                           className={cn(
-                                            'h-5 shrink-0 px-1.5 text-[10px]',
+                                            'h-4.5 shrink-0 px-1 text-[9px]',
                                             levelStyle(perf.level)
                                           )}
                                         >
                                           {perf.level}
                                         </Badge>
                                         {perf.levelPoints !== null && (
-                                          <span className="shrink-0 text-xs font-semibold text-muted-foreground">
+                                          <span className="shrink-0 text-[10px] font-semibold text-muted-foreground">
                                             {perf.levelPoints}
                                           </span>
                                         )}

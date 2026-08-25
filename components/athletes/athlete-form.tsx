@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Reorder } from 'framer-motion'
+import { Reorder, useDragControls } from 'framer-motion'
 import type { z } from 'zod'
 import { toast } from 'sonner'
 import { Loader2, User, ListChecks, ImageIcon, X, GripVertical } from 'lucide-react'
@@ -136,8 +136,12 @@ export function AthleteForm({
       const url = await uploadFile(file, 'athletes/photos')
       setPhotoUrl(url)
       setValue('photoUrl', url)
-    } catch {
-      toast.error("Impossible d'uploader la photo.")
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Upload photo échoué :', err)
+      toast.error(
+        `Impossible d'uploader la photo${err instanceof Error ? ` : ${err.message}` : ''}.`
+      )
       setPhotoUrl(initialData?.photoUrl ?? null)
     } finally {
       setUploadingPhoto(false)
@@ -154,8 +158,12 @@ export function AthleteForm({
       const url = await uploadFile(file, 'athletes/banners')
       setBannerUrl(url)
       setValue('bannerUrl', url)
-    } catch {
-      toast.error("Impossible d'uploader la bannière.")
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Upload bannière échoué :', err)
+      toast.error(
+        `Impossible d'uploader la bannière${err instanceof Error ? ` : ${err.message}` : ''}.`
+      )
       setBannerUrl(initialData?.bannerUrl ?? null)
     } finally {
       setUploadingBanner(false)
@@ -344,49 +352,16 @@ export function AthleteForm({
                   onReorder={(next) => setValue('disciplines', next)}
                   className="space-y-2"
                 >
-                  {disciplines.map((d, i) => {
-                    const current = disciplineColors[d] ?? defaultDisciplineColor(i)
-                    return (
-                      <Reorder.Item
-                        key={d}
-                        value={d}
-                        className="flex flex-col gap-2 rounded-xl bg-muted/40 p-2.5 select-none"
-                        whileDrag={{ scale: 1.02, boxShadow: '0 8px 20px -6px rgba(0,0,0,0.35)' }}
-                      >
-                        <div className="flex items-center gap-2">
-                          <GripVertical className="size-4 shrink-0 cursor-grab touch-none text-muted-foreground/60 active:cursor-grabbing" />
-                          <span className="min-w-0 flex-1 truncate text-xs font-medium">
-                            {DISCIPLINE_LABELS[d] ?? d}
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5 pl-6">
-                          {DEFAULT_DISCIPLINE_COLORS.map((c) => {
-                            const active = current === c
-                            return (
-                              <button
-                                key={c}
-                                type="button"
-                                onClick={() =>
-                                  setValue('disciplineColors', { ...disciplineColors, [d]: c })
-                                }
-                                className={cn(
-                                  'size-5 shrink-0 rounded-full transition-transform',
-                                  active
-                                    ? 'scale-110 ring-2 ring-foreground ring-offset-2 ring-offset-card'
-                                    : 'hover:scale-105'
-                                )}
-                                style={{ background: c }}
-                                aria-label={c}
-                              />
-                            )
-                          })}
-                          {/* Couleur personnalisée (input type=color) désactivée pour
-                              l'instant à la demande de Maksen le 2026-08-25 — la
-                              palette de 12 couleurs suffit, à réévaluer plus tard. */}
-                        </div>
-                      </Reorder.Item>
-                    )
-                  })}
+                  {disciplines.map((d, i) => (
+                    <DisciplineReorderItem
+                      key={d}
+                      discipline={d}
+                      color={disciplineColors[d] ?? defaultDisciplineColor(i)}
+                      onColorChange={(c) =>
+                        setValue('disciplineColors', { ...disciplineColors, [d]: c })
+                      }
+                    />
+                  ))}
                 </Reorder.Group>
               </div>
             )}
@@ -529,6 +504,73 @@ export function AthleteForm({
         </Button>
       </div>
     </form>
+  )
+}
+
+/**
+ * Ligne réordonnable d'une spécialité — le drag est limité à la poignée
+ * (dragListener={false} + dragControls) plutôt qu'à toute la ligne : sinon,
+ * sur mobile, tout swipe vertical sur la ligne (y compris sur les pastilles de
+ * couleur) est intercepté comme un début de drag au lieu de faire défiler la
+ * page, et le clic sur une couleur peut se confondre avec un drag (correctif
+ * 2026-08-26 — même pattern que components/teams/relay-builder.tsx).
+ */
+function DisciplineReorderItem({
+  discipline,
+  color,
+  onColorChange,
+}: {
+  discipline: string
+  color: string
+  onColorChange: (color: string) => void
+}) {
+  const controls = useDragControls()
+
+  return (
+    <Reorder.Item
+      value={discipline}
+      dragListener={false}
+      dragControls={controls}
+      className="flex flex-col gap-2 rounded-xl bg-muted/40 p-2.5"
+      whileDrag={{ scale: 1.02, boxShadow: '0 8px 20px -6px rgba(0,0,0,0.35)' }}
+    >
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onPointerDown={(e) => controls.start(e)}
+          className="-m-1 shrink-0 cursor-grab touch-none p-1 text-muted-foreground/60 active:cursor-grabbing"
+          aria-label="Réordonner"
+        >
+          <GripVertical className="size-4" />
+        </button>
+        <span className="min-w-0 flex-1 truncate text-xs font-medium select-none">
+          {DISCIPLINE_LABELS[discipline] ?? discipline}
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-1.5 pl-6">
+        {DEFAULT_DISCIPLINE_COLORS.map((c) => {
+          const active = color === c
+          return (
+            <button
+              key={c}
+              type="button"
+              onClick={() => onColorChange(c)}
+              className={cn(
+                'size-5 shrink-0 rounded-full transition-transform',
+                active
+                  ? 'scale-110 ring-2 ring-foreground ring-offset-2 ring-offset-card'
+                  : 'hover:scale-105'
+              )}
+              style={{ background: c }}
+              aria-label={c}
+            />
+          )
+        })}
+        {/* Couleur personnalisée (input type=color) désactivée pour l'instant à
+            la demande de Maksen le 2026-08-25 — la palette de 12 couleurs
+            suffit, à réévaluer plus tard. */}
+      </div>
+    </Reorder.Item>
   )
 }
 

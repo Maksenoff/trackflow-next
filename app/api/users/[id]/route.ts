@@ -4,6 +4,28 @@ import { prisma } from '@/lib/prisma'
 import { isAdmin, ROLES } from '@/lib/roles'
 import { userUpdateSchema } from '@/lib/validations/user'
 
+export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
+  const session = await auth()
+  if (!session || !isAdmin(session.user.roles ?? [])) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+  }
+
+  if (params.id === session.user.id) {
+    return NextResponse.json(
+      { error: 'Vous ne pouvez pas supprimer votre propre compte.' },
+      { status: 400 }
+    )
+  }
+
+  const target = await prisma.user.findUnique({ where: { id: params.id } })
+  if (!target) {
+    return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 404 })
+  }
+
+  await prisma.user.delete({ where: { id: params.id } })
+  return NextResponse.json({ ok: true })
+}
+
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const session = await auth()
   if (!session || !isAdmin(session.user.roles ?? [])) {

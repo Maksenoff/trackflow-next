@@ -16,11 +16,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { name, color, photoUrl, photoConfig, members } = parsed.data
+  const { name, discipline, color, photoUrl, photoConfig, members } = parsed.data
 
   const team = await prisma.team.create({
     data: {
       name,
+      discipline,
+      createdByUserId: session.user.id,
       color: color ?? null,
       photoUrl: photoUrl ?? null,
       ...(photoConfig !== undefined && { photoConfig: JSON.stringify(photoConfig) }),

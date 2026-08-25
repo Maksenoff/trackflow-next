@@ -4,7 +4,9 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Pencil, UsersRound, Hash, Route, History } from 'lucide-react'
 import { fullName } from '@/lib/athlete'
+import { DISCIPLINE_LABELS } from '@/lib/disciplines'
 import { AthleteAvatar } from './athlete-avatar'
+import { DeleteTeamButton } from './delete-team-button'
 import { RelayBuilder, type RelaySlot } from './relay-builder'
 import { TeamTabs } from './team-tabs'
 import { TeamHistoryTab } from './team-history-tab'
@@ -20,11 +22,14 @@ export function TeamDetailView({
   team,
   canManage,
   isTeamMember,
+  canDelete,
   clubCode,
 }: {
   team: TeamDetail
   canManage: boolean
   isTeamMember: boolean
+  /** Staff, ou l'auteur de la création de l'équipe (lui seul). */
+  canDelete: boolean
   clubCode: string | null
 }) {
   const canEditData = canManage || isTeamMember
@@ -115,6 +120,18 @@ export function TeamDetailView({
           )}
           <div>
             <h1 className="text-2xl font-bold tracking-tight">{team.name}</h1>
+            {team.discipline && (
+              <span
+                className="mt-1.5 mr-1.5 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+                style={{
+                  backgroundColor: `color-mix(in srgb, ${accent} 14%, transparent)`,
+                  borderColor: `color-mix(in srgb, ${accent} 35%, transparent)`,
+                  color: accent,
+                }}
+              >
+                {DISCIPLINE_LABELS[team.discipline] ?? team.discipline}
+              </span>
+            )}
             {clubCode && (
               <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1">
                 <Hash className="size-3.5 text-primary" />
@@ -125,15 +142,18 @@ export function TeamDetailView({
           </div>
         </div>
 
-        {canEditData && (
-          <Link
-            href={`/teams/${team.id}/edit`}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-muted"
-          >
-            <Pencil className="size-3.5" />
-            Modifier
-          </Link>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {canEditData && (
+            <Link
+              href={`/teams/${team.id}/edit`}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-muted"
+            >
+              <Pencil className="size-3.5" />
+              Modifier
+            </Link>
+          )}
+          {canDelete && <DeleteTeamButton teamId={team.id} />}
+        </div>
       </div>
 
       <TeamTabs

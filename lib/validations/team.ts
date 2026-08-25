@@ -17,6 +17,7 @@ const relayMembersSchema = z
 
 export const teamCreateSchema = z.object({
   name: z.string().trim().min(1, 'Nom requis'),
+  discipline: z.string().trim().min(1, 'Discipline requise'),
   color: z.string().trim().nullable().optional(),
   photoUrl: z.string().trim().nullable().optional(),
   photoConfig: photoConfigSchema.optional(),
@@ -25,6 +26,7 @@ export const teamCreateSchema = z.object({
 
 export const teamUpdateSchema = z.object({
   name: z.string().trim().min(1, 'Nom requis').optional(),
+  discipline: z.string().trim().min(1, 'Discipline requise').optional(),
   color: z.string().trim().nullable().optional(),
   photoUrl: z.string().trim().nullable().optional(),
   photoConfig: photoConfigSchema.optional(),

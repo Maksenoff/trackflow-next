@@ -73,7 +73,10 @@ export function MobileNav({
       className="fixed inset-x-3 z-40 rounded-[24px] border border-border bg-card/95 shadow-lg shadow-black/10 backdrop-blur supports-backdrop-filter:bg-card/85 print:hidden lg:hidden dark:shadow-black/30"
       style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
     >
-      <ul className="flex items-stretch justify-around px-1 py-1.5">
+      {/* gap (pas justify-around) : chaque <li> est flex-1 et occupe donc déjà 100% de la
+          largeur disponible à eux tous — justify-around n'a alors aucun espace restant à
+          répartir, les items se touchent (correctif 2026-08-26, "onglets collés" en bas). */}
+      <ul className="flex items-stretch gap-1 px-1 py-1.5">
         {rowItems.map((item) => {
           if (item.kind === 'community') {
             return (
@@ -81,7 +84,7 @@ export function MobileNav({
                 <button
                   type="button"
                   onClick={() => setCommunityOpen(true)}
-                  className="relative flex w-full flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-medium text-muted-foreground"
+                  className="relative flex w-full flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[10px] font-medium text-muted-foreground"
                 >
                   {communityActive && (
                     <motion.span
@@ -113,7 +116,7 @@ export function MobileNav({
             <li key={link.href} className="flex-1">
               <Link
                 href={link.href}
-                className="relative flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-medium text-muted-foreground"
+                className="relative flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[10px] font-medium text-muted-foreground"
               >
                 {isActive && (
                   <motion.span
@@ -143,7 +146,7 @@ export function MobileNav({
           <NotificationBell
             variant="sheet"
             label="Alertes"
-            className="mx-auto size-auto w-full flex-col gap-1 rounded-2xl py-2 text-[11px] font-medium [&_svg]:size-5"
+            className="mx-auto size-auto w-full flex-col gap-1 rounded-2xl py-2 text-[10px] font-medium [&_svg]:size-5"
           />
         </li>
         {hasSystem && (
@@ -151,7 +154,7 @@ export function MobileNav({
             <button
               type="button"
               onClick={() => setSystemOpen(true)}
-              className="relative flex w-full flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-medium text-muted-foreground"
+              className="relative flex w-full flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[10px] font-medium text-muted-foreground"
             >
               {systemActive && (
                 <motion.span
@@ -178,7 +181,7 @@ export function MobileNav({
           <button
             type="button"
             onClick={() => setAccountOpen(true)}
-            className="flex w-full flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-medium text-muted-foreground"
+            className="flex w-full flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[10px] font-medium text-muted-foreground"
           >
             <Avatar className="size-5">
               {linkedAthlete?.photoUrl && (

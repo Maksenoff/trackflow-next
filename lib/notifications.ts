@@ -10,6 +10,7 @@ export const NOTIFICATION_TYPES = {
   FEEDBACK: 'feedback',
   DEBRIEF: 'debrief',
   SESSION_SOON: 'session-soon',
+  SESSION_MOVED: 'session-moved',
   COMPETITION: 'competition',
   FFA: 'ffa',
   ACCOUNT: 'account',
@@ -141,6 +142,80 @@ export async function notifyCompetitionSoon(
     competitionTitle,
     competitionUrl
   )
+}
+
+/**
+ * Destinataires des notifications liées aux séances : tout athlète lié à un
+ * compte (les séances ne sont pas assignées à des athlètes précis, elles
+ * concernent tout le club) + tout coach, même sans profil athlète lié (sinon
+ * un compte coach pur ne reçoit jamais aucun rappel de séance).
+ */
+async function getSessionNotificationRecipients(): Promise<string[]> {
+  const users = await prisma.user.findMany({
+    where: { disabled: false },
+    select: { id: true, roles: true, linkedAthleteId: true },
+  })
+  return users
+    .filter(
+      (u) => u.linkedAthleteId !== null || (JSON.parse(u.roles) as string[]).includes('ROLE_COACH')
+    )
+    .map((u) => u.id)
+}
+
+/**
+ * Rappel "séance bientôt" — appelé par le sweep cron (lib/notifications.ts::
+ * runSessionReminders, cf. app/api/cron/session-reminders/route.ts), pas au
+ * moment de la création : la séance doit être passée sous ~2h avant le début.
+ */
+async function notifySessionSoon(
+  userId: string,
+  sessionTitle: string,
+  sessionUrl: string
+): Promise<void> {
+  await notify(userId, NOTIFICATION_TYPES.SESSION_SOON, 'Séance bientôt', sessionTitle, sessionUrl)
+}
+
+export async function notifySessionMoved(sessionTitle: string, sessionUrl: string): Promise<void> {
+  const recipients = await getSessionNotificationRecipients()
+  await Promise.all(
+    recipients.map((userId) =>
+      notify(userId, NOTIFICATION_TYPES.SESSION_MOVED, 'Séance déplacée', sessionTitle, sessionUrl)
+    )
+  )
+}
+
+/**
+ * Sweep cron (toutes les ~15 min, voir app/api/cron/session-reminders/route.ts
+ * + .github/workflows/session-reminders.yml) : notifie pour toute séance dont
+ * le début tombe dans la fenêtre 1h40-2h10 à partir de maintenant. Fenêtre
+ * large (30 min) par rapport à la cadence du cron (15 min) pour absorber le
+ * retard éventuel d'un tick sans jamais rater une séance ; le dédoublonnage de
+ * `notify()` (pas de doublon non-lu même type+url+user) évite qu'un même
+ * rappel parte deux fois si deux ticks la voient toutes les deux dans la
+ * fenêtre.
+ */
+export async function runSessionReminders(): Promise<{ notified: number }> {
+  const now = Date.now()
+  const windowStart = new Date(now + 100 * 60 * 1000)
+  const windowEnd = new Date(now + 130 * 60 * 1000)
+
+  const [sessions, recipients] = await Promise.all([
+    prisma.session.findMany({
+      where: { startTime: { gte: windowStart, lte: windowEnd } },
+      select: { id: true, title: true },
+    }),
+    getSessionNotificationRecipients(),
+  ])
+
+  let notified = 0
+  for (const session of sessions) {
+    const url = `/sessions/${session.id}`
+    for (const userId of recipients) {
+      await notifySessionSoon(userId, session.title, url)
+      notified++
+    }
+  }
+  return { notified }
 }
 
 function timeAgo(date: Date): string {

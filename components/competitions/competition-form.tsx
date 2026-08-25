@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { Loader2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -139,7 +139,7 @@ export function CompetitionForm({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1.2fr_1fr]">
+      <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-[1.2fr_1fr]">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -254,48 +254,63 @@ export function CompetitionForm({
 
           <div className="space-y-3 border-t border-border pt-5">
             <p className="text-sm font-semibold">Disciplines disponibles</p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setRestricted(false)}
-                className={cn(
-                  'flex-1 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors',
-                  !restricted
-                    ? 'border-primary/40 bg-primary/10 text-primary'
-                    : 'border-border text-muted-foreground hover:bg-muted/50'
-                )}
-              >
-                Toutes les disciplines
-              </button>
-              <button
-                type="button"
-                onClick={() => setRestricted(true)}
-                className={cn(
-                  'flex-1 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors',
-                  restricted
-                    ? 'border-primary/40 bg-primary/10 text-primary'
-                    : 'border-border text-muted-foreground hover:bg-muted/50'
-                )}
-              >
-                Sélection manuelle
-              </button>
+            <div className="flex items-center gap-1 overflow-x-auto rounded-full border border-border bg-card p-1 shadow-sm">
+              {(
+                [
+                  { key: 'all', label: 'Toutes les disciplines' },
+                  { key: 'restricted', label: 'Sélection manuelle' },
+                ] as const
+              ).map((opt) => {
+                const isActive = (opt.key === 'restricted') === restricted
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setRestricted(opt.key === 'restricted')}
+                    className={cn(
+                      'relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium whitespace-nowrap transition-colors',
+                      isActive
+                        ? 'text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    {isActive && (
+                      <motion.span
+                        layoutId="competition-discipline-mode"
+                        className="absolute inset-0 -z-10 rounded-full bg-gradient-to-r from-primary to-primary/80 shadow-sm shadow-primary/30"
+                        transition={{ duration: 0.25, ease: 'easeOut' }}
+                      />
+                    )}
+                    {opt.label}
+                  </button>
+                )
+              })}
             </div>
 
-            {restricted && (
-              <div className="max-h-[28rem] space-y-2 overflow-y-auto pr-1">
-                <DisciplinePicker
-                  value={availableDisciplines}
-                  onChange={setAvailableDisciplines}
-                  allowCustom
-                />
-                {availableDisciplines.length === 0 && (
-                  <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
-                    Sélectionne au moins une discipline ou passe en mode &quot;Toutes les
-                    disciplines&quot;.
-                  </p>
-                )}
-              </div>
-            )}
+            <AnimatePresence mode="wait" initial={false}>
+              {restricted && (
+                <motion.div
+                  key="restricted"
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  className="max-h-[28rem] space-y-2 overflow-y-auto pr-1"
+                >
+                  <DisciplinePicker
+                    value={availableDisciplines}
+                    onChange={setAvailableDisciplines}
+                    allowCustom
+                  />
+                  {availableDisciplines.length === 0 && (
+                    <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+                      Sélectionne au moins une discipline ou passe en mode &quot;Toutes les
+                      disciplines&quot;.
+                    </p>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </motion.div>
       </div>

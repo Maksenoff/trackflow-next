@@ -69,6 +69,39 @@ export const DISCIPLINE_LABELS: Record<string, string> = Object.values(ATHLETE_S
   {} as Record<string, string>
 )
 
+export type DisciplineCategory = {
+  key: string
+  label: string
+  color: string
+  disciplines: Record<string, string>
+}
+
+/**
+ * Les 7 familles d'ATHLETE_SPECIALTIES, colorées (mêmes couleurs que
+ * GOAL_DISCIPLINE_CATEGORIES ci-dessous) — pour les sélecteurs multi-choix qui
+ * doivent proposer TOUTES les épreuves (compétitions, équipes), pas seulement
+ * la restriction Espoir/Senior des objectifs athlète.
+ */
+export const DISCIPLINE_CATEGORIES: DisciplineCategory[] = [
+  { key: 'sprints', label: 'Sprints', color: '#f97316', disciplines: ATHLETE_SPECIALTIES.Sprints },
+  {
+    key: 'demi-fond',
+    label: 'Demi-fond / Fond',
+    color: '#3b82f6',
+    disciplines: ATHLETE_SPECIALTIES['Demi-fond / Fond'],
+  },
+  { key: 'haies', label: 'Haies', color: '#a855f7', disciplines: ATHLETE_SPECIALTIES.Haies },
+  { key: 'sauts', label: 'Sauts', color: '#10b981', disciplines: ATHLETE_SPECIALTIES.Sauts },
+  { key: 'lancers', label: 'Lancers', color: '#f43f5e', disciplines: ATHLETE_SPECIALTIES.Lancers },
+  {
+    key: 'combinees',
+    label: 'Épreuves combinées',
+    color: '#eab308',
+    disciplines: ATHLETE_SPECIALTIES['Épreuves combinées'],
+  },
+  { key: 'autres', label: 'Autres', color: '#06b6d4', disciplines: ATHLETE_SPECIALTIES.Autres },
+]
+
 /**
  * Variantes de poids/hauteur de haies dérivées par `refineByCategory` (lib/ffa-scraper.ts)
  * selon la catégorie d'âge FFA — pas des disciplines sélectionnables dans le formulaire
@@ -107,6 +140,15 @@ const DISCIPLINE_VARIANT_LABELS: Record<string, string> = {
   '80m-haies-76cm': '80m haies (76cm)',
 }
 Object.assign(DISCIPLINE_LABELS, DISCIPLINE_VARIANT_LABELS)
+
+/** Disciplines de relais proposées à la création d'une équipe. */
+export const TEAM_RELAY_DISCIPLINES = [
+  { value: '4x60m', label: 'Relais 4x60' },
+  { value: '4x80m', label: 'Relais 4x80' },
+  { value: '4x100m', label: 'Relais 4x100' },
+  { value: '4x200m', label: 'Relais 4x200' },
+  { value: '4x400m', label: 'Relais 4x400' },
+]
 
 /**
  * Filtre les groupes de disciplines standard pour ne garder que les codes fournis
@@ -166,6 +208,19 @@ export const DEFAULT_DISCIPLINE_COLORS = [
  */
 export function defaultDisciplineColor(index: number): string {
   return DEFAULT_DISCIPLINE_COLORS[index % DEFAULT_DISCIPLINE_COLORS.length]
+}
+
+/**
+ * Code de base d'une discipline, en retirant le suffixe poids/hauteur de haies
+ * dérivé par `refineByCategory` (lib/ffa-scraper.ts) selon la catégorie d'âge FFA
+ * — ex: "110m-haies-107cm" -> "110m-haies", "poids-4kg" -> "poids". Une
+ * performance FFA est enregistrée sous ce code variant, jamais sous le code de
+ * spécialité choisi par l'athlète (`Athlete.disciplines`/`disciplineColors`) : sans
+ * ce fallback, la couleur choisie pour la spécialité ne s'applique jamais aux
+ * performances réelles de cette discipline (correctif 2026-08-26).
+ */
+export function baseDisciplineCode(discipline: string): string {
+  return discipline.replace(/-\d+(\.\d+)?(kg|g|cm)$/, '')
 }
 
 /**

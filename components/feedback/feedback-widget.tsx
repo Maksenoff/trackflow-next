@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
-import { MessageSquare, Loader2 } from 'lucide-react'
+import { MessageSquare, Loader2, Bug, Lightbulb } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -20,15 +21,15 @@ type FeedbackType = 'bug' | 'suggestion'
 
 const TYPES: {
   key: FeedbackType
-  emoji: string
+  icon: LucideIcon
   label: string
   hint: string
   sentLabel: string
 }[] = [
-  { key: 'bug', emoji: '🐛', label: 'Bug', hint: 'Ça ne marche pas', sentLabel: 'Bug envoyé' },
+  { key: 'bug', icon: Bug, label: 'Bug', hint: 'Ça ne marche pas', sentLabel: 'Bug envoyé' },
   {
     key: 'suggestion',
-    emoji: '💡',
+    icon: Lightbulb,
     label: 'Suggestion',
     hint: 'Une idée',
     sentLabel: 'Suggestion envoyée',
@@ -99,7 +100,7 @@ export function FeedbackWidget() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               onSubmit={handleSubmit}
-              className="space-y-4"
+              className="flex h-full flex-col space-y-4"
             >
               <div>
                 <p className="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
@@ -118,7 +119,7 @@ export function FeedbackWidget() {
                           : 'border-border bg-card hover:bg-muted/50'
                       )}
                     >
-                      <span className="mb-1 block text-lg leading-none">{t.emoji}</span>
+                      <t.icon className="mb-1 size-4.5" />
                       <span className="block text-xs font-semibold">{t.label}</span>
                       <span className="block text-[10px] text-muted-foreground">{t.hint}</span>
                     </button>
@@ -126,7 +127,7 @@ export function FeedbackWidget() {
                 </div>
               </div>
 
-              <div>
+              <div className="flex min-h-0 flex-1 flex-col">
                 <p className="mb-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
                   Description
                 </p>
@@ -134,7 +135,7 @@ export function FeedbackWidget() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Décris le problème ou ton idée…"
-                  rows={6}
+                  className="min-h-56 flex-1 resize-none"
                   required
                 />
                 <p className="mt-1 text-right text-[10px] text-muted-foreground">

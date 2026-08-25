@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isCoach, isAdmin } from '@/lib/roles'
 import { sessionInputSchema } from '@/lib/validations/session'
+import { notifySessionMoved } from '@/lib/notifications'
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const session = await auth()
@@ -17,6 +18,14 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
   const data = parsed.data
+
+  // Snapshot avant mise à jour — nécessaire pour détecter un déplacement (date ou
+  // heure changée) et notifier le club, y compris depuis le glisser-déposer du
+  // calendrier qui passe aussi par cette route avec juste `date` modifié.
+  const before = await prisma.session.findUnique({
+    where: { id: params.id },
+    select: { title: true, date: true, startTime: true },
+  })
 
   const updated = await prisma.session.update({
     where: { id: params.id },
@@ -34,6 +43,13 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       ...(data.coachPresent !== undefined && { coachPresent: data.coachPresent }),
     },
   })
+
+  const dateMoved = before && before.date.getTime() !== updated.date.getTime()
+  const timeMoved =
+    before && (before.startTime?.getTime() ?? null) !== (updated.startTime?.getTime() ?? null)
+  if (dateMoved || timeMoved) {
+    await notifySessionMoved(updated.title, `/sessions/${updated.id}`)
+  }
 
   return NextResponse.json({ id: updated.id })
 }

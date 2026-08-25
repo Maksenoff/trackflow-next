@@ -16,6 +16,17 @@ import {
   Trophy,
   Vote,
 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { PollStatus } from '@/lib/polls-data'
@@ -25,6 +36,8 @@ export type PollOptionItem = {
   label: string
   votes: number | null
 }
+
+type TabKey = 'current' | 'upcoming' | 'past'
 
 export type PollItem = {
   id: string
@@ -73,10 +86,22 @@ export function VotesView({
   const router = useRouter()
   const [polls, setPolls] = useState(initial)
   const [cancelingId, setCancelingId] = useState<string | null>(null)
+  const [tab, setTab] = useState<TabKey>('current')
+  const [direction, setDirection] = useState(1)
 
   const scheduled = polls.filter((p) => p.status === 'scheduled')
   const active = polls.filter((p) => p.status === 'active')
   const expired = polls.filter((p) => p.status === 'expired')
+  // Le "dernier vote" est celui dont le duel s'est terminé le plus récemment (expiresAt),
+  // pas forcément le plus récent en création — un duel programmé après un autre peut très
+  // bien se terminer avant lui.
+  const lastCompleted = expired.reduce<PollItem | null>(
+    (latest, p) =>
+      !latest || new Date(p.expiresAt).getTime() > new Date(latest.expiresAt).getTime()
+        ? p
+        : latest,
+    null
+  )
 
   async function vote(pollId: string, optionId: string) {
     const prev = polls
@@ -118,8 +143,6 @@ export function VotesView({
   }
 
   async function cancelPoll(pollId: string) {
-    if (!window.confirm('Annuler ce duel ? Les deux suggestions retourneront dans les feedbacks.'))
-      return
     setCancelingId(pollId)
     const res = await fetch(`/api/polls/${pollId}`, { method: 'DELETE' })
     setCancelingId(null)
@@ -132,8 +155,22 @@ export function VotesView({
     router.refresh()
   }
 
+  const tabs: { key: TabKey; label: string; icon: typeof Vote; count: number }[] = [
+    { key: 'current', label: 'En cours', icon: Vote, count: active.length },
+    { key: 'upcoming', label: 'À venir', icon: Timer, count: scheduled.length },
+    { key: 'past', label: 'Passés', icon: Trophy, count: expired.length },
+  ]
+
+  function switchTo(key: TabKey) {
+    if (key === tab) return
+    const from = tabs.findIndex((t) => t.key === tab)
+    const to = tabs.findIndex((t) => t.key === key)
+    setDirection(to > from ? 1 : -1)
+    setTab(key)
+  }
+
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Votes</h1>
         <p className="text-sm text-muted-foreground">
@@ -141,49 +178,110 @@ export function VotesView({
         </p>
       </div>
 
-      {active.length === 0 && scheduled.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card py-20 text-center">
-          <Vote className="size-8 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Aucun duel en cours pour le moment.</p>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {active.map((poll) => (
-            <DuelCard
-              key={poll.id}
-              poll={poll}
-              onVote={vote}
-              canManage={canManage}
-              onCancel={() => cancelPoll(poll.id)}
-              canceling={cancelingId === poll.id}
-            />
-          ))}
-          {scheduled.length > 0 && (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {scheduled.map((poll) => (
-                <ScheduledDuelCard
-                  key={poll.id}
-                  poll={poll}
-                  canManage={canManage}
-                  onCancel={() => cancelPoll(poll.id)}
-                  canceling={cancelingId === poll.id}
+      <div className="flex items-center gap-1 overflow-x-auto rounded-full border border-border bg-card p-1 shadow-sm">
+        {tabs.map((t) => {
+          const isActive = t.key === tab
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => switchTo(t.key)}
+              className={cn(
+                'relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium whitespace-nowrap transition-colors',
+                isActive ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {isActive && (
+                <motion.span
+                  layoutId="votes-tab-active"
+                  className="absolute inset-0 -z-10 rounded-full bg-gradient-to-r from-primary to-primary/80 shadow-sm shadow-primary/30"
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
                 />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+              )}
+              <t.icon className="size-3.5" />
+              {t.label}
+              <span
+                className={cn(
+                  'rounded-full px-1.5 text-[10px] font-bold',
+                  isActive ? 'bg-white/20' : 'bg-muted'
+                )}
+              >
+                {t.count}
+              </span>
+            </button>
+          )
+        })}
+      </div>
 
-      {expired.length > 0 && (
-        <div className="space-y-3 border-t border-border pt-6">
-          <h2 className="text-sm font-bold tracking-wide text-muted-foreground uppercase">
-            Duels passés
-          </h2>
-          <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-            {expired.map((poll) => (
-              <PastDuelRow key={poll.id} poll={poll} />
+      <AnimatePresence mode="wait" custom={direction} initial={false}>
+        <motion.div
+          key={tab}
+          custom={direction}
+          initial={{ x: direction * 16, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: direction * -16, opacity: 0 }}
+          transition={{ duration: 0.22, ease: 'easeOut' }}
+        >
+          {tab === 'current' &&
+            (active.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card py-20 text-center">
+                <Vote className="size-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Aucun duel en cours pour le moment.</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {active.map((poll) => (
+                  <DuelCard
+                    key={poll.id}
+                    poll={poll}
+                    onVote={vote}
+                    canManage={canManage}
+                    onCancel={() => cancelPoll(poll.id)}
+                    canceling={cancelingId === poll.id}
+                  />
+                ))}
+              </div>
             ))}
-          </div>
+
+          {tab === 'upcoming' &&
+            (scheduled.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card py-20 text-center">
+                <Swords className="size-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Aucun duel programmé.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {scheduled.map((poll) => (
+                  <ScheduledDuelCard
+                    key={poll.id}
+                    poll={poll}
+                    canManage={canManage}
+                    onCancel={() => cancelPoll(poll.id)}
+                    canceling={cancelingId === poll.id}
+                  />
+                ))}
+              </div>
+            ))}
+
+          {tab === 'past' &&
+            (expired.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card py-20 text-center">
+                <Trophy className="size-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Aucun duel terminé pour le moment.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+                {expired.map((poll) => (
+                  <PastDuelRow key={poll.id} poll={poll} />
+                ))}
+              </div>
+            ))}
+        </motion.div>
+      </AnimatePresence>
+
+      {tab === 'current' && lastCompleted && (
+        <div className="border-t border-border pt-6">
+          <LastVoteRecap poll={lastCompleted} />
         </div>
       )}
     </div>
@@ -231,19 +329,12 @@ function DuelCard({
             {timeLeft(poll.expiresAt)}
           </span>
           {canManage && (
-            <Button
+            <CancelPollButton
+              onCancel={onCancel}
+              canceling={canceling}
               size="icon-sm"
-              variant="ghost"
-              onClick={onCancel}
-              disabled={canceling}
-              aria-label="Annuler ce duel"
-            >
-              {canceling ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Trash2 className="size-4 text-destructive" />
-              )}
-            </Button>
+              iconSize="size-4"
+            />
           )}
         </div>
       </div>
@@ -284,6 +375,51 @@ function DuelCard({
         </p>
       )}
     </div>
+  )
+}
+
+function CancelPollButton({
+  onCancel,
+  canceling,
+  size,
+  iconSize,
+}: {
+  onCancel: () => void
+  canceling: boolean
+  size: 'icon-sm' | 'icon-xs'
+  iconSize: string
+}) {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger
+        render={
+          <Button size={size} variant="ghost" disabled={canceling} aria-label="Annuler ce duel">
+            {canceling ? (
+              <Loader2 className={cn(iconSize, 'animate-spin')} />
+            ) : (
+              <Trash2 className={cn(iconSize, 'text-destructive')} />
+            )}
+          </Button>
+        }
+      />
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Annuler ce duel ?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Les deux suggestions retourneront dans les feedbacks.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Retour</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={onCancel}
+            className="bg-destructive text-white hover:bg-destructive/90"
+          >
+            Annuler le duel
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }
 
@@ -412,19 +548,12 @@ function ScheduledDuelCard({
             {timeUntilStart(poll.startsAt)}
           </span>
           {canManage && (
-            <Button
+            <CancelPollButton
+              onCancel={onCancel}
+              canceling={canceling}
               size="icon-xs"
-              variant="ghost"
-              onClick={onCancel}
-              disabled={canceling}
-              aria-label="Annuler ce duel"
-            >
-              {canceling ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <Trash2 className="size-3.5 text-destructive" />
-              )}
-            </Button>
+              iconSize="size-3.5"
+            />
           )}
         </div>
       </div>
@@ -491,6 +620,106 @@ function PastDuelRow({ poll }: { poll: PollItem }) {
           {bPct}% · {bVotes} vote{bVotes > 1 ? 's' : ''}
         </span>
       </div>
+    </div>
+  )
+}
+
+/** Recap mis en avant du dernier duel terminé (celui dont expiresAt est le plus récent). */
+function LastVoteRecap({ poll }: { poll: PollItem }) {
+  const [a, b] = poll.options
+  const aVotes = a.votes ?? 0
+  const bVotes = b.votes ?? 0
+  const total = poll.totalVotes
+  const aPct = total > 0 ? Math.round((aVotes / total) * 100) : 50
+  const bPct = total > 0 ? 100 - aPct : 50
+  const winner = total === 0 ? null : aVotes === bVotes ? 'tie' : aVotes > bVotes ? a.id : b.id
+
+  return (
+    <div className="relative overflow-hidden rounded-3xl border border-amber-500/30 bg-gradient-to-br from-amber-500/[0.07] via-card to-card p-5 shadow-sm sm:p-6">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-16 -right-16 size-56 rounded-full bg-amber-500/10 blur-3xl"
+      />
+      <div className="relative mb-4 flex items-center gap-1.5 text-xs font-bold tracking-wide text-amber-600 uppercase dark:text-amber-400">
+        <Trophy className="size-3.5" />
+        Dernier vote
+      </div>
+
+      <div className="relative grid grid-cols-1 items-center gap-4 sm:grid-cols-[1fr_auto_1fr]">
+        <RecapSide label={a.label} pct={aPct} votes={aVotes} won={winner === a.id} color="blue" />
+
+        <div className="flex items-center justify-center">
+          {winner === 'tie' ? (
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <Minus className="size-4" />
+            </span>
+          ) : (
+            <span className="text-xs font-black text-muted-foreground/60">VS</span>
+          )}
+        </div>
+
+        <RecapSide
+          label={b.label}
+          pct={bPct}
+          votes={bVotes}
+          won={winner === b.id}
+          color="rose"
+          align="right"
+        />
+      </div>
+
+      <p className="relative mt-4 border-t border-border pt-3 text-center text-xs text-muted-foreground">
+        Terminé le {formatDate(poll.expiresAt)} · {total} vote{total > 1 ? 's' : ''} au total
+      </p>
+    </div>
+  )
+}
+
+function RecapSide({
+  label,
+  pct,
+  votes,
+  won,
+  color,
+  align = 'left',
+}: {
+  label: string
+  pct: number
+  votes: number
+  won: boolean
+  color: 'blue' | 'rose'
+  align?: 'left' | 'right'
+}) {
+  const styles = CORNER_STYLES[color]
+  return (
+    <div className={cn('min-w-0', align === 'right' && 'text-right')}>
+      <div
+        className={cn(
+          'flex items-center gap-1.5',
+          align === 'right' && 'flex-row-reverse justify-end'
+        )}
+      >
+        {won && <Crown className={cn('size-4 shrink-0', styles.text)} />}
+        <span
+          className={cn(
+            'truncate text-base font-bold',
+            won ? styles.text : 'text-muted-foreground'
+          )}
+        >
+          {label}
+        </span>
+      </div>
+      <div
+        className={cn(
+          'mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted',
+          align === 'right' && 'ml-auto'
+        )}
+      >
+        <div className={cn('h-full rounded-full', styles.bar)} style={{ width: `${pct}%` }} />
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {pct}% · {votes} vote{votes > 1 ? 's' : ''}
+      </p>
     </div>
   )
 }

@@ -24,6 +24,7 @@ export async function getTeamsList() {
   return teams.map((t) => ({
     id: t.id,
     name: t.name,
+    discipline: t.discipline,
     color: t.color,
     photoUrl: t.photoUrl,
     photoConfig: JSON.parse(t.photoConfig) as { zoom?: number; x?: number; y?: number },
@@ -68,6 +69,8 @@ export async function getTeamDetail(id: string) {
   return {
     id: team.id,
     name: team.name,
+    discipline: team.discipline,
+    createdByUserId: team.createdByUserId,
     color: team.color,
     photoUrl: team.photoUrl,
     photoConfig: JSON.parse(team.photoConfig) as { zoom?: number; x?: number; y?: number },

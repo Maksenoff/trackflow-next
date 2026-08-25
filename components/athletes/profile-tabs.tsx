@@ -99,6 +99,7 @@ export function ProfileTabs({ athlete, canEdit }: { athlete: AthleteDetail; canE
                 performances={athlete.performances}
                 birthDate={athlete.birthDate}
                 disciplineColors={athlete.disciplineColors}
+                disciplineOrder={athlete.disciplines}
               />
             )}
             {active === 'sessions' && (

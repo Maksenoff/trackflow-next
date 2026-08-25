@@ -38,6 +38,7 @@ model User {
   createdPolls       Poll[]
   pollVotes          PollVote[]
   coachedSessions    Session[]
+  createdTeams       Team[]              @relation("TeamCreatedBy")
 
   @@map("app_user")
 }
@@ -147,14 +148,17 @@ model AthleteVideo {
 // suivant — non structurellement limité à 4 côté schéma (un athlète peut être
 // ajouté sans position, ex: remplaçant), mais l'UI plafonne à 4 positions.
 model Team {
-  id           String            @id @default(cuid())
-  name         String
-  color        String? // hex, palette DEFAULT_DISCIPLINE_COLORS (même que les profils)
-  photoUrl     String?
-  photoConfig  String            @default("{}") // JSON string object: { zoom, x, y } — même éditeur de cadrage que la photo athlète
-  createdAt    DateTime          @default(now())
-  members      TeamMember[]
-  performances TeamPerformance[]
+  id              String            @id @default(cuid())
+  name            String
+  discipline      String? // code relais (4x60m, 4x100m...) — requis à la création, nullable en base pour ne pas casser les équipes déjà créées sans ce champ
+  color           String? // hex, palette DEFAULT_DISCIPLINE_COLORS (même que les profils)
+  photoUrl        String?
+  photoConfig     String            @default("{}") // JSON string object: { zoom, x, y } — même éditeur de cadrage que la photo athlète
+  createdAt       DateTime          @default(now())
+  createdByUserId String? // auteur de la création — un athlète non-staff qui a créé son équipe peut la supprimer, mais lui seul
+  createdBy       User?             @relation("TeamCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  members         TeamMember[]
+  performances    TeamPerformance[]
 
   @@map("team")
 }

@@ -1,0 +1,20 @@
+name: Rappels de séance
+
+# Sweep "séance dans ~2h" + notifie tout de suite un déplacement de séance déjà
+# géré côté route (app/api/sessions/[id]/route.ts) — ce workflow ne fait que
+# déclencher le sweep périodique des rappels "bientôt". Cadence 15 min : plus
+# fin que les 5 min du keep-alive n'est pas nécessaire, la fenêtre côté serveur
+# (1h40-2h10) absorbe largement la marge d'imprécision de GitHub Actions.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sweep /api/cron/session-reminders
+        run: |
+          curl -fsS -X POST https://trackflow.run/api/cron/session-reminders \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
