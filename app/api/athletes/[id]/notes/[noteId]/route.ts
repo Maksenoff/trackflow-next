@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { isAdmin, isCoach } from '@/lib/roles'
 import { noteInputSchema } from '@/lib/validations/note'
+
+function canManageNotes(roles: string[]) {
+  return isAdmin(roles) || isCoach(roles)
+}
 
 export async function PATCH(
   request: Request,
@@ -9,6 +14,9 @@ export async function PATCH(
 ) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+  if (!canManageNotes(session.user.roles ?? [])) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+  }
 
   const body = await request.json()
   const parsed = noteInputSchema.partial().safeParse(body)
@@ -42,6 +50,9 @@ export async function DELETE(
 ) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+  if (!canManageNotes(session.user.roles ?? [])) {
+    return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+  }
 
   await prisma.athleteNote.delete({ where: { id: params.noteId } })
   return NextResponse.json({ ok: true })

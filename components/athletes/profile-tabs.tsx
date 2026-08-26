@@ -14,19 +14,33 @@ import type { AthleteDetail } from '@/lib/athletes-data'
 
 type TabKey = 'performances' | 'sessions' | 'competitions' | 'goals' | 'videos' | 'notes'
 
-export function ProfileTabs({ athlete, canEdit }: { athlete: AthleteDetail; canEdit: boolean }) {
+export function ProfileTabs({
+  athlete,
+  canEdit,
+  canSeeNotes,
+}: {
+  athlete: AthleteDetail
+  canEdit: boolean
+  canSeeNotes: boolean
+}) {
   const tabs = [
     { key: 'performances' as const, label: 'Performances', icon: TrendingUp },
     { key: 'sessions' as const, label: 'Séances', icon: Dumbbell },
     { key: 'competitions' as const, label: 'Compétitions', icon: Trophy },
     { key: 'goals' as const, label: 'Objectifs', icon: Target },
     ...(athlete.videosEnabled ? [{ key: 'videos' as const, label: 'Vidéos', icon: Video }] : []),
-    {
-      key: 'notes' as const,
-      label: 'Notes',
-      icon: StickyNote,
-      badge: athlete.notesList.length || undefined,
-    },
+    // Notes coach privées — jamais visibles par l'athlète lui-même ni un gest.
+    // compétitions, seulement admin/coach (voir app/(app)/athletes/[id]/page.tsx).
+    ...(canSeeNotes
+      ? [
+          {
+            key: 'notes' as const,
+            label: 'Notes',
+            icon: StickyNote,
+            badge: athlete.notesList.length || undefined,
+          },
+        ]
+      : []),
   ]
 
   const [active, setActive] = useState<TabKey>('performances')
@@ -117,8 +131,8 @@ export function ProfileTabs({ athlete, canEdit }: { athlete: AthleteDetail; canE
               <GoalsTab athleteId={athlete.id} goals={athlete.goals} canEdit={canEdit} />
             )}
             {active === 'videos' && <VideosTab videos={athlete.videos} />}
-            {active === 'notes' && (
-              <NotesTab athleteId={athlete.id} notes={athlete.notesList} canEdit={canEdit} />
+            {active === 'notes' && canSeeNotes && (
+              <NotesTab athleteId={athlete.id} notes={athlete.notesList} canEdit={canSeeNotes} />
             )}
           </motion.div>
         </AnimatePresence>
