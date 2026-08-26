@@ -25,6 +25,14 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
   }
 
+  // eslint-disable-next-line no-console
+  console.error(
+    '[upload] diag BLOB_READ_WRITE_TOKEN présent :',
+    Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+    'longueur :',
+    process.env.BLOB_READ_WRITE_TOKEN?.length ?? 0
+  )
+
   try {
     const jsonResponse = await handleUpload({
       body,
