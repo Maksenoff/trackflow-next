@@ -52,7 +52,6 @@ function AthleteCardImpl({ athlete, index = 0 }: { athlete: AthleteCardData; ind
   const age = calcAge(athlete.birthDate)
   const bannerColor = athlete.bannerConfig.color
   const isPhotoBanner = athlete.bannerConfig.mode === 'photo' && athlete.bannerUrl
-  const photoOptimizable = isOptimizableUrl(athlete.photoUrl)
   const bannerOptimizable = isOptimizableUrl(athlete.bannerUrl)
 
   return (
@@ -131,44 +130,36 @@ function AthleteCardImpl({ athlete, index = 0 }: { athlete: AthleteCardData; ind
         </div>
 
         <div className="flex flex-1 flex-col px-4 pt-0 pb-4 sm:px-5 sm:pb-5">
-          {/* Avatar 56px mobile / 64px desktop, chevauche la bannière de 28px
+          {/* Avatar 64px mobile / 80px desktop — même taille et même rendu (<img>
+              brut, pas next/image) que le profil (profile-header.tsx) : next/image
+              avec un sizes="64px" fixe re-compressait/limitait la résolution à 64px
+              puis le zoom CSS (photoConfig.zoom) l'agrandissait par-dessus, ce qui
+              rendait cet avatar visiblement plus flou/petit que sur la fiche
+              athlète — correctif 2026-08-27, cf. le même souci sur AthleteAvatar
+              (components/teams/athlete-avatar.tsx). Chevauche la bannière de 28px
               mobile / 32px desktop (-mt-7 / -mt-8). */}
           <div className="relative z-10 -mt-7 mb-2 flex justify-start sm:-mt-8">
             {athlete.photoUrl ? (
               <div
-                className="relative size-14 shrink-0 overflow-hidden rounded-full border-[3px] border-white sm:size-16"
+                className="relative size-16 shrink-0 overflow-hidden rounded-full border-[3px] border-white sm:size-20"
                 style={{ boxShadow: AVATAR_SHADOW }}
               >
-                {photoOptimizable ? (
-                  <Image
-                    src={athlete.photoUrl}
-                    alt=""
-                    fill
-                    loading="lazy"
-                    sizes="64px"
-                    className="object-cover"
-                    style={{
-                      objectPosition: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
-                      transform: `scale(${athlete.photoConfig.zoom ?? 1})`,
-                    }}
-                  />
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={athlete.photoUrl}
-                    alt=""
-                    loading="lazy"
-                    className="size-full object-cover"
-                    style={{
-                      objectPosition: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
-                      transform: `scale(${athlete.photoConfig.zoom ?? 1})`,
-                    }}
-                  />
-                )}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={athlete.photoUrl}
+                  alt=""
+                  loading="lazy"
+                  className="size-full object-cover"
+                  style={{
+                    objectPosition: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
+                    transform: `scale(${athlete.photoConfig.zoom ?? 1})`,
+                    transformOrigin: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
+                  }}
+                />
               </div>
             ) : (
               <div
-                className="flex size-14 shrink-0 items-center justify-center rounded-full border-[3px] border-white bg-primary text-lg font-bold text-white sm:size-16 sm:text-xl"
+                className="flex size-16 shrink-0 items-center justify-center rounded-full border-[3px] border-white bg-primary text-lg font-bold text-white sm:size-20 sm:text-xl"
                 style={{ boxShadow: AVATAR_SHADOW }}
               >
                 {initials(athlete.firstName, athlete.lastName)}

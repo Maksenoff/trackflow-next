@@ -16,17 +16,19 @@ export function AthleteAvatar({
 }) {
   if (athlete.photoUrl) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={athlete.photoUrl}
-        alt=""
-        className={`${className} shrink-0 rounded-full object-cover ring-2 ring-card`}
-        style={{
-          objectPosition: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
-          transform: `scale(${athlete.photoConfig.zoom ?? 1})`,
-          transformOrigin: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
-        }}
-      />
+      <div className={`${className} shrink-0 overflow-hidden rounded-full ring-2 ring-card`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={athlete.photoUrl}
+          alt=""
+          className="size-full object-cover"
+          style={{
+            objectPosition: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
+            transform: `scale(${athlete.photoConfig.zoom ?? 1})`,
+            transformOrigin: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
+          }}
+        />
+      </div>
     )
   }
   return (

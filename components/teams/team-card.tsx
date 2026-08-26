@@ -49,11 +49,14 @@ export function TeamCard({ team, index = 0 }: { team: TeamCardData; index?: numb
         {/* Fond couleur fixe — toujours visible, photo ou pas. Le pictogramme reste
             affiché même avec une photo (juste plus discret) : la photo n'occupe que
             54% de la largeur en haut-droite, le pictogramme continue de texturer le
-            reste de la card plutôt que de disparaître dès qu'une photo est ajoutée. */}
+            reste de la card plutôt que de disparaître dès qu'une photo est ajoutée.
+            Dimensionné en largeur (w-[70%] h-auto) et non en hauteur : le viewBox
+            "sprint" (starting-blocks) est très large (160×60) — le caler sur la
+            hauteur de la card le faisait déborder démesurément en largeur. */}
         {team.discipline && (
           <DisciplinePictogram
             discipline={team.discipline}
-            className={`absolute -right-8 -bottom-10 h-[85%] w-auto text-white transition-transform duration-500 ease-out group-hover:scale-105 ${
+            className={`absolute -right-4 -bottom-4 h-auto w-[70%] text-white transition-transform duration-500 ease-out group-hover:scale-105 ${
               team.photoUrl ? 'opacity-10' : 'opacity-25'
             }`}
           />
