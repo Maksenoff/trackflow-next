@@ -86,21 +86,21 @@ async function getUpcomingCompetitions(
   if (competitions.length === 0) return []
 
   const ids = competitions.map((c) => c.id)
-  const counts = await prisma.competitionRegistration.groupBy({
-    by: ['competitionId'],
-    where: { competitionId: { in: ids } },
-    _count: true,
-  })
+  const [counts, regs] = await Promise.all([
+    prisma.competitionRegistration.groupBy({
+      by: ['competitionId'],
+      where: { competitionId: { in: ids } },
+      _count: true,
+    }),
+    athleteId
+      ? prisma.competitionRegistration.findMany({
+          where: { athleteId, competitionId: { in: ids } },
+          select: { competitionId: true },
+        })
+      : Promise.resolve([]),
+  ])
   const countMap = new Map(counts.map((c) => [c.competitionId, c._count]))
-
-  let registeredIds = new Set<string>()
-  if (athleteId) {
-    const regs = await prisma.competitionRegistration.findMany({
-      where: { athleteId, competitionId: { in: ids } },
-      select: { competitionId: true },
-    })
-    registeredIds = new Set(regs.map((r) => r.competitionId))
-  }
+  const registeredIds = new Set(regs.map((r) => r.competitionId))
 
   return competitions.map((c) => ({
     id: c.id,
@@ -137,12 +137,21 @@ async function findLastBefore(
 }
 
 async function buildPerfTrends(performances: PerfRow[]): Promise<Map<string, Trend>> {
+  // Une requête par performance, mais lancées en parallèle plutôt qu'en
+  // série (correctif perf 2026-08-26 : jusqu'à 10 aller-retours DB
+  // séquentiels sur le widget coach, contributeur direct à la lenteur
+  // ressentie à la navigation vers le dashboard).
+  const entries = await Promise.all(
+    performances.map(async (perf) => {
+      const prev = await findLastBefore(perf.athleteId, perf.discipline, perf.recordedAt, perf.id)
+      if (!prev) return null
+      const trend = calcTrend(perf, { value: prev.value, unit: prev.unit })
+      return trend ? ([perf.id, trend] as const) : null
+    })
+  )
   const trends = new Map<string, Trend>()
-  for (const perf of performances) {
-    const prev = await findLastBefore(perf.athleteId, perf.discipline, perf.recordedAt, perf.id)
-    if (!prev) continue
-    const trend = calcTrend(perf, { value: prev.value, unit: prev.unit })
-    if (trend) trends.set(perf.id, trend)
+  for (const entry of entries) {
+    if (entry) trends.set(entry[0], entry[1])
   }
   return trends
 }
@@ -273,22 +282,20 @@ export async function getPerformancesWidgetData(
     take: 10,
     include: { athlete: true },
   })
-  const coachTrends = await buildPerfTrends(coachPerfs)
-  const sbCache = new Map<string, Set<string>>()
-  const allPerformances: PerformanceWidgetItem[] = []
-  for (const perf of coachPerfs) {
-    if (!sbCache.has(perf.athleteId)) {
-      sbCache.set(perf.athleteId, await getSeasonBestIds(perf.athleteId))
-    }
-    allPerformances.push(
-      toWidgetPerf(
-        perf,
-        `${perf.athlete.firstName} ${perf.athlete.lastName}`,
-        sbCache.get(perf.athleteId)!,
-        coachTrends
-      )
+  const uniqueAthleteIds = Array.from(new Set(coachPerfs.map((p) => p.athleteId)))
+  const [coachTrends, sbEntries] = await Promise.all([
+    buildPerfTrends(coachPerfs),
+    Promise.all(uniqueAthleteIds.map(async (id) => [id, await getSeasonBestIds(id)] as const)),
+  ])
+  const sbCache = new Map(sbEntries)
+  const allPerformances: PerformanceWidgetItem[] = coachPerfs.map((perf) =>
+    toWidgetPerf(
+      perf,
+      `${perf.athlete.firstName} ${perf.athlete.lastName}`,
+      sbCache.get(perf.athleteId)!,
+      coachTrends
     )
-  }
+  )
 
   let myPerformances: PerformanceWidgetItem[] = []
   if (linkedAthlete) {
