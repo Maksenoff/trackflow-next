@@ -17,13 +17,13 @@ const AUTH_PAGES = ['/login', '/register']
 // route, et le SDK Vercel Blob tentait de parser cette redirection HTML comme
 // du JSON → "Failed to retrieve the client token" (correctif 2026-08-26).
 // - /api/keep-alive : cron Vercel (vercel.json), sans session.
-// - /api/upload : le POST initial ("generate-client-token") vient du navigateur
+// - /api/blob/upload : le POST initial ("generate-client-token") vient du navigateur
 //   avec cookie de session (vérifié dans la route elle-même) ; le webhook
 //   "blob.upload-completed" est appelé serveur à serveur par Vercel Blob, sans
 //   cookie — les deux doivent atteindre la route sans redirection.
 // - /api/cron : appelé par GitHub Actions (session-reminders.yml) sans cookie,
 //   protégé par son propre secret partagé (voir app/api/cron/.../route.ts).
-const PUBLIC_API_PATHS = ['/api/keep-alive', '/api/upload', '/api/cron']
+const PUBLIC_API_PATHS = ['/api/keep-alive', '/api/blob/upload', '/api/cron']
 
 export default auth((req) => {
   const { pathname } = req.nextUrl

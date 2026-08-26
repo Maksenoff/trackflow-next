@@ -10,19 +10,6 @@ import { auth } from '@/lib/auth'
 export async function POST(request: Request): Promise<NextResponse> {
   const body = (await request.json()) as HandleUploadBody
 
-  // eslint-disable-next-line no-console
-  console.error(
-    '[upload] diag env :',
-    'BLOB_READ_WRITE_TOKEN présent :',
-    Boolean(process.env.BLOB_READ_WRITE_TOKEN),
-    '(longueur',
-    process.env.BLOB_READ_WRITE_TOKEN?.length ?? 0,
-    ') | BLOB_STORE_ID présent :',
-    Boolean(process.env.BLOB_STORE_ID),
-    '| VERCEL_OIDC_TOKEN présent :',
-    Boolean(process.env.VERCEL_OIDC_TOKEN)
-  )
-
   // Seule l'étape "generate-client-token" vient du navigateur (avec le cookie de
   // session) — l'étape "upload-completed" est un webhook appelé serveur à serveur
   // par l'infra Vercel Blob une fois le fichier stocké, sans cookie de session.
@@ -32,8 +19,6 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (body.type === 'blob.generate-client-token') {
     const session = await auth()
     if (!session) {
-      // eslint-disable-next-line no-console
-      console.error('[upload] generate-client-token refusé : pas de session')
       return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
     }
   }
@@ -61,8 +46,6 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     return NextResponse.json(jsonResponse)
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('[upload] handleUpload a échoué :', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Upload impossible' },
       { status: 400 }
