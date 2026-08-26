@@ -17,6 +17,7 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { initials } from '@/lib/athlete'
 import { formatFullDate } from '@/lib/date'
+import { computeSeason } from '@/lib/performance'
 import { useIsLightTheme } from '@/lib/use-is-light-theme'
 import { cn } from '@/lib/utils'
 import { MEDAL_GRADIENTS, type MedalRank } from './medal-colors'
@@ -458,63 +459,72 @@ function PodiumSceneView({
   onEdit: (p: PodiumItem) => void
 }) {
   const isLight = useIsLightTheme()
-  const years = useMemo(
-    () => Array.from(new Set(podiums.map((p) => p.year))).sort((a, b) => b - a),
-    [podiums]
-  )
-  const [year, setYear] = useState(years[0])
-  const yearPodiums = useMemo(
+  // Regroupement par saison sportive (sept -> août, comme l'onglet Performances),
+  // pas par année civile — correctif 2026-08-27 : la valeur `year` brute (souvent le
+  // millésime FFA de la compétition) coupait une saison hiver/été en deux groupes.
+  const seasons = useMemo(() => {
+    const map = new Map<number, string>()
+    for (const p of podiums) {
+      const { seasonStart, seasonShort } = computeSeason(p.recordedAt)
+      map.set(seasonStart, seasonShort)
+    }
+    return Array.from(map.entries())
+      .sort((a, b) => b[0] - a[0])
+      .map(([seasonStart, label]) => ({ seasonStart, label }))
+  }, [podiums])
+  const [season, setSeason] = useState(seasons[0].seasonStart)
+  const seasonPodiums = useMemo(
     () =>
       podiums
-        .filter((p) => p.year === year)
+        .filter((p) => computeSeason(p.recordedAt).seasonStart === season)
         .sort((a, b) => b.recordedAt.getTime() - a.recordedAt.getTime()),
-    [podiums, year]
+    [podiums, season]
   )
   const [index, setIndex] = useState(0)
   const [direction, setDirection] = useState(1)
-  const current = yearPodiums[index]
+  const current = seasonPodiums[index]
   const currentStyle = medalStyle(current.rank)
 
-  function selectYear(y: number) {
-    setYear(y)
+  function selectSeason(s: number) {
+    setSeason(s)
     setIndex(0)
     setDirection(1)
   }
 
   function go(delta: number) {
     setDirection(delta)
-    setIndex((i) => Math.min(Math.max(i + delta, 0), yearPodiums.length - 1))
+    setIndex((i) => Math.min(Math.max(i + delta, 0), seasonPodiums.length - 1))
   }
 
   function handleDragEnd(_: unknown, info: PanInfo) {
-    if (info.offset.x < -60 && index < yearPodiums.length - 1) go(1)
+    if (info.offset.x < -60 && index < seasonPodiums.length - 1) go(1)
     else if (info.offset.x > 60 && index > 0) go(-1)
   }
 
   return (
     <div className="space-y-4">
       <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1">
-        {years.map((y) => (
+        {seasons.map((s) => (
           <button
-            key={y}
+            key={s.seasonStart}
             type="button"
-            onClick={() => selectYear(y)}
+            onClick={() => selectSeason(s.seasonStart)}
             className={cn(
               'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors',
-              y === year
+              s.seasonStart === season
                 ? 'bg-gradient-selected text-white shadow-sm shadow-primary/25'
                 : 'border border-border text-muted-foreground hover:border-primary/30 hover:text-foreground'
             )}
           >
             <CalendarRange className="size-3.5" />
-            {y}
+            {s.label}
           </button>
         ))}
       </div>
 
-      {yearPodiums.length > 1 && (
+      {seasonPodiums.length > 1 && (
         <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1">
-          {yearPodiums.map((p, i) => {
+          {seasonPodiums.map((p, i) => {
             const s = medalStyle(p.rank)
             const active = i === index
             return (
@@ -575,7 +585,7 @@ function PodiumSceneView({
           <button
             type="button"
             onClick={() => go(1)}
-            disabled={index === yearPodiums.length - 1}
+            disabled={index === seasonPodiums.length - 1}
             className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
             aria-label="Compétition suivante"
           >
@@ -671,7 +681,7 @@ function PodiumSceneView({
 
         <div className="relative mt-4 flex items-center justify-center gap-2">
           <span className="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
-            {index + 1} / {yearPodiums.length}
+            {index + 1} / {seasonPodiums.length}
           </span>
           {canEdit && <RowActions podium={current} athleteId={athleteId} onEdit={onEdit} />}
         </div>
