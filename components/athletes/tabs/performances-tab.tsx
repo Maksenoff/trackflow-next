@@ -379,12 +379,14 @@ export function PerformancesTab({
                     </div>
 
                     <div className="flex shrink-0 items-start gap-4">
-                      <div className="w-11 text-right">
+                      <div className="text-right">
                         <div className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
                           SB
                         </div>
                         {seasonBest ? (
-                          <span className={cn('text-base font-extrabold', SILVER)}>
+                          <span
+                            className={cn('text-base font-extrabold whitespace-nowrap', SILVER)}
+                          >
                             {formatPerformanceValue(seasonBest.value, seasonBest.unit)}
                           </span>
                         ) : (
@@ -397,7 +399,10 @@ export function PerformancesTab({
                         <div className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
                           PB
                         </div>
-                        <span className="text-base font-extrabold" style={GOLD_STYLE}>
+                        <span
+                          className="text-base font-extrabold whitespace-nowrap"
+                          style={GOLD_STYLE}
+                        >
                           {formatPerformanceValue(best.value, best.unit)}
                         </span>
                       </div>

@@ -10,6 +10,14 @@ import { auth } from '@/lib/auth'
 export async function POST(request: Request): Promise<NextResponse> {
   const body = (await request.json()) as HandleUploadBody
 
+  // eslint-disable-next-line no-console
+  console.error(
+    '[upload] diag BLOB_READ_WRITE_TOKEN présent :',
+    Boolean(process.env.BLOB_READ_WRITE_TOKEN),
+    'longueur :',
+    process.env.BLOB_READ_WRITE_TOKEN?.length ?? 0
+  )
+
   // Seule l'étape "generate-client-token" vient du navigateur (avec le cookie de
   // session) — l'étape "upload-completed" est un webhook appelé serveur à serveur
   // par l'infra Vercel Blob une fois le fichier stocké, sans cookie de session.
@@ -24,14 +32,6 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
     }
   }
-
-  // eslint-disable-next-line no-console
-  console.error(
-    '[upload] diag BLOB_READ_WRITE_TOKEN présent :',
-    Boolean(process.env.BLOB_READ_WRITE_TOKEN),
-    'longueur :',
-    process.env.BLOB_READ_WRITE_TOKEN?.length ?? 0
-  )
 
   try {
     const jsonResponse = await handleUpload({
