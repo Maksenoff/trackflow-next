@@ -22,7 +22,10 @@ export async function POST(request: Request) {
     data: {
       title: data.title,
       date: new Date(data.date),
-      startTime: data.startTime ? new Date(`${data.date}T${data.startTime}:00`) : null,
+      // "Z" explicite : l'heure saisie est une heure murale "naïve", jamais une
+      // vraie conversion de fuseau — sans le Z, la construction dépendait du fuseau
+      // du serveur au moment du build (correctif "19h saisi -> 21h affiché" en prod).
+      startTime: data.startTime ? new Date(`${data.date}T${data.startTime}:00Z`) : null,
       durationMinutes: data.durationMinutes ?? null,
       trainingTypeId: data.trainingTypeId || null,
       description: data.description ?? null,

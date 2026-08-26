@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isAdmin, isCoach, type Role } from '@/lib/roles'
 import { getSessionDetail, getTrainingTypes, getCoachUsers } from '@/lib/calendar-data'
+import { hasSessionEnded } from '@/lib/session-debrief'
 import { PageTransition } from '@/components/motion/page-transition'
 import { BackButton } from '@/components/ui/back-button'
 import { SessionHeader } from '@/components/sessions/session-header'
@@ -29,7 +30,7 @@ export default async function SessionDetailPage({ params }: { params: { id: stri
     linkedAthleteId = user?.linkedAthleteId ?? null
   }
 
-  const isPast = detail.date < new Date()
+  const isPast = hasSessionEnded(detail.date, detail.startTime, detail.durationMinutes)
   const myLog = linkedAthleteId
     ? detail.athleteSessions.find((as) => as.athleteId === linkedAthleteId)
     : undefined

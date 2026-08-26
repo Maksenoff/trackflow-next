@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Calendar as CalendarIcon, Clock, Hourglass, UserRound, Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { SessionActions } from '@/components/sessions/session-actions'
+import { formatTime } from '@/lib/date'
 import { cn } from '@/lib/utils'
 import type { SessionDetail } from '@/lib/calendar-data'
 import type { CoachOption, TrainingTypeOption } from '@/components/calendar/session-form-dialog'
@@ -92,14 +93,7 @@ export function SessionHeader({
           <StatTile
             icon={Clock}
             label="Heure"
-            value={
-              detail.startTime
-                ? detail.startTime.toLocaleTimeString('fr-FR', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })
-                : '—'
-            }
+            value={detail.startTime ? formatTime(detail.startTime) : '—'}
             color={color}
           />
           <StatTile

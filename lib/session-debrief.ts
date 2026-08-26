@@ -1,18 +1,53 @@
 // Logique de debrief des séances — règle métier définie par le coach (pas de portage Symfony ici) :
-// une séance devient debriefable le soir même à 20h30, et passe automatiquement en
-// "non effectuée" si elle n'a toujours pas de ressenti 3 jours après cette ouverture.
+// une séance devient debriefable à l'heure de fin de la séance (heure de début + durée),
+// ou à 21h le jour même si la durée n'est pas renseignée (ou 20h30 s'il n'y a pas d'heure
+// du tout, ex. compétitions) — et passe automatiquement en "non effectuée" si elle n'a
+// toujours pas de ressenti 3 jours après cette ouverture.
 
 export type DebriefStatus = 'upcoming' | 'to_debrief' | 'logged' | 'skipped' | 'auto_skipped'
 
-const DEBRIEF_OPENS_HOUR = 20
-const DEBRIEF_OPENS_MINUTE = 30
+const NO_TIME_OPENS_HOUR = 20
+const NO_TIME_OPENS_MINUTE = 30
+const NO_DURATION_OPENS_HOUR = 21
 const AUTO_SKIP_AFTER_DAYS = 3
 
-/** 20h30 le jour de la séance : avant, elle n'est pas encore debriefable. */
-function debriefOpensAt(sessionDate: Date): Date {
+/**
+ * Heure d'ouverture du debrief. `startTime` est stockée en UTC "naïf" (pas de vrai
+ * fuseau, juste l'heure murale) — on relit ses heures/minutes via les getters UTC
+ * pour ne jamais réappliquer un décalage de fuseau à la lecture (voir aussi
+ * `formatTime` dans lib/date.ts, même convention).
+ */
+export function debriefOpensAt(
+  sessionDate: Date,
+  startTime: Date | null,
+  durationMinutes: number | null
+): Date {
   const d = new Date(sessionDate)
-  d.setHours(DEBRIEF_OPENS_HOUR, DEBRIEF_OPENS_MINUTE, 0, 0)
+  if (!startTime) {
+    d.setHours(NO_TIME_OPENS_HOUR, NO_TIME_OPENS_MINUTE, 0, 0)
+    return d
+  }
+  if (durationMinutes == null) {
+    d.setHours(NO_DURATION_OPENS_HOUR, 0, 0, 0)
+    return d
+  }
+  d.setHours(startTime.getUTCHours(), startTime.getUTCMinutes() + durationMinutes, 0, 0)
   return d
+}
+
+/**
+ * La séance est-elle terminée (même règle que l'ouverture du debrief) ? Utilisé
+ * pour le badge "Passée"/"À venir" et pour n'autoriser le ressenti qu'une fois la
+ * séance réellement finie — pas dès le début de la journée (`sessionDate` seul
+ * est minuit, comparer directement dessus l'affichait "Passée" dès 0h).
+ */
+export function hasSessionEnded(
+  sessionDate: Date,
+  startTime: Date | null,
+  durationMinutes: number | null,
+  now: Date = new Date()
+): boolean {
+  return now >= debriefOpensAt(sessionDate, startTime, durationMinutes)
 }
 
 export type SessionLog = { difficulty: number | null; skipped: boolean } | null | undefined
@@ -20,9 +55,11 @@ export type SessionLog = { difficulty: number | null; skipped: boolean } | null 
 export function computeDebriefStatus(
   sessionDate: Date,
   log: SessionLog,
+  startTime: Date | null = null,
+  durationMinutes: number | null = null,
   now: Date = new Date()
 ): DebriefStatus {
-  const opensAt = debriefOpensAt(sessionDate)
+  const opensAt = debriefOpensAt(sessionDate, startTime, durationMinutes)
   if (now < opensAt) return 'upcoming'
   if (log?.skipped) return 'skipped'
   if (log && log.difficulty !== null) return 'logged'

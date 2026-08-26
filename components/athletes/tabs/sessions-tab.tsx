@@ -57,7 +57,7 @@ export function SessionsTab({
     () =>
       sessionsWindow.map((s) => ({
         ...s,
-        status: computeDebriefStatus(s.date, s.log),
+        status: computeDebriefStatus(s.date, s.log, s.startTime, s.durationMinutes),
       })),
     [sessionsWindow]
   )

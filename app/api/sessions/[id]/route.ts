@@ -33,8 +33,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       ...(data.title !== undefined && { title: data.title }),
       ...(data.date !== undefined && { date: new Date(data.date) }),
       ...(data.startTime !== undefined && {
+        // "Z" explicite — voir app/api/sessions/route.ts (heure murale naïve, pas
+        // de conversion de fuseau selon le serveur).
         startTime:
-          data.startTime && data.date ? new Date(`${data.date}T${data.startTime}:00`) : null,
+          data.startTime && data.date ? new Date(`${data.date}T${data.startTime}:00Z`) : null,
       }),
       ...(data.durationMinutes !== undefined && { durationMinutes: data.durationMinutes }),
       ...(data.trainingTypeId !== undefined && { trainingTypeId: data.trainingTypeId || null }),

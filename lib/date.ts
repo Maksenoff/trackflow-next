@@ -18,8 +18,12 @@ export function formatFullDate(date: Date): string {
   return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
+// timeZone: 'UTC' — l'heure est stockée en UTC "naïf" (juste l'heure murale saisie,
+// jamais une vraie conversion de fuseau, voir app/api/sessions/route.ts). Sans ça,
+// l'affichage réapplique le décalage local du serveur/navigateur par-dessus (ex :
+// 19h saisi qui s'affichait 21h).
 export function formatTime(date: Date): string {
-  return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })
 }
 
 export function formatDuration(minutes: number): string {

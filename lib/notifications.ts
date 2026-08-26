@@ -289,7 +289,12 @@ export async function buildNotificationFeed(
       const key = `debrief-${session.id}`
       if (dismissedKeys.has(key)) continue
       const log = session.athleteSessions[0] ?? null
-      const status = computeDebriefStatus(session.date, log)
+      const status = computeDebriefStatus(
+        session.date,
+        log,
+        session.startTime,
+        session.durationMinutes
+      )
       if (status !== 'to_debrief') continue
       debriefItems.push({
         id: key,
