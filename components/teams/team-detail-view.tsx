@@ -95,7 +95,7 @@ export function TeamDetailView({
       <div className="flex flex-wrap items-start justify-between gap-4 rounded-3xl border border-border bg-card p-5 shadow-card sm:p-6">
         <div className="flex items-center gap-4">
           {team.photoUrl ? (
-            <div className="size-36 shrink-0 overflow-hidden rounded-2xl shadow-sm">
+            <div className="size-16 shrink-0 overflow-hidden rounded-full border-2 border-border shadow-sm sm:size-20">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={team.photoUrl}
@@ -110,12 +110,12 @@ export function TeamDetailView({
             </div>
           ) : (
             <div
-              className="flex size-36 shrink-0 items-center justify-center rounded-2xl text-white shadow-sm"
+              className="flex size-16 shrink-0 items-center justify-center rounded-full text-white shadow-sm sm:size-20"
               style={{
                 background: `linear-gradient(135deg, ${accent}, color-mix(in srgb, ${accent} 70%, black))`,
               }}
             >
-              <UsersRound className="size-12" />
+              <UsersRound className="size-7 sm:size-8" />
             </div>
           )}
           <div>

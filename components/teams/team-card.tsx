@@ -46,11 +46,16 @@ export function TeamCard({ team, index = 0 }: { team: TeamCardData; index?: numb
           background: `linear-gradient(150deg, ${accent}, color-mix(in srgb, ${accent} 45%, black))`,
         }}
       >
-        {/* Fond couleur fixe — toujours visible, photo ou pas. */}
-        {team.discipline && !team.photoUrl && (
+        {/* Fond couleur fixe — toujours visible, photo ou pas. Le pictogramme reste
+            affiché même avec une photo (juste plus discret) : la photo n'occupe que
+            54% de la largeur en haut-droite, le pictogramme continue de texturer le
+            reste de la card plutôt que de disparaître dès qu'une photo est ajoutée. */}
+        {team.discipline && (
           <DisciplinePictogram
             discipline={team.discipline}
-            className="absolute -right-8 -bottom-10 h-[85%] w-auto text-white opacity-25 transition-transform duration-500 ease-out group-hover:scale-105"
+            className={`absolute -right-8 -bottom-10 h-[85%] w-auto text-white transition-transform duration-500 ease-out group-hover:scale-105 ${
+              team.photoUrl ? 'opacity-10' : 'opacity-25'
+            }`}
           />
         )}
         {!team.discipline && !team.photoUrl && (
