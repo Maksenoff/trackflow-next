@@ -12,10 +12,15 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   // eslint-disable-next-line no-console
   console.error(
-    '[upload] diag BLOB_READ_WRITE_TOKEN présent :',
+    '[upload] diag env :',
+    'BLOB_READ_WRITE_TOKEN présent :',
     Boolean(process.env.BLOB_READ_WRITE_TOKEN),
-    'longueur :',
-    process.env.BLOB_READ_WRITE_TOKEN?.length ?? 0
+    '(longueur',
+    process.env.BLOB_READ_WRITE_TOKEN?.length ?? 0,
+    ') | BLOB_STORE_ID présent :',
+    Boolean(process.env.BLOB_STORE_ID),
+    '| VERCEL_OIDC_TOKEN présent :',
+    Boolean(process.env.VERCEL_OIDC_TOKEN)
   )
 
   // Seule l'étape "generate-client-token" vient du navigateur (avec le cookie de
