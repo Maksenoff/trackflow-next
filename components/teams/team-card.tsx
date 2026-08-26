@@ -48,19 +48,24 @@ export function TeamCard({ team, index = 0 }: { team: TeamCardData; index?: numb
       >
         {/* Fond couleur fixe — toujours visible, photo ou pas. Le pictogramme reste
             affiché même avec une photo (juste plus discret) : la photo n'occupe que
-            54% de la largeur en haut-droite, le pictogramme continue de texturer le
-            reste de la card plutôt que de disparaître dès qu'une photo est ajoutée.
-            Dimensionné en largeur (w-[70%] h-auto) et non en hauteur : le viewBox
-            "sprint" (starting-blocks) est très large (160×60) — le caler sur la
-            hauteur de la card le faisait déborder démesurément en largeur. */}
-        {team.discipline && (
-          <DisciplinePictogram
-            discipline={team.discipline}
-            className={`absolute -right-4 -bottom-4 h-auto w-[70%] text-white transition-transform duration-500 ease-out group-hover:scale-105 ${
-              team.photoUrl ? 'opacity-10' : 'opacity-25'
-            }`}
-          />
-        )}
+            54% de la largeur en haut-droite, donc le pictogramme se cale sur la
+            colonne libre à gauche plutôt que de disparaître ou de se superposer à
+            la photo. Sans photo, centré au milieu de la card. Dimensionné en
+            largeur (w-auto h-auto) et non en hauteur : le viewBox "sprint"
+            (starting-blocks) est très large (160×60) — le caler sur la hauteur de
+            la card le faisait déborder démesurément en largeur. */}
+        {team.discipline &&
+          (team.photoUrl ? (
+            <DisciplinePictogram
+              discipline={team.discipline}
+              className="absolute top-1/2 left-3 w-[40%] -translate-y-1/2 text-white opacity-10 transition-transform duration-500 ease-out group-hover:scale-105"
+            />
+          ) : (
+            <DisciplinePictogram
+              discipline={team.discipline}
+              className="absolute top-1/2 left-1/2 w-[65%] -translate-x-1/2 -translate-y-1/2 text-white opacity-25 transition-transform duration-500 ease-out group-hover:scale-105"
+            />
+          ))}
         {!team.discipline && !team.photoUrl && (
           <UsersRound className="absolute right-5 bottom-5 size-12 text-white/20" />
         )}
