@@ -34,7 +34,7 @@ import type { PollStatus } from '@/lib/polls-data'
 export type PollOptionItem = {
   id: string
   label: string
-  votes: number | null
+  votes: number
 }
 
 type TabKey = 'current' | 'upcoming' | 'past'
@@ -302,7 +302,6 @@ function DuelCard({
   canceling: boolean
 }) {
   const [a, b] = poll.options
-  const hasResults = a.votes !== null
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-lg shadow-black/[0.06] dark:shadow-black/30">
@@ -344,7 +343,7 @@ function DuelCard({
           corner="blue"
           option={a}
           selected={poll.myVote === a.id}
-          pct={hasResults ? pct(a.votes, poll.totalVotes) : null}
+          pct={pct(a.votes, poll.totalVotes)}
           onClick={() => onVote(poll.id, a.id)}
         />
 
@@ -363,7 +362,7 @@ function DuelCard({
           corner="rose"
           option={b}
           selected={poll.myVote === b.id}
-          pct={hasResults ? pct(b.votes, poll.totalVotes) : null}
+          pct={pct(b.votes, poll.totalVotes)}
           onClick={() => onVote(poll.id, b.id)}
         />
       </div>
@@ -423,7 +422,7 @@ function CancelPollButton({
   )
 }
 
-function pct(votes: number | null, total: number): number {
+function pct(votes: number, total: number): number {
   if (!votes || total <= 0) return 0
   return Math.round((votes / total) * 100)
 }
@@ -455,7 +454,7 @@ function DuelCorner({
   corner: 'blue' | 'rose'
   option: PollOptionItem
   selected: boolean
-  pct: number | null
+  pct: number
   onClick: () => void
 }) {
   const styles = CORNER_STYLES[corner]
@@ -476,22 +475,20 @@ function DuelCorner({
           selected && 'opacity-100'
         )}
       />
-      {pct !== null && (
-        <span className="relative z-10 h-9">
-          <AnimatePresence mode="popLayout">
-            <motion.span
-              key={pct}
-              initial={{ scale: 0.6, opacity: 0, y: -6 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 1.3, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 22 }}
-              className={cn('inline-block text-3xl font-black tabular-nums', styles.text)}
-            >
-              {pct}%
-            </motion.span>
-          </AnimatePresence>
-        </span>
-      )}
+      <span className="relative z-10 h-9">
+        <AnimatePresence mode="popLayout">
+          <motion.span
+            key={pct}
+            initial={{ scale: 0.6, opacity: 0, y: -6 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 1.3, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 22 }}
+            className={cn('inline-block text-3xl font-black tabular-nums', styles.text)}
+          >
+            {pct}%
+          </motion.span>
+        </AnimatePresence>
+      </span>
       <span
         className={cn(
           'relative z-10 text-base font-bold text-balance sm:text-lg',
@@ -500,16 +497,14 @@ function DuelCorner({
       >
         {option.label}
       </span>
-      {pct !== null && (
-        <div className="relative z-10 h-1.5 w-full max-w-40 overflow-hidden rounded-full bg-muted">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${pct}%` }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
-            className={cn('h-full rounded-full', styles.bar)}
-          />
-        </div>
-      )}
+      <div className="relative z-10 h-1.5 w-full max-w-40 overflow-hidden rounded-full bg-muted">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          className={cn('h-full rounded-full', styles.bar)}
+        />
+      </div>
       {selected && (
         <span
           className={cn(

@@ -20,12 +20,8 @@ export async function getPollsList(userId: string) {
   return polls.map((p) => {
     const status: PollStatus =
       p.startsAt.getTime() > now ? 'scheduled' : p.expiresAt.getTime() <= now ? 'expired' : 'active'
-    const expired = status === 'expired'
     const myVote = p.votes[0]?.optionId ?? null
     const totalVotes = p.options.reduce((sum, o) => sum + o.votes.length, 0)
-    // Résultats masqués tant que le vote est actif ET que l'utilisateur n'a pas voté —
-    // visibles dès qu'il a voté (même avant l'expiration), ou pour tout le monde une fois expiré.
-    const showResults = expired || myVote !== null
 
     return {
       id: p.id,
@@ -35,10 +31,13 @@ export async function getPollsList(userId: string) {
       status,
       myVote,
       totalVotes,
+      // Résultats toujours visibles, même avant d'avoir voté soi-même — correctif
+      // 2026-08-27 : le masquage tant que non-voté empêchait de voir les votes des
+      // autres, jugé confus plutôt qu'utile.
       options: p.options.map((o) => ({
         id: o.id,
         label: o.label,
-        votes: showResults ? o.votes.length : null,
+        votes: o.votes.length,
       })),
     }
   })
