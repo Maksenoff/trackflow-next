@@ -311,9 +311,13 @@ export function CalendarView({
         ))}
       </div>
 
-      {/* Tabs + légende (desktop, vue classique) */}
-      <div className="hidden flex-wrap items-center justify-between gap-3 sm:flex">
-        <div className="inline-flex rounded-full border border-border bg-card p-0.5 shadow-sm">
+      {/* Tabs + légende (desktop, vue classique) — grid à 3 colonnes fixes plutôt que
+          flex+justify-between : avec justify-between, la pastille du mois (2e enfant)
+          se retrouvait plaquée à droite dès que le bouton "+ Nouvelle..." (3e enfant,
+          conditionnel selon le rôle) disparaissait, faute d'un 3e enfant pour la
+          répartition. La colonne centrale reste fixe que le bouton existe ou non. */}
+      <div className="hidden grid-cols-[1fr_auto_1fr] items-center gap-3 sm:grid">
+        <div className="inline-flex justify-self-start rounded-full border border-border bg-card p-0.5 shadow-sm">
           {(['sessions', 'competitions'] as const).map((value) => (
             <button
               key={value}
@@ -343,7 +347,7 @@ export function CalendarView({
           ))}
         </div>
 
-        <div className="flex items-center gap-2 rounded-full border border-border bg-card p-1 shadow-sm">
+        <div className="flex items-center justify-self-center gap-2 rounded-full border border-border bg-card p-1 shadow-sm">
           <button
             onClick={() => go(-1)}
             className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -369,7 +373,7 @@ export function CalendarView({
         {canManageActiveTab && (
           <button
             onClick={() => (tab === 'sessions' ? setCreateOpen(true) : goToNewCompetition())}
-            className="group inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-primary/80 px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/35"
+            className="group inline-flex items-center justify-self-end gap-1.5 rounded-full bg-gradient-to-r from-primary to-primary/80 px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/35"
           >
             <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
             {tab === 'sessions' ? 'Nouvelle séance' : 'Nouvelle compétition'}

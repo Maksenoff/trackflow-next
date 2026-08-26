@@ -45,35 +45,41 @@ export function PerformancePanel({
               </Link>
             </MotionCta>
           )}
-          <div className="relative flex rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
-            {(['all', 'mine'] as const).map((value) => (
-              <motion.button
-                key={value}
-                type="button"
-                onClick={() => setMode(value)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.95 }}
-                className={cn(
-                  'relative z-10 flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-medium transition-colors duration-200',
-                  mode === value
-                    ? 'text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                )}
-              >
-                {mode === value && (
-                  <motion.span
-                    layoutId="dashboard-perf-mode"
-                    className="absolute inset-0 -z-10 rounded-full bg-primary shadow-sm shadow-primary/30"
-                    transition={{ duration: 0.2, ease: 'easeOut' }}
-                  />
-                )}
-                {value === 'all' ? <Users className="size-3.5" /> : <User className="size-3.5" />}
-                <span className="hidden md:inline">
-                  {value === 'all' ? 'Vue coach' : 'Vue athlète'}
-                </span>
-              </motion.button>
-            ))}
-          </div>
+          {/* Le switch Vue coach/athlète n'a de sens que si ce compte a un profil
+              athlète lié — sinon "Vue athlète" ne mène qu'à un état vide, ce qui
+              donnait l'impression fausse d'avoir "les deux vues" (ex: gest.
+              compétitions, qui n'a normalement pas de profil athlète). */}
+          {hasLinkedAthlete && (
+            <div className="relative flex rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
+              {(['all', 'mine'] as const).map((value) => (
+                <motion.button
+                  key={value}
+                  type="button"
+                  onClick={() => setMode(value)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={cn(
+                    'relative z-10 flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-medium transition-colors duration-200',
+                    mode === value
+                      ? 'text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  )}
+                >
+                  {mode === value && (
+                    <motion.span
+                      layoutId="dashboard-perf-mode"
+                      className="absolute inset-0 -z-10 rounded-full bg-primary shadow-sm shadow-primary/30"
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                    />
+                  )}
+                  {value === 'all' ? <Users className="size-3.5" /> : <User className="size-3.5" />}
+                  <span className="hidden md:inline">
+                    {value === 'all' ? 'Vue coach' : 'Vue athlète'}
+                  </span>
+                </motion.button>
+              ))}
+            </div>
+          )}
           <Link
             href="/athletes"
             title="Athlètes"
