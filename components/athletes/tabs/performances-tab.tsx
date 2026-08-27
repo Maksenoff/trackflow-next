@@ -19,19 +19,13 @@ import {
   computeSeason,
   formatDiscipline,
   formatPerformanceValue,
+  isHandTimed,
   isLowerBetter,
 } from '@/lib/performance'
 import { formatFullDate } from '@/lib/date'
 import { baseDisciplineCode } from '@/lib/disciplines'
 import { DisciplinePictogram } from '@/components/athletes/discipline-pictogram'
 import { Badge } from '@/components/ui/badge'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useIsLightTheme } from '@/lib/use-is-light-theme'
 import { cn } from '@/lib/utils'
 import type { AthleteDetail } from '@/lib/athletes-data'
@@ -115,6 +109,7 @@ export function PerformancesTab({
   const allTimeBests = useMemo(() => {
     const map = new Map<string, Performance>()
     for (const perf of performances) {
+      if (isHandTimed(perf.value, perf.unit)) continue
       const current = map.get(perf.discipline)
       if (!current) {
         map.set(perf.discipline, perf)
@@ -197,28 +192,13 @@ export function PerformancesTab({
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Select value={season} onValueChange={(v) => v && setSeason(v)}>
-          <SelectTrigger className="w-full gap-1.5 rounded-full border-none bg-gradient-selected px-3.5 text-xs font-semibold text-white shadow-sm shadow-primary/25 sm:hidden">
-            {season === 'all' ? (
-              <Layers className="size-3.5 shrink-0" />
-            ) : (
-              <CalendarRange className="size-3.5 shrink-0" />
-            )}
-            <SelectValue placeholder="Saison">
-              {(value: string | null) => (value === 'all' ? 'Toutes les saisons' : (value ?? ''))}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Toutes les saisons</SelectItem>
-            {seasonOptions.map((s) => (
-              <SelectItem key={s} value={s}>
-                {s}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <div className="no-scrollbar hidden items-center gap-2 overflow-x-auto pb-1 sm:flex">
+        {/* Une seule rangée de pills scrollable, sur mobile comme desktop (fusion du
+            Select mobile + de la rangée desktop, correctif 2026-08-28) : le slide
+            tactile fonctionne nativement sur mobile via overflow-x-auto, et
+            scrollbar-thin (au lieu de no-scrollbar) rend la scrollbar visible sur
+            desktop plutôt que de masquer toute indication qu'il reste des saisons
+            à faire défiler. */}
+        <div className="scrollbar-thin flex min-w-0 items-center gap-2 overflow-x-auto pb-1.5">
           <button
             type="button"
             onClick={() => setSeason('all')}

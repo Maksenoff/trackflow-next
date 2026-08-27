@@ -4,6 +4,7 @@
 import * as cheerio from 'cheerio'
 import { prisma } from '@/lib/prisma'
 import { autoValidateGoalsForAthlete } from '@/lib/goals'
+import { isHandTimed } from '@/lib/performance'
 
 const ATHLETE_PAGE_URL = (id: string) => `https://www.athle.fr/athletes/${id}/resultats`
 const PODIUMS_PAGE_URL = (id: string) => `https://www.athle.fr/athletes/${id}/podiums`
@@ -368,12 +369,13 @@ export async function fullResyncAthleteFfa(athleteId: string): Promise<FfaSyncRe
 }
 
 /** Recalcule les records personnels (meilleure valeur par discipline). */
-async function updatePersonalBests(athleteId: string): Promise<void> {
+export async function updatePersonalBests(athleteId: string): Promise<void> {
   const all = await prisma.performance.findMany({ where: { athleteId } })
   if (all.length === 0) return
 
   const bests = new Map<string, (typeof all)[number]>()
   for (const p of all) {
+    if (isHandTimed(p.value, p.unit)) continue
     const higherBetter = p.unit !== 's'
     const current = bests.get(p.discipline)
     if (!current) {

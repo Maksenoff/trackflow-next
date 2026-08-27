@@ -8,6 +8,22 @@ export function isLowerBetter(unit: string): boolean {
   return LOWER_IS_BETTER_UNITS.includes(unit)
 }
 
+/**
+ * Chrono manuel (au dixième) plutôt qu'électronique (au centième) — sur athle.fr
+ * un chrono manuel est toujours noté avec un seul chiffre après la virgule
+ * ("12.1", "11.2"), jamais deux ("12.15"). Détecté à partir de la valeur
+ * stockée : un temps électronique tombant exactement sur un dixième rond
+ * (ex: 12.10 précisément) serait un faux positif, mais c'est rarissime en
+ * pratique — demande explicite de Maksen le 2026-08-28 : ne jamais compter un
+ * chrono manuel comme PB/SB, à exclure partout où ces records sont calculés
+ * (updatePersonalBests côté serveur, computeSeasonBests et allTimeBests côté
+ * client) sans jamais le masquer de la liste des performances elle-même.
+ */
+export function isHandTimed(value: number, unit: string): boolean {
+  if (!isLowerBetter(unit)) return false
+  return Math.round(value * 100) % 10 === 0
+}
+
 /** Reproduit Performance::getFormattedValue() */
 export function formatPerformanceValue(value: number, unit: string): string {
   if (isLowerBetter(unit)) {
@@ -147,6 +163,7 @@ export function computeSeasonBests<T extends PerfWithDate>(performances: T[]): M
   const bests = new Map<string, T>()
   for (const perf of performances) {
     if (perf.recordedAt < seasonStart) continue
+    if (isHandTimed(perf.value, perf.unit)) continue
     const current = bests.get(perf.discipline)
     if (!current) {
       bests.set(perf.discipline, perf)
