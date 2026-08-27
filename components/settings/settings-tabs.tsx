@@ -76,7 +76,25 @@ export function SettingsTabs({
 
   return (
     <div className="space-y-5">
-      {tabs.length > 1 && (
+      {tabs.length === 1 ? (
+        // Un seul onglet possible (ex: gest. compétitions, qui n'a que "Types de
+        // compétitions") : le pill-switcher n'a pas de sens sans choix à faire,
+        // mais le supprimer entièrement laissait la page sans aucune indication
+        // de section — remplacé par un en-tête statique identique en mobile et
+        // desktop (correctif 2026-08-28).
+        <div className="flex items-center gap-2 px-1">
+          {(() => {
+            const Icon = tabs[0].icon
+            return <Icon className="size-4 text-primary" />
+          })()}
+          <h2 className="text-sm font-bold">{tabs[0].label}</h2>
+          {tabs[0].count !== null && (
+            <span className="rounded-full bg-muted px-1.5 text-[10px] font-bold text-muted-foreground">
+              {tabs[0].count}
+            </span>
+          )}
+        </div>
+      ) : (
         <div className="no-scrollbar flex items-center gap-1 overflow-x-auto rounded-full border border-border bg-card p-1 shadow-sm">
           {tabs.map((t) => {
             const isActive = t.key === active
