@@ -13,8 +13,12 @@ export function ServiceWorkerRegister() {
     if (process.env.NODE_ENV !== 'production') return
     if (!('serviceWorker' in navigator)) return
 
-    navigator.serviceWorker.register('/sw.js').catch(() => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
       // Pas bloquant : l'app reste utilisable sans SW (juste pas de PWA/push).
+      // Logué quand même — un échec silencieux ici est la cause la plus probable
+      // du bouton "Activer les notifications push" qui reste bloqué en chargement.
+      // eslint-disable-next-line no-console
+      console.error('Échec enregistrement du service worker :', err)
     })
   }, [])
 

@@ -324,7 +324,12 @@ export function NotificationBell({
 
   useEffect(() => {
     setPushSupported(isPushSupported())
-    getExistingPushSubscription().then((sub) => setPushEnabled(!!sub))
+    getExistingPushSubscription()
+      .then((sub) => setPushEnabled(!!sub))
+      .catch(() => {
+        // Le SW n'a pas démarré à temps — le bouton reste sur "Activer", le
+        // prochain clic retentera (et affichera l'erreur si ça persiste).
+      })
   }, [])
 
   async function handleItemClick(item: NotificationItem) {

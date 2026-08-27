@@ -51,6 +51,11 @@ export async function sendPushToUser(
         const statusCode = (err as { statusCode?: number })?.statusCode
         if (statusCode === 404 || statusCode === 410) {
           await prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(() => {})
+        } else {
+          // Erreur inattendue (ex: clés VAPID invalides/périmées, 401/403) — sans ce
+          // log, un échec d'envoi était totalement invisible côté serveur.
+          // eslint-disable-next-line no-console
+          console.error('Échec envoi WebPush :', statusCode, err)
         }
       }
     })
