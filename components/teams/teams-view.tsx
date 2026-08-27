@@ -21,12 +21,12 @@ export function TeamsView({ teams, canCreate }: { teams: TeamCardData[]; canCrea
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {teams.map((team, index) => (
-            <TeamCard key={team.id} team={team} index={index} />
-          ))}
           {canCreate && (
             <AddTile label="+ Créer son équipe" href="/teams/new" className="min-h-40" />
           )}
+          {teams.map((team, index) => (
+            <TeamCard key={team.id} team={team} index={index} />
+          ))}
         </div>
       )}
     </div>
