@@ -99,7 +99,7 @@ export function ProfileTabs({
       </div>
 
       <div className="relative overflow-hidden">
-        <AnimatePresence mode="wait" custom={direction} initial={false}>
+        <AnimatePresence mode="popLayout" custom={direction} initial={false}>
           <motion.div
             key={active}
             custom={direction}

@@ -213,71 +213,77 @@ export function VotesView({
         })}
       </div>
 
-      <AnimatePresence mode="wait" custom={direction} initial={false}>
-        <motion.div
-          key={tab}
-          custom={direction}
-          initial={{ x: direction * 16, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: direction * -16, opacity: 0 }}
-          transition={{ duration: 0.22, ease: 'easeOut' }}
-        >
-          {tab === 'current' &&
-            (active.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card py-20 text-center">
-                <Vote className="size-8 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Aucun duel en cours pour le moment.</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {active.map((poll) => (
-                  <DuelCard
-                    key={poll.id}
-                    poll={poll}
-                    onVote={vote}
-                    canManage={canManage}
-                    onCancel={() => cancelPoll(poll.id)}
-                    canceling={cancelingId === poll.id}
-                  />
-                ))}
-              </div>
-            ))}
+      <div className="relative overflow-hidden">
+        <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+          <motion.div
+            key={tab}
+            custom={direction}
+            initial={{ x: direction * 16, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: direction * -16, opacity: 0 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+          >
+            {tab === 'current' &&
+              (active.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card py-20 text-center">
+                  <Vote className="size-8 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    Aucun duel en cours pour le moment.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {active.map((poll) => (
+                    <DuelCard
+                      key={poll.id}
+                      poll={poll}
+                      onVote={vote}
+                      canManage={canManage}
+                      onCancel={() => cancelPoll(poll.id)}
+                      canceling={cancelingId === poll.id}
+                    />
+                  ))}
+                </div>
+              ))}
 
-          {tab === 'upcoming' &&
-            (scheduled.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card py-20 text-center">
-                <Swords className="size-8 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Aucun duel programmé.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {scheduled.map((poll) => (
-                  <ScheduledDuelCard
-                    key={poll.id}
-                    poll={poll}
-                    canManage={canManage}
-                    onCancel={() => cancelPoll(poll.id)}
-                    canceling={cancelingId === poll.id}
-                  />
-                ))}
-              </div>
-            ))}
+            {tab === 'upcoming' &&
+              (scheduled.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card py-20 text-center">
+                  <Swords className="size-8 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Aucun duel programmé.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {scheduled.map((poll) => (
+                    <ScheduledDuelCard
+                      key={poll.id}
+                      poll={poll}
+                      canManage={canManage}
+                      onCancel={() => cancelPoll(poll.id)}
+                      canceling={cancelingId === poll.id}
+                    />
+                  ))}
+                </div>
+              ))}
 
-          {tab === 'past' &&
-            (expired.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card py-20 text-center">
-                <Trophy className="size-8 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Aucun duel terminé pour le moment.</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-                {expired.map((poll) => (
-                  <PastDuelRow key={poll.id} poll={poll} />
-                ))}
-              </div>
-            ))}
-        </motion.div>
-      </AnimatePresence>
+            {tab === 'past' &&
+              (expired.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-card py-20 text-center">
+                  <Trophy className="size-8 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    Aucun duel terminé pour le moment.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+                  {expired.map((poll) => (
+                    <PastDuelRow key={poll.id} poll={poll} />
+                  ))}
+                </div>
+              ))}
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
       {tab === 'current' && lastCompleted && (
         <div className="border-t border-border pt-6">

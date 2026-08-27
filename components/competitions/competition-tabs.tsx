@@ -114,126 +114,128 @@ export function CompetitionTabs({
         })}
       </div>
 
-      <AnimatePresence mode="wait" custom={direction} initial={false}>
-        <motion.div
-          key={active}
-          custom={direction}
-          initial={{ x: direction * 16, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: direction * -16, opacity: 0 }}
-          transition={{ duration: 0.22, ease: 'easeOut' }}
-        >
-          {active === 'infos' && (
-            <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-              <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-                <div className="border-b border-border px-5 py-3">
-                  <h2 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
-                    Ressources
-                  </h2>
+      <div className="relative overflow-hidden">
+        <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+          <motion.div
+            key={active}
+            custom={direction}
+            initial={{ x: direction * 16, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: direction * -16, opacity: 0 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+          >
+            {active === 'infos' && (
+              <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+                <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                  <div className="border-b border-border px-5 py-3">
+                    <h2 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
+                      Ressources
+                    </h2>
+                  </div>
+                  <div className="divide-y divide-border">
+                    <ResourceRow
+                      icon={LinkIcon}
+                      label="Site officiel"
+                      value={competition.websiteUrl}
+                      editHref={`/competitions/${competition.id}/edit`}
+                      addLabel="Ajouter un lien"
+                      color={color}
+                      external
+                    />
+                    <ResourceRow
+                      icon={FileText}
+                      label="Circulaire"
+                      value={competition.documentUrl}
+                      editHref={`/competitions/${competition.id}/edit`}
+                      addLabel="Ajouter une circulaire"
+                      color={color}
+                    />
+                    <ResourceRow
+                      icon={Clock}
+                      label="Horaires"
+                      value={competition.schedulesUrl}
+                      editHref={`/competitions/${competition.id}/edit`}
+                      addLabel="Ajouter les horaires"
+                      color={color}
+                    />
+                  </div>
                 </div>
-                <div className="divide-y divide-border">
-                  <ResourceRow
-                    icon={LinkIcon}
-                    label="Site officiel"
-                    value={competition.websiteUrl}
-                    editHref={`/competitions/${competition.id}/edit`}
-                    addLabel="Ajouter un lien"
-                    color={color}
-                    external
-                  />
-                  <ResourceRow
-                    icon={FileText}
-                    label="Circulaire"
-                    value={competition.documentUrl}
-                    editHref={`/competitions/${competition.id}/edit`}
-                    addLabel="Ajouter une circulaire"
-                    color={color}
-                  />
-                  <ResourceRow
-                    icon={Clock}
-                    label="Horaires"
-                    value={competition.schedulesUrl}
-                    editHref={`/competitions/${competition.id}/edit`}
-                    addLabel="Ajouter les horaires"
-                    color={color}
-                  />
+
+                <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                  <div className="flex items-center justify-between border-b border-border px-5 py-3">
+                    <h2 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
+                      Notes
+                    </h2>
+                    {canManage && (
+                      <Link
+                        href={`/competitions/${competition.id}/edit`}
+                        className="text-xs font-semibold text-primary hover:underline"
+                      >
+                        Modifier
+                      </Link>
+                    )}
+                  </div>
+                  <div className="p-5">
+                    {competition.description ? (
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
+                        {competition.description}
+                      </p>
+                    ) : (
+                      <p className="py-4 text-center text-sm text-muted-foreground">Aucune note.</p>
+                    )}
+                  </div>
                 </div>
               </div>
+            )}
 
-              <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-                <div className="flex items-center justify-between border-b border-border px-5 py-3">
-                  <h2 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
-                    Notes
-                  </h2>
-                  {canManage && (
-                    <Link
-                      href={`/competitions/${competition.id}/edit`}
-                      className="text-xs font-semibold text-primary hover:underline"
-                    >
-                      Modifier
-                    </Link>
-                  )}
-                </div>
-                <div className="p-5">
-                  {competition.description ? (
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
-                      {competition.description}
+            {active === 'registrations' && (
+              <div className="space-y-3">
+                {competition.registrations.length === 0 ? (
+                  <div className="rounded-2xl border border-border bg-card py-10 text-center shadow-sm">
+                    <Users className="mx-auto mb-2 size-7 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      Aucun inscrit pour l&apos;instant.
                     </p>
-                  ) : (
-                    <p className="py-4 text-center text-sm text-muted-foreground">Aucune note.</p>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <motion.div
+                    variants={listVariants}
+                    initial="hidden"
+                    animate="show"
+                    className="grid grid-cols-1 gap-3 lg:grid-cols-2"
+                  >
+                    {competition.registrations.map((reg) => (
+                      <motion.div key={reg.id} variants={itemVariants}>
+                        <RegistrationRow
+                          registration={reg}
+                          competitionId={competition.id}
+                          isSelf={reg.athleteId === linkedAthleteId}
+                          canManage={canManage}
+                          onEdit={() => openEdit(reg)}
+                        />
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                )}
+
+                {canAddRegistration && (
+                  <button
+                    type="button"
+                    onClick={openCreate}
+                    className="group flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-[var(--accent)]"
+                    style={{ '--accent': color } as CSSProperties}
+                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = `${color}66`)}
+                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = '')}
+                  >
+                    <Plus className="size-4" />
+                    Ajouter une inscription
+                  </button>
+                )}
               </div>
-            </div>
-          )}
-
-          {active === 'registrations' && (
-            <div className="space-y-3">
-              {competition.registrations.length === 0 ? (
-                <div className="rounded-2xl border border-border bg-card py-10 text-center shadow-sm">
-                  <Users className="mx-auto mb-2 size-7 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    Aucun inscrit pour l&apos;instant.
-                  </p>
-                </div>
-              ) : (
-                <motion.div
-                  variants={listVariants}
-                  initial="hidden"
-                  animate="show"
-                  className="grid grid-cols-1 gap-3 lg:grid-cols-2"
-                >
-                  {competition.registrations.map((reg) => (
-                    <motion.div key={reg.id} variants={itemVariants}>
-                      <RegistrationRow
-                        registration={reg}
-                        competitionId={competition.id}
-                        isSelf={reg.athleteId === linkedAthleteId}
-                        canManage={canManage}
-                        onEdit={() => openEdit(reg)}
-                      />
-                    </motion.div>
-                  ))}
-                </motion.div>
-              )}
-
-              {canAddRegistration && (
-                <button
-                  type="button"
-                  onClick={openCreate}
-                  className="group flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-[var(--accent)]"
-                  style={{ '--accent': color } as CSSProperties}
-                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = `${color}66`)}
-                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = '')}
-                >
-                  <Plus className="size-4" />
-                  Ajouter une inscription
-                </button>
-              )}
-            </div>
-          )}
-        </motion.div>
-      </AnimatePresence>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
       <RegistrationDialog
         open={dialogOpen}

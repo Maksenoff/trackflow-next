@@ -496,7 +496,7 @@ export function PerformancesTab({
                                   >
                                     {perf.isPersonalBest ? 'PB' : isSB ? 'SB' : ''}
                                   </span>
-                                  <span className="w-14 shrink-0 font-mono text-sm font-bold tabular-nums">
+                                  <span className="w-14 shrink-0 font-mono text-sm font-bold whitespace-nowrap tabular-nums">
                                     {formatPerformanceValue(perf.value, perf.unit)}
                                   </span>
                                   <span className="w-9 shrink-0">
@@ -597,7 +597,7 @@ export function PerformancesTab({
                                         >
                                           {perf.isPersonalBest ? 'PB' : isSB ? 'SB' : ''}
                                         </span>
-                                        <span className="w-16 shrink-0 font-mono font-bold tabular-nums">
+                                        <span className="w-16 shrink-0 font-mono font-bold whitespace-nowrap tabular-nums">
                                           {formatPerformanceValue(perf.value, perf.unit)}
                                         </span>
                                         <span className="w-10 shrink-0">

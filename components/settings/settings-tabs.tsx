@@ -125,24 +125,26 @@ export function SettingsTabs({
         </div>
       )}
 
-      <AnimatePresence mode="wait" custom={direction} initial={false}>
-        <motion.div
-          key={active}
-          custom={direction}
-          initial={{ x: direction * 16, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: direction * -16, opacity: 0 }}
-          transition={{ duration: 0.22, ease: 'easeOut' }}
-        >
-          {active === 'sessions' ? (
-            <TypeManager kind="session" initialTypes={sessionTypes} />
-          ) : active === 'competitions' ? (
-            <TypeManager kind="competition" initialTypes={competitionTypes} />
-          ) : (
-            <ClubConfigPanel initialClubCode={initialClubCode} />
-          )}
-        </motion.div>
-      </AnimatePresence>
+      <div className="relative overflow-hidden">
+        <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+          <motion.div
+            key={active}
+            custom={direction}
+            initial={{ x: direction * 16, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: direction * -16, opacity: 0 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+          >
+            {active === 'sessions' ? (
+              <TypeManager kind="session" initialTypes={sessionTypes} />
+            ) : active === 'competitions' ? (
+              <TypeManager kind="competition" initialTypes={competitionTypes} />
+            ) : (
+              <ClubConfigPanel initialClubCode={initialClubCode} />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </div>
   )
 }

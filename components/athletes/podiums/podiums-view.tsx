@@ -593,7 +593,7 @@ function PodiumSceneView({
           </button>
         </div>
 
-        <AnimatePresence mode="wait" custom={direction} initial={false}>
+        <AnimatePresence mode="popLayout" custom={direction} initial={false}>
           <motion.div
             key={current.id}
             custom={direction}

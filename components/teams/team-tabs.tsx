@@ -77,18 +77,20 @@ export function TeamTabs({
         })}
       </div>
 
-      <AnimatePresence mode="wait" custom={direction} initial={false}>
-        <motion.div
-          key={activeTab.key}
-          custom={direction}
-          initial={{ x: direction * 16, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: direction * -16, opacity: 0 }}
-          transition={{ duration: 0.22, ease: 'easeOut' }}
-        >
-          {activeTab.content}
-        </motion.div>
-      </AnimatePresence>
+      <div className="relative overflow-hidden">
+        <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+          <motion.div
+            key={activeTab.key}
+            custom={direction}
+            initial={{ x: direction * 16, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: direction * -16, opacity: 0 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+          >
+            {activeTab.content}
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </div>
   )
 }
