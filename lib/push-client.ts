@@ -46,9 +46,22 @@ export async function subscribeToPush(): Promise<boolean> {
   // un appareil resté sur un vieux bundle en cache (PWA iOS notamment, dont le
   // cache survit à un "effacer les données" classique de Safari) restait bloqué
   // indéfiniment sur une clé absente/périmée sans jamais pouvoir se rattraper.
-  const keyRes = await fetch('/api/push/vapid-public-key')
+  // `cache: 'no-store'` + query de contournement : ce endpoint matche la route
+  // Workbox générique `/api/*` (NetworkFirst avec repli sur cache) — sur un appareil
+  // qui aurait mis en cache une première réponse d'erreur (avant l'ajout des clés,
+  // ou pendant un déploiement raté), il faut être sûr qu'on ne rejoue jamais cette
+  // réponse périmée.
+  const keyRes = await fetch(`/api/push/vapid-public-key?_=${Date.now()}`, { cache: 'no-store' })
   if (!keyRes.ok) {
-    throw new Error('Clé VAPID publique introuvable (config serveur à vérifier).')
+    let detail = ''
+    try {
+      detail = ((await keyRes.json()) as { error?: string }).error ?? ''
+    } catch {
+      // pas de corps JSON exploitable
+    }
+    throw new Error(
+      `Clé VAPID publique introuvable (${keyRes.status}${detail ? ` : ${detail}` : ''}).`
+    )
   }
   const { publicKey } = (await keyRes.json()) as { publicKey: string }
 
