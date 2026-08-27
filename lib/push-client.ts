@@ -40,13 +40,17 @@ export async function subscribeToPush(): Promise<boolean> {
   if (!isPushSupported()) {
     throw new Error('Push non supporté par ce navigateur.')
   }
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-  if (!publicKey) {
-    // Renvoyait `false` silencieusement avant — indiscernable d'un vrai échec
-    // d'abonnement. Cause la plus probable : NEXT_PUBLIC_VAPID_PUBLIC_KEY absente
-    // des variables d'env Vercel (ou build antérieur à son ajout).
-    throw new Error('Clé VAPID publique manquante côté serveur (config à vérifier).')
+
+  // Récupérée en direct depuis le serveur plutôt que lue sur
+  // `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (figée au moment du build dans le bundle JS) —
+  // un appareil resté sur un vieux bundle en cache (PWA iOS notamment, dont le
+  // cache survit à un "effacer les données" classique de Safari) restait bloqué
+  // indéfiniment sur une clé absente/périmée sans jamais pouvoir se rattraper.
+  const keyRes = await fetch('/api/push/vapid-public-key')
+  if (!keyRes.ok) {
+    throw new Error('Clé VAPID publique introuvable (config serveur à vérifier).')
   }
+  const { publicKey } = (await keyRes.json()) as { publicKey: string }
 
   const registration = await waitForServiceWorker()
   const subscription = await registration.pushManager.subscribe({
