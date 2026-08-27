@@ -6,8 +6,19 @@ import { teamCreateSchema } from '@/lib/validations/team'
 
 export async function POST(request: Request) {
   const session = await auth()
-  if (!session || (!isAdmin(session.user.roles) && !isCoach(session.user.roles))) {
+  if (!session) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+  }
+  const isStaff = isAdmin(session.user.roles) || isCoach(session.user.roles)
+  if (!isStaff) {
+    // Un athlète (compte lié à un profil) peut créer sa propre équipe.
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { linkedAthleteId: true },
+    })
+    if (!user?.linkedAthleteId) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+    }
   }
 
   const body = await request.json()
