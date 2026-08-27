@@ -37,8 +37,16 @@ export async function getExistingPushSubscription(): Promise<PushSubscription | 
 }
 
 export async function subscribeToPush(): Promise<boolean> {
+  if (!isPushSupported()) {
+    throw new Error('Push non supporté par ce navigateur.')
+  }
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-  if (!isPushSupported() || !publicKey) return false
+  if (!publicKey) {
+    // Renvoyait `false` silencieusement avant — indiscernable d'un vrai échec
+    // d'abonnement. Cause la plus probable : NEXT_PUBLIC_VAPID_PUBLIC_KEY absente
+    // des variables d'env Vercel (ou build antérieur à son ajout).
+    throw new Error('Clé VAPID publique manquante côté serveur (config à vérifier).')
+  }
 
   const registration = await waitForServiceWorker()
   const subscription = await registration.pushManager.subscribe({
@@ -55,7 +63,10 @@ export async function subscribeToPush(): Promise<boolean> {
       keys: { p256dh: json.keys?.p256dh, auth: json.keys?.auth },
     }),
   })
-  return res.ok
+  if (!res.ok) {
+    throw new Error(`Échec de l'enregistrement de l'abonnement (${res.status}).`)
+  }
+  return true
 }
 
 export async function unsubscribeFromPush(): Promise<boolean> {
