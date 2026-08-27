@@ -230,7 +230,15 @@ model Performance {
   levelPoints    Int?
   wind           String?
 
-  @@index([athleteId])
+  // [athleteId, recordedAt] remplace l'ancien [athleteId] seul : couvre les
+  // mêmes requêtes (préfixe athleteId) tout en accélérant en plus les
+  // `findMany({ where: { athleteId }, orderBy: { recordedAt } })`, le pattern
+  // le plus fréquent (profil athlète, widgets dashboard, calcul PB/SB) —
+  // correctif perf 2026-08-28. [recordedAt] seul couvre le
+  // `findMany({ orderBy: { recordedAt } })` sans filtre (widget "dernières
+  // perfs" vue coach, sur toute la table).
+  @@index([athleteId, recordedAt])
+  @@index([recordedAt])
   @@index([sessionId])
   @@map("performance")
 }

@@ -254,9 +254,9 @@ export async function getPerformancesWidgetData(
   roles: string[]
 ): Promise<AthletePerformancesData | CoachPerformancesData> {
   const view = resolveView(roles)
-  const linkedAthlete = await getLinkedAthlete(userId)
 
   if (view === 'athlete') {
+    const linkedAthlete = await getLinkedAthlete(userId)
     if (!linkedAthlete) {
       return { view: 'athlete', hasLinkedAthlete: false, recentPerformances: [] }
     }
@@ -277,15 +277,38 @@ export async function getPerformancesWidgetData(
     }
   }
 
-  const coachPerfs = await prisma.performance.findMany({
-    orderBy: { recordedAt: 'desc' },
-    take: 10,
-    include: { athlete: true },
-  })
+  // Vue coach : getLinkedAthlete et coachPerfs sont indépendants (aucun des
+  // deux n'a besoin de l'autre) mais étaient enchaînés en série, tout comme
+  // myPerfs/mySbIds (qui n'ont besoin que de l'id de linkedAthlete, pas de
+  // coachPerfs/coachTrends) — 4-5 aller-retours DB séquentiels réduits à 3
+  // vagues parallèles (correctif perf 2026-08-28, contributeur direct à la
+  // lenteur ressentie du widget "Performances récentes" au chargement du
+  // dashboard, aggravée par le cold start Neon).
+  const [linkedAthlete, coachPerfs] = await Promise.all([
+    getLinkedAthlete(userId),
+    prisma.performance.findMany({
+      orderBy: { recordedAt: 'desc' },
+      take: 10,
+      include: { athlete: true },
+    }),
+  ])
+
+  const [myPerfs, mySbIds] = await Promise.all([
+    linkedAthlete
+      ? prisma.performance.findMany({
+          where: { athleteId: linkedAthlete.id },
+          orderBy: { recordedAt: 'desc' },
+          take: 10,
+        })
+      : Promise.resolve([]),
+    linkedAthlete ? getSeasonBestIds(linkedAthlete.id) : Promise.resolve(new Set<string>()),
+  ])
+
   const uniqueAthleteIds = Array.from(new Set(coachPerfs.map((p) => p.athleteId)))
-  const [coachTrends, sbEntries] = await Promise.all([
+  const [coachTrends, sbEntries, myTrends] = await Promise.all([
     buildPerfTrends(coachPerfs),
     Promise.all(uniqueAthleteIds.map(async (id) => [id, await getSeasonBestIds(id)] as const)),
+    buildPerfTrends(myPerfs),
   ])
   const sbCache = new Map(sbEntries)
   const allPerformances: PerformanceWidgetItem[] = coachPerfs.map((perf) =>
@@ -297,20 +320,11 @@ export async function getPerformancesWidgetData(
     )
   )
 
-  let myPerformances: PerformanceWidgetItem[] = []
-  if (linkedAthlete) {
-    const myPerfs = await prisma.performance.findMany({
-      where: { athleteId: linkedAthlete.id },
-      orderBy: { recordedAt: 'desc' },
-      take: 10,
-    })
-    const [mySbIds, myTrends] = await Promise.all([
-      getSeasonBestIds(linkedAthlete.id),
-      buildPerfTrends(myPerfs),
-    ])
-    const athleteName = `${linkedAthlete.firstName} ${linkedAthlete.lastName}`
-    myPerformances = myPerfs.map((p) => toWidgetPerf(p, athleteName, mySbIds, myTrends))
-  }
+  const myPerformances: PerformanceWidgetItem[] = linkedAthlete
+    ? myPerfs.map((p) =>
+        toWidgetPerf(p, `${linkedAthlete.firstName} ${linkedAthlete.lastName}`, mySbIds, myTrends)
+      )
+    : []
 
   return { view: 'coach', hasLinkedAthlete: !!linkedAthlete, allPerformances, myPerformances }
 }
