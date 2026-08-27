@@ -112,14 +112,24 @@ export function AthleteForm({
   const ffaSyncSinceYear = watch('ffaSyncSinceYear')
 
   function toggleDiscipline(value: string) {
-    const next = disciplines.includes(value)
-      ? disciplines.filter((d) => d !== value)
-      : [...disciplines, value]
+    const wasSelected = disciplines.includes(value)
+    const next = wasSelected ? disciplines.filter((d) => d !== value) : [...disciplines, value]
     setValue('disciplines', next)
-    if (!disciplineColors[value] && !disciplines.includes(value)) {
+    if (wasSelected) {
+      // Retire aussi la couleur : sinon elle reste orpheline dans disciplineColors
+      // et continue de colorer les performances de cette discipline (ex: import
+      // FFA) même une fois qu'elle n'est plus une spécialité choisie (correctif
+      // 2026-08-27) — même souci corrigé côté serveur (lib/disciplines.ts,
+      // reconcileDisciplineColors) en filet de sécurité si ce chemin est
+      // contourné.
+      setValue(
+        'disciplineColors',
+        Object.fromEntries(Object.entries(disciplineColors).filter(([key]) => key !== value))
+      )
+    } else if (!disciplineColors[value]) {
       setValue('disciplineColors', {
         ...disciplineColors,
-        [value]: defaultDisciplineColor(disciplines.length),
+        [value]: defaultDisciplineColor(next.length - 1),
       })
     }
   }

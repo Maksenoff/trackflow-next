@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isAdmin } from '@/lib/roles'
 import { athleteInputSchema } from '@/lib/validations/athlete'
+import { reconcileDisciplineColors } from '@/lib/disciplines'
 
 // Modifier un profil athlète est réservé à l'admin, ou à l'athlète lui-même pour
 // son propre profil — un coach gère séances/compétitions mais pas les profils.
@@ -35,6 +36,23 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     }
   }
 
+  // Réconciliation disciplines/disciplineColors : PATCH étant partiel, l'un des
+  // deux peut arriver sans l'autre (ex: reorder qui ne touche que `disciplines`)
+  // — recharger l'existant pour ne jamais réconcilier contre une moitié absente
+  // et écraser des couleurs valides.
+  let disciplineColorsToSave: string | undefined
+  if (data.disciplines !== undefined || data.disciplineColors !== undefined) {
+    const current = await prisma.athlete.findUnique({
+      where: { id: params.id },
+      select: { disciplines: true, disciplineColors: true },
+    })
+    const disciplines: string[] =
+      data.disciplines ?? (current ? JSON.parse(current.disciplines) : [])
+    const colors: Record<string, string> =
+      data.disciplineColors ?? (current ? JSON.parse(current.disciplineColors) : {})
+    disciplineColorsToSave = JSON.stringify(reconcileDisciplineColors(disciplines, colors))
+  }
+
   const athlete = await prisma.athlete.update({
     where: { id: params.id },
     data: {
@@ -49,8 +67,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       ...(data.ffaSyncSinceYear !== undefined && { ffaSyncSinceYear: data.ffaSyncSinceYear }),
       ...(data.notes !== undefined && { notes: data.notes }),
       ...(data.disciplines !== undefined && { disciplines: JSON.stringify(data.disciplines) }),
-      ...(data.disciplineColors !== undefined && {
-        disciplineColors: JSON.stringify(data.disciplineColors),
+      ...(disciplineColorsToSave !== undefined && {
+        disciplineColors: disciplineColorsToSave,
       }),
       ...(data.photoUrl !== undefined && { photoUrl: data.photoUrl }),
       ...(data.photoConfig !== undefined && { photoConfig: JSON.stringify(data.photoConfig) }),

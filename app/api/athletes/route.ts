@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isCoach, isAdmin } from '@/lib/roles'
 import { athleteInputSchema } from '@/lib/validations/athlete'
+import { reconcileDisciplineColors } from '@/lib/disciplines'
 import { syncAthleteFfa, type FfaSyncResult } from '@/lib/ffa-scraper'
 
 // Création d'athlète : deux chemins distincts.
@@ -54,7 +55,9 @@ export async function POST(request: Request) {
         ffaSyncSinceYear: data.ffaSyncSinceYear ?? null,
         notes: data.notes ?? null,
         disciplines: JSON.stringify(data.disciplines),
-        disciplineColors: JSON.stringify(data.disciplineColors),
+        disciplineColors: JSON.stringify(
+          reconcileDisciplineColors(data.disciplines, data.disciplineColors)
+        ),
         photoUrl: data.photoUrl ?? null,
         photoConfig: JSON.stringify(data.photoConfig),
         bannerUrl: data.bannerUrl ?? null,

@@ -224,6 +224,30 @@ export function baseDisciplineCode(discipline: string): string {
 }
 
 /**
+ * Garantit que `disciplineColors` reste exactement synchronisé avec
+ * `disciplines` : purge les entrées orphelines (discipline retirée des
+ * spécialités mais couleur jamais nettoyée — reste visible sur les
+ * performances de cette discipline, ex: import FFA, comme si elle était
+ * toujours une spécialité choisie) et complète les entrées manquantes (ex:
+ * discipline ajoutée via un chemin qui n'a jamais persisté de couleur, comme
+ * l'aperçu de swatch par défaut dans le formulaire d'édition qui n'écrit
+ * rien tant que l'utilisateur n'a pas cliqué une couleur). Appelé
+ * systématiquement côté serveur (`POST`/`PATCH /api/athletes`) avant
+ * écriture, pour que ce désync ne puisse plus se reproduire même si un futur
+ * bug client réintroduit un des deux cas (correctif 2026-08-27).
+ */
+export function reconcileDisciplineColors(
+  disciplines: string[],
+  colors: Record<string, string>
+): Record<string, string> {
+  const next: Record<string, string> = {}
+  disciplines.forEach((d, i) => {
+    next[d] = colors[d] ?? defaultDisciplineColor(i)
+  })
+  return next
+}
+
+/**
  * Épreuves standard catégorie Espoir/Senior (objectifs athlète, voir GoalForm) :
  * exclut les épreuves jeunes (50m, 600m, 50m haies, triathlon, relais réduits...)
  * qui n'ont pas de sens comme objectif pour un athlète Espoir/Senior.
