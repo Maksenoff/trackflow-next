@@ -13,6 +13,7 @@ import { PwaInstallButton } from '@/components/nav/pwa-install-button'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { NotificationBell } from '@/components/notifications/notification-bell'
+import { AppVersion } from '@/components/ui/AppVersion'
 import type { Role } from '@/lib/roles'
 import type { LinkedAthleteInfo } from '@/lib/athlete'
 
@@ -91,6 +92,10 @@ export function Sidebar({
               <LogOut className="size-4" />
             </Button>
           </div>
+        </div>
+
+        <div className="flex justify-center pb-2.5">
+          <AppVersion />
         </div>
       </div>
     </aside>

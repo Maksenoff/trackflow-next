@@ -1200,18 +1200,26 @@ module.exports = {
 
 ### Affichage dans l'UI
 
-La version est lisible dans le footer de l'app et/ou la page admin :
+`components/ui/AppVersion.tsx` — numéro de version discret (pied de sidebar
+desktop, pied du sheet compte mobile), cliquable vers `/changelog`.
 
-```tsx
-// components/ui/AppVersion.tsx
-export function AppVersion() {
-  return (
-    <span className="text-xs text-muted-foreground">
-      v{process.env.NEXT_PUBLIC_APP_VERSION}
-    </span>
-  )
-}
-```
+### 18bis. Changelog utilisateur (`/changelog`) — à maintenir à chaque session
+
+> **Consigne permanente, ne pas attendre qu'on te le demande.**
+
+`lib/changelog.ts` liste les nouveautés/corrections par version, affichées sur
+`/changelog` (page accessible en cliquant le numéro de version). Contenu
+pensé pour l'utilisateur final (coach/athlète) — jamais de jargon technique
+(pas de "Next.js", "Prisma", "API route", "commit").
+
+**Après tout commit `feat:`/`fix:` qui livre quelque chose de visible pour
+l'utilisateur** (nouvelle page, nouveau bouton, comportement changé, bug
+corrigé qu'un utilisateur avait remarqué) : ajouter une entrée dans
+`CHANGELOG` (`lib/changelog.ts`). Complète la version en tête de liste si
+elle correspond à la version courante de `package.json`, sinon ajoute une
+nouvelle entrée en tête. Pas la peine pour du pur `chore:`/`refactor:`
+invisible (perf backend, nettoyage, config) — seulement ce qu'un utilisateur
+remarquerait.
 
 ---
 
