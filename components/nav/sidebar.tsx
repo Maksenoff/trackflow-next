@@ -74,7 +74,7 @@ export function Sidebar({
           })}
         </nav>
 
-        <div className="flex justify-center pb-1.5">
+        <div className="px-4 pb-1.5">
           <AppVersion />
         </div>
 
