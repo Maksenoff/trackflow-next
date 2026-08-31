@@ -28,15 +28,24 @@ export async function POST(request: Request): Promise<NextResponse> {
       body,
       request,
       onBeforeGenerateToken: async () => ({
+        // image/heic + image/heif : format par défaut des photos prises
+        // directement avec l'appareil sur iPhone — sans ça, l'upload d'une
+        // photo de profil/bannière depuis le téléphone échouait (rejeté par
+        // Vercel Blob) alors que ça fonctionnait toujours en testant depuis
+        // un ordinateur avec des fichiers JPEG/PNG (correctif 2026-09-01).
         allowedContentTypes: [
           'image/jpeg',
           'image/png',
           'image/webp',
           'image/gif',
+          'image/heic',
+          'image/heif',
           'application/pdf',
         ],
         addRandomSuffix: true,
-        maximumSizeInBytes: 8 * 1024 * 1024, // 8 Mo, cf. garde-fou déjà en place côté formulaire
+        // 15 Mo (au lieu de 8) : une photo prise directement au téléphone
+        // (12-48 Mpx) dépasse fréquemment 8 Mo, même en HEIC.
+        maximumSizeInBytes: 15 * 1024 * 1024,
       }),
       onUploadCompleted: async () => {
         // Rien à faire côté serveur : l'URL renvoyée au client est écrite dans le

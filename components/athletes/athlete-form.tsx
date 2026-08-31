@@ -406,7 +406,7 @@ export function AthleteForm({
                 <div className="flex items-center gap-2">
                   <Input
                     type="file"
-                    accept="image/png,image/jpeg,image/webp"
+                    accept="image/png,image/jpeg,image/webp,image/heic,image/heif"
                     disabled={uploadingPhoto}
                     onChange={(e) => handlePhotoChange(e.target.files?.[0])}
                   />
@@ -480,7 +480,7 @@ export function AthleteForm({
                     <div className="flex items-center gap-2">
                       <Input
                         type="file"
-                        accept="image/png,image/jpeg,image/webp"
+                        accept="image/png,image/jpeg,image/webp,image/heic,image/heif"
                         disabled={uploadingBanner}
                         onChange={(e) => handleBannerChange(e.target.files?.[0])}
                       />
