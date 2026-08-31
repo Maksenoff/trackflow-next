@@ -5,7 +5,16 @@ export async function getAthletesList(query?: string) {
   const athletes = await prisma.athlete.findMany({
     orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
     include: {
-      _count: { select: { athleteSessions: true, performances: true, goals: true } },
+      // athleteSessions filtré sur skipped: false — une séance marquée "non
+      // faite" ne doit pas compter dans le total de séances affiché sur la
+      // fiche athlète (correctif 2026-09-02).
+      _count: {
+        select: {
+          athleteSessions: { where: { skipped: false } },
+          performances: true,
+          goals: true,
+        },
+      },
     },
   })
 
@@ -56,7 +65,7 @@ export async function getAthleteDetail(id: string) {
           orderBy: { loggedAt: 'desc' },
           include: { session: { include: { trainingType: true } } },
         },
-        customSessions: { orderBy: { performedAt: 'desc' } },
+        customSessions: { orderBy: { date: 'desc' } },
         videos: { orderBy: { createdAt: 'desc' } },
         notesList: { orderBy: [{ pinned: 'desc' }, { createdAt: 'desc' }] },
         competitionRegistrations: {

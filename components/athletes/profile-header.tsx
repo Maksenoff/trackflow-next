@@ -224,7 +224,10 @@ export function ProfileHeader({
           sens (blanc/principal pour les compteurs neutres, vert pour les
           objectifs atteints, bleu-violet pour ceux en cours). */}
       <div className="grid grid-cols-2 divide-x divide-border border-t border-border bg-card shadow-sm sm:grid-cols-4 dark:shadow-none">
-        <StatTile label="Séances" value={athlete.athleteSessions.length} />
+        <StatTile
+          label="Séances"
+          value={athlete.athleteSessions.filter((s) => !s.skipped).length}
+        />
         <StatTile label="Performances" value={athlete.performances.length} />
         <StatTile label="Objectifs atteints" value={goalsAchieved} color="#22c55e" />
         <StatTile label="Objectifs en cours" value={goalsInProgress} color="#818cf8" />
