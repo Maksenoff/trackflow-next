@@ -105,7 +105,7 @@ export function SettingsTabs({
                 onClick={() => switchTo(t.key)}
                 aria-current={isActive}
                 className={cn(
-                  'relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium whitespace-nowrap transition-colors',
+                  'relative z-10 flex flex-1 items-center justify-center gap-1 rounded-full px-2 py-2 text-xs font-medium whitespace-nowrap transition-colors sm:gap-1.5 sm:px-3.5 sm:text-sm',
                   isActive
                     ? 'text-primary-foreground'
                     : 'text-muted-foreground hover:text-foreground'
@@ -118,19 +118,23 @@ export function SettingsTabs({
                     transition={{ duration: 0.25, ease: 'easeOut' }}
                   />
                 )}
-                <t.icon className="size-3.5" />
+                <t.icon className="size-3.5 shrink-0" />
                 <span className="hidden sm:inline">{t.label}</span>
+                {/* Libellés raccourcis + compteur masqué sur mobile : sinon les 3
+                    onglets (Séances/Compétitions/Config, vue admin) dépassaient la
+                    largeur d'un petit écran et forçaient un scroll horizontal
+                    (correctif 2026-09-03). */}
                 <span className="sm:hidden">
                   {t.key === 'sessions'
-                    ? 'Séances'
+                    ? 'Séance'
                     : t.key === 'competitions'
-                      ? 'Compétitions'
+                      ? 'Compét.'
                       : 'Config'}
                 </span>
                 {t.count !== null && (
                   <span
                     className={cn(
-                      'rounded-full px-1.5 text-[10px] font-bold',
+                      'hidden rounded-full px-1.5 text-[10px] font-bold sm:inline',
                       isActive ? 'bg-white/20' : 'bg-muted'
                     )}
                   >

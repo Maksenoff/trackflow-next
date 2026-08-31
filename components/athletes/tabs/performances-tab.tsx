@@ -194,11 +194,12 @@ export function PerformancesTab({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Une seule rangée de pills scrollable, sur mobile comme desktop (fusion du
             Select mobile + de la rangée desktop, correctif 2026-08-28) : le slide
-            tactile fonctionne nativement sur mobile via overflow-x-auto, et
-            scrollbar-thin (au lieu de no-scrollbar) rend la scrollbar visible sur
-            desktop plutôt que de masquer toute indication qu'il reste des saisons
-            à faire défiler. */}
-        <div className="scrollbar-thin flex min-w-0 items-center gap-2 overflow-x-auto pb-1.5">
+            tactile fonctionne nativement sur mobile via overflow-x-auto, sans
+            scrollbar visible (juste le doigt qui glisse). scrollbar-thin-desktop
+            ne fait apparaître une scrollbar fine que sur desktop (correctif
+            2026-09-03), pour indiquer qu'il reste des saisons à faire défiler là
+            où le geste tactile n'existe pas. */}
+        <div className="scrollbar-thin-desktop flex min-w-0 items-center gap-2 overflow-x-auto pb-1.5">
           <button
             type="button"
             onClick={() => setSeason('all')}
