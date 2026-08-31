@@ -9,6 +9,7 @@ import { useIsLightTheme } from '@/lib/use-is-light-theme'
 import type { CompetitionWidgetItem } from '@/lib/dashboard'
 import { MotionCta } from '@/components/dashboard/motion-cta'
 import { cn } from '@/lib/utils'
+import { legibleAccent } from '@/lib/color-contrast'
 
 const listVariants = {
   hidden: {},
@@ -128,7 +129,7 @@ export function CompetitionWidget({
                 className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5"
                 style={{
                   backgroundColor: `color-mix(in srgb, ${nextCompetition.colorBg} 20%, transparent)`,
-                  color: nextCompetition.colorBg,
+                  color: legibleAccent(nextCompetition.colorBg),
                   borderColor: `color-mix(in srgb, ${nextCompetition.colorBg} 40%, transparent)`,
                 }}
               >

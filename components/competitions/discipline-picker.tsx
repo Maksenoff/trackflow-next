@@ -5,6 +5,7 @@ import { Check, Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DISCIPLINE_CATEGORIES } from '@/lib/disciplines'
+import { legibleAccent } from '@/lib/color-contrast'
 
 const FALLBACK_COLOR = '#6366f1'
 const CATEGORY_COLOR_BY_LABEL: Record<string, string> = Object.fromEntries(
@@ -103,7 +104,7 @@ export function DisciplinePicker({
               <div className="mb-2 flex items-center justify-between border-b border-dashed pb-1.5">
                 <span
                   className="flex items-center gap-1.5 text-xs font-bold tracking-wide uppercase"
-                  style={{ color: category.color }}
+                  style={{ color: legibleAccent(category.color) }}
                 >
                   <span
                     className="size-2.5 shrink-0 rounded-full"
@@ -118,7 +119,7 @@ export function DisciplinePicker({
                   style={
                     allSelected
                       ? {
-                          backgroundColor: category.color,
+                          backgroundColor: legibleAccent(category.color),
                           color: 'white',
                           borderColor: category.color,
                         }
@@ -145,7 +146,7 @@ export function DisciplinePicker({
                       style={
                         active
                           ? {
-                              backgroundColor: category.color,
+                              backgroundColor: legibleAccent(category.color),
                               color: 'white',
                               borderColor: category.color,
                               boxShadow: `0 2px 8px -2px color-mix(in srgb, ${category.color} 60%, transparent)`,

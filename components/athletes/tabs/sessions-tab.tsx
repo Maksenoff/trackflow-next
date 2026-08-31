@@ -6,12 +6,14 @@ import { CalendarDays, CalendarCheck, MessageCircleQuestion, Ban } from 'lucide-
 import { formatFullDate } from '@/lib/date'
 import { rpeColor, rpeLabel } from '@/lib/rpe'
 import { computeDebriefStatus, type DebriefStatus } from '@/lib/session-debrief'
+import { CUSTOM_SESSION_COLOR } from '@/lib/custom-session'
 import { Badge } from '@/components/ui/badge'
 import {
   SessionDebriefDialog,
   type DebriefSessionInfo,
 } from '@/components/athletes/session-debrief-dialog'
 import { cn } from '@/lib/utils'
+import { legibleAccent } from '@/lib/color-contrast'
 import type { AthleteDetail } from '@/lib/athletes-data'
 
 type SessionWindowItem = AthleteDetail['sessionsWindow'][number]
@@ -37,6 +39,20 @@ function statusAccent(status: DebriefStatus, difficulty: number | null, fallback
   return fallback
 }
 
+/** Séance coach ou séance personnelle athlète, unifiées pour le même cycle de
+ * filtre/debrief (voir demande "séances persos dans à débriefer/déjà débriefé"). */
+type MergedItem = {
+  kind: 'session' | 'custom'
+  id: string
+  title: string
+  date: Date
+  startTime: Date | null
+  durationMinutes: number | null
+  trainingType: { id: string; name: string; color: string } | null
+  log: { difficulty: number | null; comment: string | null; skipped: boolean } | null
+  status: DebriefStatus
+}
+
 export function SessionsTab({
   athleteId,
   sessionsWindow,
@@ -53,14 +69,36 @@ export function SessionsTab({
   const [dialogSession, setDialogSession] = useState<DebriefSessionInfo | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
 
-  const withStatus = useMemo(
-    () =>
-      sessionsWindow.map((s) => ({
-        ...s,
-        status: computeDebriefStatus(s.date, s.log, s.startTime, s.durationMinutes),
-      })),
-    [sessionsWindow]
-  )
+  const withStatus = useMemo<MergedItem[]>(() => {
+    const fromSessions: MergedItem[] = sessionsWindow.map((s) => ({
+      kind: 'session',
+      id: s.id,
+      title: s.title,
+      date: s.date,
+      startTime: s.startTime,
+      durationMinutes: s.durationMinutes,
+      trainingType: s.trainingType,
+      log: s.log,
+      status: computeDebriefStatus(s.date, s.log, s.startTime, s.durationMinutes),
+    }))
+    const fromCustom: MergedItem[] = customSessions.map((cs) => ({
+      kind: 'custom',
+      id: cs.id,
+      title: cs.title,
+      date: cs.date,
+      startTime: cs.startTime,
+      durationMinutes: cs.durationMinutes,
+      trainingType: null,
+      log: { difficulty: cs.difficulty, comment: cs.comment, skipped: cs.skipped },
+      status: computeDebriefStatus(
+        cs.date,
+        { difficulty: cs.difficulty, skipped: cs.skipped },
+        cs.startTime,
+        cs.durationMinutes
+      ),
+    }))
+    return [...fromSessions, ...fromCustom].sort((a, b) => b.date.getTime() - a.date.getTime())
+  }, [sessionsWindow, customSessions])
 
   const counts = useMemo(() => {
     const c: Record<FilterKey, number> = { to_debrief: 0, logged: 0, not_done: 0 }
@@ -89,7 +127,11 @@ export function SessionsTab({
 
   const filtered = byStatus.filter((s) => !typeFilter || s.trainingType?.id === typeFilter)
 
-  function openDebrief(item: SessionWindowItem) {
+  // Les séances perso ne s'ouvrent plus jamais dans ce dialogue de debrief
+  // inline : elles renvoient toujours vers leur fiche (/custom-sessions/[id]),
+  // seul endroit désormais pour consulter et modifier ressenti + infos. Ce
+  // dialogue ne sert donc plus qu'aux séances coach.
+  function openDebrief(item: MergedItem) {
     setDialogSession({
       id: item.id,
       title: item.title,
@@ -100,7 +142,7 @@ export function SessionsTab({
   }
 
   const dialogInitial = dialogSession
-    ? (sessionsWindow.find((s) => s.id === dialogSession.id)?.log ?? null)
+    ? (withStatus.find((s) => s.id === dialogSession.id && s.kind === 'session')?.log ?? null)
     : null
 
   return (
@@ -152,7 +194,7 @@ export function SessionsTab({
                 )}
                 style={{
                   backgroundColor: `${t.color}22`,
-                  color: t.color,
+                  color: legibleAccent(t.color),
                   borderColor: isActive ? `${t.color}66` : 'transparent',
                 }}
               >
@@ -171,16 +213,19 @@ export function SessionsTab({
       ) : (
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
           {filtered.map((item) => {
-            const accent = statusAccent(
-              item.status,
-              item.log?.difficulty ?? null,
-              item.trainingType?.color ?? '#6366f1'
-            )
-            const clickable = canEdit && item.status !== 'upcoming'
+            const isCustom = item.kind === 'custom'
+            const accent = isCustom
+              ? CUSTOM_SESSION_COLOR
+              : statusAccent(item.status, item.log?.difficulty ?? null, '#6366f1')
+            // Les séances perso ne s'ouvrent plus jamais en inline ici : elles
+            // renvoient toujours vers leur fiche, seul endroit où on peut
+            // désormais les modifier et saisir/modifier le ressenti.
+            const clickable = !isCustom && canEdit && item.status !== 'upcoming'
             const content = (
               <div
                 className={cn(
-                  'flex h-full min-h-28 flex-col rounded-xl border border-border bg-card p-3.5 shadow-sm transition-colors',
+                  'flex h-full min-h-28 flex-col rounded-xl border bg-card p-3.5 shadow-sm transition-colors',
+                  isCustom ? 'border-dashed border-border' : 'border-border',
                   clickable && 'cursor-pointer hover:border-primary/40'
                 )}
                 style={{ borderLeft: `3px solid ${accent}` }}
@@ -194,11 +239,23 @@ export function SessionsTab({
                           className="shrink-0 border"
                           style={{
                             backgroundColor: `${item.trainingType.color}22`,
-                            color: item.trainingType.color,
+                            color: legibleAccent(item.trainingType.color),
                             borderColor: `${item.trainingType.color}44`,
                           }}
                         >
                           {item.trainingType.name}
+                        </Badge>
+                      )}
+                      {isCustom && (
+                        <Badge
+                          className="shrink-0 border border-dashed"
+                          style={{
+                            backgroundColor: `${CUSTOM_SESSION_COLOR}22`,
+                            color: CUSTOM_SESSION_COLOR,
+                            borderColor: `${CUSTOM_SESSION_COLOR}44`,
+                          }}
+                        >
+                          Perso
                         </Badge>
                       )}
                     </div>
@@ -207,11 +264,13 @@ export function SessionsTab({
                       {item.durationMinutes ? ` · ${item.durationMinutes} min` : ''}
                     </div>
                   </div>
-                  <StatusBadge
-                    status={item.status}
-                    difficulty={item.log?.difficulty ?? null}
-                    color={accent}
-                  />
+                  <div className="flex shrink-0 items-center gap-1">
+                    <StatusBadge
+                      status={item.status}
+                      difficulty={item.log?.difficulty ?? null}
+                      color={accent}
+                    />
+                  </div>
                 </div>
                 {item.log?.comment && (
                   <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
@@ -221,10 +280,24 @@ export function SessionsTab({
               </div>
             )
 
+            // Une séance perso renvoie toujours vers sa fiche dédiée
+            // (/custom-sessions/[id]) — c'est là, et seulement là, qu'on peut
+            // désormais la modifier ou saisir un ressenti.
+            if (isCustom) {
+              return (
+                <Link
+                  key={`${item.kind}-${item.id}`}
+                  href={`/custom-sessions/${item.id}`}
+                  className="block"
+                >
+                  {content}
+                </Link>
+              )
+            }
             if (clickable) {
               return (
                 <button
-                  key={item.id}
+                  key={`${item.kind}-${item.id}`}
                   type="button"
                   onClick={() => openDebrief(item)}
                   className="block h-full text-left"
@@ -234,38 +307,11 @@ export function SessionsTab({
               )
             }
             return (
-              <Link key={item.id} href={`/sessions/${item.id}`} className="block">
+              <Link key={`${item.kind}-${item.id}`} href={`/sessions/${item.id}`} className="block">
                 {content}
               </Link>
             )
           })}
-        </div>
-      )}
-
-      {customSessions.length > 0 && (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-          <div className="border-b border-border px-5 py-3 text-sm font-semibold text-muted-foreground">
-            Séances personnelles
-          </div>
-          {customSessions.map((cs) => (
-            <div
-              key={cs.id}
-              className="flex items-center justify-between gap-3 border-b border-border px-5 py-3 last:border-b-0"
-            >
-              <div className="min-w-0">
-                <div className="truncate text-sm font-semibold">{cs.title}</div>
-                {cs.comment && <p className="mt-0.5 text-xs text-muted-foreground">{cs.comment}</p>}
-              </div>
-              <div className="shrink-0 text-right">
-                {cs.difficulty !== null && (
-                  <div className="text-sm font-bold text-primary">{cs.difficulty}/10</div>
-                )}
-                <div className="text-xs text-muted-foreground">
-                  {formatFullDate(cs.performedAt)}
-                </div>
-              </div>
-            </div>
-          ))}
         </div>
       )}
 

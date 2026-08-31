@@ -13,6 +13,7 @@ import {
 import type { SessionWidgetItem } from '@/lib/dashboard'
 import { MotionCta } from '@/components/dashboard/motion-cta'
 import { cn } from '@/lib/utils'
+import { legibleAccent } from '@/lib/color-contrast'
 
 const listVariants = {
   hidden: {},
@@ -131,7 +132,9 @@ export function SessionWidget({
                 className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5"
                 style={{
                   backgroundColor: `color-mix(in srgb, ${nextSession.trainingType?.color ?? '#5b21b6'} 20%, transparent)`,
-                  color: nextSession.trainingType?.color ?? 'var(--primary)',
+                  color: nextSession.trainingType?.color
+                    ? legibleAccent(nextSession.trainingType.color)
+                    : 'var(--primary)',
                   borderColor: `color-mix(in srgb, ${nextSession.trainingType?.color ?? '#5b21b6'} 40%, transparent)`,
                 }}
               >

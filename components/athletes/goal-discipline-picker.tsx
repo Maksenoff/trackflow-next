@@ -1,6 +1,7 @@
 'use client'
 
 import { GOAL_DISCIPLINE_CATEGORIES } from '@/lib/disciplines'
+import { legibleAccent } from '@/lib/color-contrast'
 
 /** Sélecteur de discipline à choix unique pour un objectif — catégorie Espoir/Senior
  * uniquement, groupée et colorée par famille (sprints, sauts, relais...). Chaque
@@ -34,7 +35,7 @@ export function GoalDisciplinePicker({
                     active
                       ? {
                           backgroundColor: `color-mix(in srgb, ${category.color} 28%, transparent)`,
-                          color: category.color,
+                          color: legibleAccent(category.color),
                           borderColor: category.color,
                           boxShadow: `0 0 0 1px ${category.color}`,
                         }

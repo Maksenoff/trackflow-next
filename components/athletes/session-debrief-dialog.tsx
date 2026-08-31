@@ -10,6 +10,7 @@ import { Slider } from '@/components/ui/slider'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { rpeColor, rpeLabel } from '@/lib/rpe'
 import { formatFullDate } from '@/lib/date'
+import { legibleAccent } from '@/lib/color-contrast'
 
 export type DebriefSessionInfo = {
   id: string
@@ -83,7 +84,7 @@ export function SessionDebriefDialog({
                   className="rounded-full border px-2 py-0.5 text-[11px] font-semibold"
                   style={{
                     backgroundColor: `${session.trainingType.color}22`,
-                    color: session.trainingType.color,
+                    color: legibleAccent(session.trainingType.color),
                     borderColor: `${session.trainingType.color}44`,
                   }}
                 >

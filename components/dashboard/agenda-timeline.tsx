@@ -6,6 +6,7 @@ import { ArrowRight, ChevronRight, Trophy, Users, Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { relativeDayLabel, relativeDayShort, formatShortDate } from '@/lib/date'
 import { cn } from '@/lib/utils'
+import { legibleAccent } from '@/lib/color-contrast'
 import type { CompetitionWidgetItem, SessionWidgetItem } from '@/lib/dashboard'
 
 type AgendaEntry =
@@ -226,7 +227,7 @@ function HeroCard({ entry, showLinkedBadge }: { entry: AgendaEntry; showLinkedBa
                 className="mt-3 border"
                 style={{
                   backgroundColor: `${session.trainingType.color}22`,
-                  color: session.trainingType.color,
+                  color: legibleAccent(session.trainingType.color),
                   borderColor: `${session.trainingType.color}44`,
                 }}
               >
@@ -288,7 +289,7 @@ function HeroCard({ entry, showLinkedBadge }: { entry: AgendaEntry; showLinkedBa
             className="mt-3 border"
             style={{
               backgroundColor: `${competition.colorBg}22`,
-              color: competition.colorBg,
+              color: legibleAccent(competition.colorBg),
               borderColor: `${competition.colorBg}44`,
             }}
           >

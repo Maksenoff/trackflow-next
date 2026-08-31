@@ -12,6 +12,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { rpeColor } from '@/lib/rpe'
 import { formatFullDate } from '@/lib/date'
 import { DISCIPLINE_LABELS } from '@/lib/disciplines'
+import { legibleAccent } from '@/lib/color-contrast'
 
 export type DebriefCompetitionInfo = {
   id: string
@@ -98,7 +99,7 @@ export function CompetitionDebriefDialog({
                   className="rounded-full border px-2 py-0.5 text-[11px] font-semibold"
                   style={{
                     backgroundColor: `${competition.competitionType.color}22`,
-                    color: competition.competitionType.color,
+                    color: legibleAccent(competition.competitionType.color),
                     borderColor: `${competition.competitionType.color}44`,
                   }}
                 >

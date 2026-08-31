@@ -13,6 +13,7 @@ import {
   type DebriefCompetitionInfo,
 } from '@/components/athletes/competition-debrief-dialog'
 import { cn } from '@/lib/utils'
+import { legibleAccent } from '@/lib/color-contrast'
 import type { AthleteDetail } from '@/lib/athletes-data'
 
 type Registration = AthleteDetail['competitionRegistrations'][number]
@@ -176,7 +177,7 @@ export function CompetitionsTab({
                 )}
                 style={{
                   backgroundColor: `${t.color}22`,
-                  color: t.color,
+                  color: legibleAccent(t.color),
                   borderColor: isActive ? `${t.color}66` : 'transparent',
                 }}
               >

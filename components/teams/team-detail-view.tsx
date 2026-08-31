@@ -10,6 +10,7 @@ import { DeleteTeamButton } from './delete-team-button'
 import { RelayBuilder, type RelaySlot } from './relay-builder'
 import { TeamTabs } from './team-tabs'
 import { TeamHistoryTab } from './team-history-tab'
+import { legibleAccent } from '@/lib/color-contrast'
 import type { TeamDetail } from '@/lib/teams-data'
 
 /**
@@ -65,25 +66,43 @@ export function TeamDetailView({
             Remplaçants
           </h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {bench.map((m) => (
-              <Link
-                key={m.id}
-                href={`/athletes/${m.id}`}
-                className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-card transition-colors hover:bg-primary/[0.03]"
-              >
-                <AthleteAvatar athlete={m} className="size-10" />
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold">
-                    {fullName(m.firstName, m.lastName)}
-                  </div>
-                  {m.licenseNumber && (
-                    <div className="truncate text-xs text-muted-foreground">
-                      Licence <span className="font-mono font-bold">{m.licenseNumber}</span>
+            {bench.map((m) => {
+              const content = (
+                <>
+                  <AthleteAvatar athlete={m} className="size-10" />
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold">
+                      {fullName(m.firstName, m.lastName)}
                     </div>
-                  )}
+                    {m.isGuest ? (
+                      <div className="truncate text-xs text-muted-foreground">Invité</div>
+                    ) : (
+                      m.licenseNumber && (
+                        <div className="truncate text-xs text-muted-foreground">
+                          Licence <span className="font-mono font-bold">{m.licenseNumber}</span>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </>
+              )
+              return m.isGuest ? (
+                <div
+                  key={m.id}
+                  className="flex items-center gap-3 rounded-2xl border border-dashed border-border bg-card p-3 shadow-card"
+                >
+                  {content}
                 </div>
-              </Link>
-            ))}
+              ) : (
+                <Link
+                  key={m.id}
+                  href={`/athletes/${m.id}`}
+                  className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-card transition-colors hover:bg-primary/[0.03]"
+                >
+                  {content}
+                </Link>
+              )
+            })}
           </div>
         </div>
       )}
@@ -126,7 +145,7 @@ export function TeamDetailView({
                 style={{
                   backgroundColor: `color-mix(in srgb, ${accent} 14%, transparent)`,
                   borderColor: `color-mix(in srgb, ${accent} 35%, transparent)`,
-                  color: accent,
+                  color: legibleAccent(accent),
                 }}
               >
                 {DISCIPLINE_LABELS[team.discipline] ?? team.discipline}

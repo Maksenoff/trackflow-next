@@ -20,6 +20,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   buildMonthGrid,
   monthLabel,
@@ -28,11 +29,16 @@ import {
   toDateInputValue,
 } from '@/lib/calendar-grid'
 import { cn } from '@/lib/utils'
+import { fullName } from '@/lib/athlete'
+import { formatTime } from '@/lib/date'
+import { CUSTOM_SESSION_COLOR } from '@/lib/custom-session'
+import { legibleAccent } from '@/lib/color-contrast'
 import {
   SessionFormDialog,
   type TrainingTypeOption,
   type CoachOption,
 } from '@/components/calendar/session-form-dialog'
+import { CustomSessionFormDialog } from '@/components/calendar/custom-session-form-dialog'
 import { type ColorTypeOption } from '@/components/calendar/type-pill-picker'
 
 type CalSession = {
@@ -60,37 +66,70 @@ type CalCompetition = {
   isRegistered: boolean
 }
 
+/** Séance perso athlète — le champ `athlete` la distingue à l'exécution des
+ * CalSession/CalCompetition (aucun des deux ne l'a) sans discriminant dédié. */
+type CalCustomSession = {
+  id: string
+  title: string
+  date: Date
+  startTime: Date | null
+  durationMinutes: number | null
+  description: string | null
+  difficulty: number | null
+  skipped: boolean
+  athlete: { id: string; firstName: string; lastName: string }
+}
+
 type Tab = 'sessions' | 'competitions'
 
-type DragItem = { id: string; title: string; color: string; kind: Tab }
+type DragItem = {
+  id: string
+  title: string
+  color: string
+  kind: Tab | 'custom'
+  /** Uniquement pour kind: 'custom' — vérifie que le glisser vient bien du
+   * propriétaire de la séance perso avant de l'autoriser. */
+  athleteId?: string
+}
 
 export function CalendarView({
   year,
   month,
   sessions,
   competitions,
+  customSessions,
   trainingTypes,
   competitionTypes,
   coaches,
   currentUserId,
+  linkedAthleteId,
   canManageSessions,
   canManageCompetitions,
+  showAllCustom,
 }: {
   year: number
   month: number
   sessions: CalSession[]
   competitions: CalCompetition[]
+  customSessions: CalCustomSession[]
   trainingTypes: TrainingTypeOption[]
   competitionTypes: ColorTypeOption[]
   coaches: CoachOption[]
   currentUserId?: string
+  /** Profil athlète lié au compte connecté — conditionne "+ Ajouter une séance
+   * personnelle" (un coach sans profil lié n'en a pas). */
+  linkedAthleteId?: string | null
   canManageSessions: boolean
   canManageCompetitions: boolean
+  /** Filtre "calendrier général" (coach) : `customSessions` contient alors
+   * celles de tout le club plutôt que les siennes uniquement (cf. page.tsx). */
+  showAllCustom: boolean
 }) {
   const router = useRouter()
   const [tab, setTab] = useState<Tab>('sessions')
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
+  const [customFormOpen, setCustomFormOpen] = useState(false)
 
   const [draggingItem, setDraggingItem] = useState<DragItem | null>(null)
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null)
@@ -114,22 +153,33 @@ export function CalendarView({
   })
   const suppressClickRef = useRef(false)
 
-  const [hoverItem, setHoverItem] = useState<{ kind: Tab; id: string } | null>(null)
+  const [hoverItem, setHoverItem] = useState<{ kind: Tab | 'custom'; id: string } | null>(null)
   const [hoverRect, setHoverRect] = useState<DOMRect | null>(null)
 
   const cells = useMemo(() => buildMonthGrid(year, month), [year, month])
   const today = new Date()
   const canManageActiveTab = tab === 'sessions' ? canManageSessions : canManageCompetitions
 
-  async function moveItem(kind: Tab, id: string, newDate: string) {
-    const url = kind === 'sessions' ? `/api/sessions/${id}` : `/api/competitions/${id}`
+  async function moveItem(kind: Tab | 'custom', id: string, newDate: string) {
+    const url =
+      kind === 'sessions'
+        ? `/api/sessions/${id}`
+        : kind === 'competitions'
+          ? `/api/competitions/${id}`
+          : `/api/athletes/${linkedAthleteId}/custom-sessions/${id}`
     const res = await fetch(url, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ date: newDate }),
     })
     if (res.ok) {
-      toast.success(kind === 'sessions' ? 'Séance déplacée.' : 'Compétition déplacée.')
+      toast.success(
+        kind === 'sessions'
+          ? 'Séance déplacée.'
+          : kind === 'competitions'
+            ? 'Compétition déplacée.'
+            : 'Séance personnelle déplacée.'
+      )
       router.refresh()
     } else {
       const body = await res.json().catch(() => null)
@@ -137,7 +187,9 @@ export function CalendarView({
       toast.error(
         kind === 'sessions'
           ? 'Impossible de déplacer la séance.'
-          : 'Impossible de déplacer la compétition.'
+          : kind === 'competitions'
+            ? 'Impossible de déplacer la compétition.'
+            : 'Impossible de déplacer la séance personnelle.'
       )
     }
   }
@@ -204,7 +256,12 @@ export function CalendarView({
   }, [])
 
   function handlePillPointerDown(e: ReactPointerEvent, item: DragItem) {
-    const allowed = item.kind === 'sessions' ? canManageSessions : canManageCompetitions
+    const allowed =
+      item.kind === 'sessions'
+        ? canManageSessions
+        : item.kind === 'competitions'
+          ? canManageCompetitions
+          : !!linkedAthleteId && item.athleteId === linkedAthleteId
     if (!allowed) return
     e.stopPropagation()
     const st = dragStateRef.current
@@ -227,14 +284,24 @@ export function CalendarView({
     }, 280)
   }
 
+  function calendarUrl(y: number, m: number, showAll: boolean) {
+    const params = new URLSearchParams({ year: String(y), month: String(m) })
+    if (showAll) params.set('showAllCustom', '1')
+    return `/calendar?${params.toString()}`
+  }
+
   function go(delta: number) {
     const { year: y, month: m } = addMonths(year, month, delta)
-    router.push(`/calendar?year=${y}&month=${m}`)
+    router.push(calendarUrl(y, m, showAllCustom))
   }
 
   function goToday() {
     const now = new Date()
-    router.push(`/calendar?year=${now.getFullYear()}&month=${now.getMonth() + 1}`)
+    router.push(calendarUrl(now.getFullYear(), now.getMonth() + 1, showAllCustom))
+  }
+
+  function toggleShowAllCustom(checked: boolean) {
+    router.push(calendarUrl(year, month, checked))
   }
 
   function goToNewCompetition() {
@@ -242,9 +309,16 @@ export function CalendarView({
     router.push(`/competitions/new?date=${toDateInputValue(date)}`)
   }
 
+  function openCreateCustom() {
+    setCustomFormOpen(true)
+  }
+
   const daySessions = selectedDay ? sessions.filter((s) => sameDay(s.date, selectedDay)) : []
   const dayCompetitions = selectedDay
     ? competitions.filter((c) => sameDay(c.date, selectedDay))
+    : []
+  const dayCustomSessions = selectedDay
+    ? customSessions.filter((cs) => sameDay(cs.date, selectedDay))
     : []
 
   return (
@@ -274,14 +348,30 @@ export function CalendarView({
           </button>
         </div>
 
-        {canManageActiveTab && (
-          <button
-            onClick={() => (tab === 'sessions' ? setCreateOpen(true) : goToNewCompetition())}
-            className="group inline-flex shrink-0 items-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-primary/80 px-3 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/35"
-          >
-            <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
-          </button>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {tab === 'sessions' && linkedAthleteId && (
+            <button
+              onClick={openCreateCustom}
+              aria-label="Séance personnalisée"
+              title="Séance personnalisée"
+              className="group inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-white shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
+              style={{
+                background: CUSTOM_SESSION_COLOR,
+                boxShadow: `0 8px 16px -4px ${CUSTOM_SESSION_COLOR}66`,
+              }}
+            >
+              <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
+            </button>
+          )}
+          {canManageActiveTab && (
+            <button
+              onClick={() => (tab === 'sessions' ? setCreateOpen(true) : goToNewCompetition())}
+              className="group inline-flex shrink-0 items-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-primary/80 px-3 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/35"
+            >
+              <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Onglets (mobile) */}
@@ -370,15 +460,33 @@ export function CalendarView({
           </button>
         </div>
 
-        {canManageActiveTab && (
-          <button
-            onClick={() => (tab === 'sessions' ? setCreateOpen(true) : goToNewCompetition())}
-            className="group inline-flex items-center justify-self-end gap-1.5 rounded-full bg-gradient-to-r from-primary to-primary/80 px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/35"
-          >
-            <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
-            {tab === 'sessions' ? 'Nouvelle séance' : 'Nouvelle compétition'}
-          </button>
-        )}
+        <div className="flex items-center justify-self-end gap-2">
+          {/* Séance personnalisée : indépendante de canManageActiveTab — un
+              coach avec un profil athlète lié voit les deux boutons côte à
+              côte (le sien reste géré séparément de son rôle coach). */}
+          {tab === 'sessions' && linkedAthleteId && (
+            <button
+              onClick={openCreateCustom}
+              className="group inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
+              style={{
+                background: CUSTOM_SESSION_COLOR,
+                boxShadow: `0 8px 16px -4px ${CUSTOM_SESSION_COLOR}66`,
+              }}
+            >
+              <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
+              Séance personnalisée
+            </button>
+          )}
+          {canManageActiveTab && (
+            <button
+              onClick={() => (tab === 'sessions' ? setCreateOpen(true) : goToNewCompetition())}
+              className="group inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-primary/80 px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/35"
+            >
+              <Plus className="size-4 transition-transform duration-300 group-hover:rotate-90" />
+              {tab === 'sessions' ? 'Nouvelle séance' : 'Nouvelle compétition'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Légende */}
@@ -387,16 +495,45 @@ export function CalendarView({
           <span
             key={t.id}
             className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold"
-            style={{ backgroundColor: `${t.color}22`, color: t.color, borderColor: `${t.color}44` }}
+            style={{
+              backgroundColor: `${t.color}22`,
+              color: legibleAccent(t.color),
+              borderColor: `${t.color}44`,
+            }}
           >
             <span className="size-1.5 rounded-full" style={{ background: t.color }} />
             {t.name}
           </span>
         ))}
+        {tab === 'sessions' && (linkedAthleteId || customSessions.length > 0) && (
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full border border-dashed px-2.5 py-1 text-xs font-semibold"
+            style={{
+              backgroundColor: `${CUSTOM_SESSION_COLOR}22`,
+              color: CUSTOM_SESSION_COLOR,
+              borderColor: `${CUSTOM_SESSION_COLOR}66`,
+            }}
+          >
+            <span className="size-1.5 rounded-sm" style={{ background: CUSTOM_SESSION_COLOR }} />
+            Perso
+          </span>
+        )}
+        {tab === 'sessions' && canManageSessions && (
+          <label className="ml-auto flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+            <Checkbox
+              checked={showAllCustom}
+              onCheckedChange={(checked) => toggleShowAllCustom(checked === true)}
+            />
+            Calendrier général (séances persos athlètes)
+          </label>
+        )}
         {canManageActiveTab && (
           <Link
             href={tab === 'sessions' ? '/settings?tab=sessions' : '/settings?tab=competitions'}
-            className="ml-auto inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+            className={cn(
+              'inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary',
+              !(tab === 'sessions' && canManageSessions) && 'ml-auto'
+            )}
           >
             <Settings className="size-3" />
             Gérer
@@ -421,10 +558,19 @@ export function CalendarView({
               tab === 'sessions'
                 ? sessions.filter((s) => sameDay(s.date, cell.date))
                 : competitions.filter((c) => sameDay(c.date, cell.date))
-            const visiblePills = items.slice(0, 3)
-            const overflowPills = items.length - visiblePills.length
-            const visibleDots = items.slice(0, 4)
-            const overflowDots = items.length - visibleDots.length
+            const dayCustom =
+              tab === 'sessions' ? customSessions.filter((cs) => sameDay(cs.date, cell.date)) : []
+            // Séances persos affichées à côté des vraies séances/compétitions, mais
+            // jamais draggables ni auto-ouvertes en détail (pas de /sessions/[id]
+            // pour elles) — cf. combined ci-dessous, utilisé seulement pour l'affichage.
+            const combined: (CalSession | CalCompetition | CalCustomSession)[] = [
+              ...items,
+              ...dayCustom,
+            ]
+            const visiblePills = combined.slice(0, 3)
+            const overflowPills = combined.length - visiblePills.length
+            const visibleDots = combined.slice(0, 4)
+            const overflowDots = combined.length - visibleDots.length
             const isDropTarget = canManageActiveTab && dragOverDate === cellDateKey
 
             return (
@@ -436,7 +582,7 @@ export function CalendarView({
                     e.preventDefault()
                     return
                   }
-                  if (items.length === 1) {
+                  if (items.length === 1 && dayCustom.length === 0) {
                     router.push(
                       tab === 'sessions'
                         ? `/sessions/${items[0].id}`
@@ -466,26 +612,30 @@ export function CalendarView({
                       ouvre la liste complète, cf. modal du jour). */}
                   <div className="flex flex-wrap items-center gap-1 xl:hidden">
                     {visibleDots.map((item) => {
-                      const color =
-                        tab === 'sessions'
+                      const isCustom = 'athlete' in item
+                      const color = isCustom
+                        ? CUSTOM_SESSION_COLOR
+                        : tab === 'sessions'
                           ? (item as CalSession).trainingType?.color
                           : (item as CalCompetition).competitionType?.color
                       const isBeingDragged =
-                        draggingItem?.id === item.id && draggingItem.kind === tab
+                        !isCustom && draggingItem?.id === item.id && draggingItem.kind === tab
                       return (
                         <span
                           key={item.id}
-                          onPointerDown={(e) =>
+                          onPointerDown={(e) => {
+                            if (isCustom) return
                             handlePillPointerDown(e, {
                               id: item.id,
                               title: item.title,
                               color: color ?? '#94a3b8',
                               kind: tab,
                             })
-                          }
+                          }}
                           className={cn(
-                            'size-1.5 shrink-0 rounded-full',
-                            canManageActiveTab && 'touch-none select-none',
+                            'size-1.5 shrink-0',
+                            isCustom ? 'rounded-sm' : 'rounded-full',
+                            canManageActiveTab && !isCustom && 'touch-none select-none',
                             isBeingDragged && 'opacity-30'
                           )}
                           style={{ background: color ?? '#94a3b8' }}
@@ -502,42 +652,70 @@ export function CalendarView({
                   {/* Desktop large : assez de place pour un libellé tronqué. */}
                   <div className="hidden flex-1 flex-col gap-1 overflow-hidden xl:flex">
                     {visiblePills.map((item) => {
-                      const color =
-                        tab === 'sessions'
+                      const isCustom = 'athlete' in item
+                      const color = isCustom
+                        ? CUSTOM_SESSION_COLOR
+                        : tab === 'sessions'
                           ? (item as CalSession).trainingType?.color
                           : (item as CalCompetition).competitionType?.color
+                      // Une séance perso n'est glissable (desktop uniquement) que par
+                      // l'athlète qui l'a créée — jamais par le coach en mode "calendrier
+                      // général", même s'il peut la voir.
+                      const isOwnCustom = isCustom && item.athlete.id === linkedAthleteId
+                      const draggable = isCustom ? isOwnCustom : canManageActiveTab
                       const isBeingDragged =
-                        draggingItem?.id === item.id && draggingItem.kind === tab
+                        draggingItem?.id === item.id &&
+                        draggingItem.kind === (isCustom ? 'custom' : tab)
+                      const label =
+                        isCustom && showAllCustom
+                          ? `${item.athlete.firstName} · ${item.title}`
+                          : item.title
                       return (
                         <span
                           key={item.id}
-                          onPointerDown={(e) =>
+                          // Clic direct sur la fiche séance perso (propriétaire ou pas,
+                          // le staff y a accès en lecture) — bypasse la modal du jour et
+                          // l'auto-navigation "un seul élément" du jour, qui ne
+                          // connaissent pas les séances perso.
+                          onClick={
+                            isCustom
+                              ? (e) => {
+                                  e.stopPropagation()
+                                  if (suppressClickRef.current) return
+                                  router.push(`/custom-sessions/${item.id}`)
+                                }
+                              : undefined
+                          }
+                          onPointerDown={(e) => {
+                            if (isCustom && !isOwnCustom) return
                             handlePillPointerDown(e, {
                               id: item.id,
                               title: item.title,
                               color: color ?? '#94a3b8',
-                              kind: tab,
+                              kind: isCustom ? 'custom' : tab,
+                              athleteId: isCustom ? item.athlete.id : undefined,
                             })
-                          }
+                          }}
                           onMouseEnter={(e) => {
-                            setHoverItem({ kind: tab, id: item.id })
+                            setHoverItem({ kind: isCustom ? 'custom' : tab, id: item.id })
                             setHoverRect(e.currentTarget.getBoundingClientRect())
                           }}
                           onMouseLeave={() => setHoverItem(null)}
                           className={cn(
                             'flex shrink-0 items-center gap-0.5 truncate rounded px-1.5 py-0.5 text-[10px] font-semibold',
-                            canManageActiveTab && 'touch-none select-none',
+                            isCustom ? 'border border-dashed' : 'border border-transparent',
+                            isCustom && 'cursor-pointer',
+                            draggable && 'touch-none select-none',
                             isBeingDragged && 'opacity-30'
                           )}
                           style={{
                             backgroundColor: `${color ?? '#94a3b8'}22`,
-                            color: color ?? '#64748b',
+                            color: color ? legibleAccent(color) : '#64748b',
+                            borderColor: isCustom ? `${color}66` : undefined,
                           }}
                         >
-                          {canManageActiveTab && (
-                            <GripVertical className="size-2.5 shrink-0 opacity-60" />
-                          )}
-                          <span className="truncate">{item.title}</span>
+                          {draggable && <GripVertical className="size-2.5 shrink-0 opacity-60" />}
+                          <span className="truncate">{label}</span>
                         </span>
                       )
                     })}
@@ -575,6 +753,8 @@ export function CalendarView({
           rect={hoverRect}
           sessions={sessions}
           competitions={competitions}
+          customSessions={customSessions}
+          showAllCustom={showAllCustom}
         />
       )}
 
@@ -594,35 +774,77 @@ export function CalendarView({
           <div className="space-y-2">
             <AnimatePresence mode="wait">
               {tab === 'sessions' ? (
-                daySessions.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-muted-foreground">
-                    Aucune séance ce jour.
-                  </p>
-                ) : (
-                  daySessions.map((s) => (
-                    <Link
-                      key={s.id}
-                      href={`/sessions/${s.id}`}
-                      className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5 transition-colors hover:bg-muted/40"
-                    >
-                      <span
-                        className="size-2 shrink-0 rounded-full"
-                        style={{ background: s.trainingType?.color ?? '#94a3b8' }}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-semibold">{s.title}</div>
-                        {s.trainingType && (
-                          <div className="text-xs text-muted-foreground">{s.trainingType.name}</div>
+                <>
+                  {daySessions.length === 0 && dayCustomSessions.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-muted-foreground">
+                      Aucune séance ce jour.
+                    </p>
+                  ) : (
+                    daySessions.map((s) => (
+                      <Link
+                        key={s.id}
+                        href={`/sessions/${s.id}`}
+                        className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5 transition-colors hover:bg-muted/40"
+                      >
+                        <span
+                          className="size-2 shrink-0 rounded-full"
+                          style={{ background: s.trainingType?.color ?? '#94a3b8' }}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-semibold">{s.title}</div>
+                          {s.trainingType && (
+                            <div className="text-xs text-muted-foreground">
+                              {s.trainingType.name}
+                            </div>
+                          )}
+                        </div>
+                        {s.durationMinutes && (
+                          <span className="shrink-0 text-xs text-muted-foreground">
+                            {s.durationMinutes} min
+                          </span>
                         )}
-                      </div>
-                      {s.durationMinutes && (
-                        <span className="shrink-0 text-xs text-muted-foreground">
-                          {s.durationMinutes} min
-                        </span>
-                      )}
-                    </Link>
-                  ))
-                )
+                      </Link>
+                    ))
+                  )}
+
+                  {dayCustomSessions.map((cs) => {
+                    const isMine = linkedAthleteId && cs.athlete.id === linkedAthleteId
+                    const rowContent = (
+                      <>
+                        <span
+                          className="size-2 shrink-0 rounded-sm"
+                          style={{ background: CUSTOM_SESSION_COLOR }}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-semibold">{cs.title}</div>
+                          <div className="text-xs text-muted-foreground">
+                            Perso
+                            {showAllCustom && !isMine
+                              ? ` · ${fullName(cs.athlete.firstName, cs.athlete.lastName)}`
+                              : ''}
+                          </div>
+                        </div>
+                        {cs.durationMinutes && (
+                          <span className="shrink-0 text-xs text-muted-foreground">
+                            {cs.durationMinutes} min
+                          </span>
+                        )}
+                      </>
+                    )
+                    // Toujours la fiche séance perso, propriétaire ou pas (le staff
+                    // y a accès en lecture, seul le propriétaire peut y modifier).
+                    return (
+                      <Link
+                        key={cs.id}
+                        href={`/custom-sessions/${cs.id}`}
+                        className="flex items-center gap-3 rounded-xl border border-dashed px-3 py-2.5 transition-colors hover:bg-muted/40"
+                        style={{ borderColor: `${CUSTOM_SESSION_COLOR}66` }}
+                      >
+                        {rowContent}
+                      </Link>
+                    )
+                  })}
+                </>
               ) : dayCompetitions.length === 0 ? (
                 <p className="py-6 text-center text-sm text-muted-foreground">
                   Aucune compétition ce jour.
@@ -663,6 +885,16 @@ export function CalendarView({
                 Ajouter une séance ce jour
               </button>
             )}
+            {tab === 'sessions' && linkedAthleteId && (
+              <button
+                onClick={openCreateCustom}
+                className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed py-2.5 text-sm font-medium transition-colors hover:opacity-80"
+                style={{ borderColor: `${CUSTOM_SESSION_COLOR}66`, color: CUSTOM_SESSION_COLOR }}
+              >
+                <Plus className="size-4" />
+                Ajouter une séance personnelle
+              </button>
+            )}
             {tab === 'competitions' && canManageCompetitions && (
               <button
                 onClick={goToNewCompetition}
@@ -685,6 +917,16 @@ export function CalendarView({
         currentUserId={currentUserId}
         onSuccess={() => setSelectedDay(null)}
       />
+
+      {linkedAthleteId && (
+        <CustomSessionFormDialog
+          open={customFormOpen}
+          onOpenChange={setCustomFormOpen}
+          athleteId={linkedAthleteId}
+          date={selectedDay ?? today}
+          onSuccess={() => setSelectedDay(null)}
+        />
+      )}
     </div>
   )
 }
@@ -694,11 +936,15 @@ function HoverPreview({
   rect,
   sessions,
   competitions,
+  customSessions,
+  showAllCustom,
 }: {
-  hoverItem: { kind: Tab; id: string }
+  hoverItem: { kind: Tab | 'custom'; id: string }
   rect: DOMRect
   sessions: CalSession[]
   competitions: CalCompetition[]
+  customSessions: CalCustomSession[]
+  showAllCustom: boolean
 }) {
   const width = 280
   const GAP = 10
@@ -716,6 +962,44 @@ function HoverPreview({
   const positionStyle: React.CSSProperties = placeAbove
     ? { left, bottom: viewportH - rect.top + GAP, width }
     : { left, top: rect.bottom + GAP, width }
+
+  if (hoverItem.kind === 'custom') {
+    const cs = customSessions.find((c) => c.id === hoverItem.id)
+    if (!cs) return null
+    return (
+      <div
+        className="pointer-events-none fixed z-50 overflow-hidden rounded-xl border border-border bg-card text-xs shadow-xl"
+        style={{ ...positionStyle, position: 'fixed' }}
+      >
+        <div className="h-1.5" style={{ background: CUSTOM_SESSION_COLOR }} />
+        <div className="p-3">
+          <span
+            className="mb-2 inline-block rounded-full px-2 py-0.5 text-[11px] font-bold"
+            style={{ backgroundColor: `${CUSTOM_SESSION_COLOR}22`, color: CUSTOM_SESSION_COLOR }}
+          >
+            Perso{showAllCustom ? ` · ${fullName(cs.athlete.firstName, cs.athlete.lastName)}` : ''}
+          </span>
+          <div className="truncate text-sm font-bold">{cs.title}</div>
+          {cs.startTime && (
+            <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+              <Clock className="size-3 shrink-0" />
+              {formatTime(cs.startTime)}
+              {cs.durationMinutes ? ` · ${cs.durationMinutes} min` : ''}
+            </div>
+          )}
+          {!cs.startTime && cs.durationMinutes && (
+            <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+              <Clock className="size-3 shrink-0" />
+              {cs.durationMinutes} min
+            </div>
+          )}
+          <p className="mt-2 line-clamp-3 text-muted-foreground italic">
+            {cs.description || 'Aucun programme renseigné.'}
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   if (hoverItem.kind === 'sessions') {
     const session = sessions.find((s) => s.id === hoverItem.id)
