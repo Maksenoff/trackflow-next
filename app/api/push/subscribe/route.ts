@@ -14,6 +14,14 @@ export async function POST(request: Request) {
   }
   const { endpoint, keys } = parsed.data
 
+  // Cette route ne touche pas aux clés VAPID (elle ne fait qu'enregistrer
+  // l'abonnement du navigateur) — l'échec "clé VAPID introuvable" vient de
+  // GET /api/push/vapid-public-key, appelée avant celle-ci côté client
+  // (lib/push-client.ts::subscribeToPush). Log minimal pour confirmer que cette
+  // étape-ci est bien atteinte lors d'un diagnostic.
+  // eslint-disable-next-line no-console
+  console.log('POST /api/push/subscribe — abonnement enregistré pour', session.user.id)
+
   await prisma.pushSubscription.upsert({
     where: { endpoint },
     create: {

@@ -4,6 +4,8 @@
 // du tout, ex. compétitions) — et passe automatiquement en "non effectuée" si elle n'a
 // toujours pas de ressenti 3 jours après cette ouverture.
 
+import { naiveToRealInstant } from '@/lib/date'
+
 export type DebriefStatus = 'upcoming' | 'to_debrief' | 'logged' | 'skipped' | 'auto_skipped'
 
 const NO_TIME_OPENS_HOUR = 20
@@ -12,10 +14,14 @@ const NO_DURATION_OPENS_HOUR = 21
 const AUTO_SKIP_AFTER_DAYS = 3
 
 /**
- * Heure d'ouverture du debrief. `startTime` est stockée en UTC "naïf" (pas de vrai
- * fuseau, juste l'heure murale) — on relit ses heures/minutes via les getters UTC
- * pour ne jamais réappliquer un décalage de fuseau à la lecture (voir aussi
- * `formatTime` dans lib/date.ts, même convention).
+ * Heure d'ouverture du debrief, en instant réel. `startTime`/`sessionDate` sont
+ * stockées en heure murale naïve (chiffres UTC littéraux = heure de Paris
+ * saisie, voir app/api/sessions/route.ts) — on construit d'abord la valeur
+ * dans ce même espace naïf avec des setters **UTC** (`setUTCHours`, jamais
+ * `setHours` : sensible au fuseau du host, correct par accident seulement sur
+ * une machine déjà réglée sur Europe/Paris), puis on la convertit en instant
+ * réel via `naiveToRealInstant` avant de la comparer à `now` (qui, lui, est un
+ * vrai instant réel — cf. bug remonté sur les rappels de séance décalés de 2h).
  */
 export function debriefOpensAt(
   sessionDate: Date,
@@ -24,15 +30,15 @@ export function debriefOpensAt(
 ): Date {
   const d = new Date(sessionDate)
   if (!startTime) {
-    d.setHours(NO_TIME_OPENS_HOUR, NO_TIME_OPENS_MINUTE, 0, 0)
-    return d
+    d.setUTCHours(NO_TIME_OPENS_HOUR, NO_TIME_OPENS_MINUTE, 0, 0)
+    return naiveToRealInstant(d)
   }
   if (durationMinutes == null) {
-    d.setHours(NO_DURATION_OPENS_HOUR, 0, 0, 0)
-    return d
+    d.setUTCHours(NO_DURATION_OPENS_HOUR, 0, 0, 0)
+    return naiveToRealInstant(d)
   }
-  d.setHours(startTime.getUTCHours(), startTime.getUTCMinutes() + durationMinutes, 0, 0)
-  return d
+  d.setUTCHours(startTime.getUTCHours(), startTime.getUTCMinutes() + durationMinutes, 0, 0)
+  return naiveToRealInstant(d)
 }
 
 /**

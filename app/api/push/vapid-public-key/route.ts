@@ -13,8 +13,21 @@ export async function GET() {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
 
-  const publicKey = process.env.VAPID_PUBLIC_KEY
+  // `.trim()` : une valeur Vercel collée avec un retour à la ligne final donnerait
+  // une clé publique invalide côté client sans jamais déclencher ce check.
+  const publicKey = process.env.VAPID_PUBLIC_KEY?.trim()
+  // eslint-disable-next-line no-console
+  console.log(
+    'GET /api/push/vapid-public-key — VAPID_PUBLIC_KEY configuré:',
+    !!publicKey,
+    !publicKey ? '' : `(${publicKey.length} caractères)`
+  )
   if (!publicKey) {
+    // eslint-disable-next-line no-console
+    console.error(
+      'VAPID_PUBLIC_KEY manquant côté serveur — vérifier les variables d’environnement Vercel',
+      '(scope Production/Preview/Development + redéploiement après ajout).'
+    )
     return NextResponse.json({ error: 'Clé VAPID non configurée côté serveur' }, { status: 500 })
   }
   return NextResponse.json({ publicKey })

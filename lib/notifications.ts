@@ -5,6 +5,7 @@
 import { prisma } from '@/lib/prisma'
 import { sendPushToUser } from '@/lib/push'
 import { computeDebriefStatus } from '@/lib/session-debrief'
+import { naiveToRealInstant, realInstantToNaive } from '@/lib/date'
 
 export const NOTIFICATION_TYPES = {
   FEEDBACK: 'feedback',
@@ -195,9 +196,14 @@ export async function notifySessionMoved(sessionTitle: string, sessionUrl: strin
  * fenêtre.
  */
 export async function runSessionReminders(): Promise<{ notified: number }> {
-  const now = Date.now()
-  const windowStart = new Date(now + 100 * 60 * 1000)
-  const windowEnd = new Date(now + 130 * 60 * 1000)
+  // `startTime` en base est une heure murale naïve (chiffres UTC littéraux =
+  // heure de Paris saisie) — il faut comparer dans ce même espace naïf, donc
+  // convertir `now` (instant réel) plutôt que comparer un instant réel à un
+  // champ naïf directement (c'était le bug : rappel/décompte décalés de
+  // l'écart Paris/UTC, 2h en été).
+  const nowNaive = realInstantToNaive(new Date()).getTime()
+  const windowStart = new Date(nowNaive + 100 * 60 * 1000)
+  const windowEnd = new Date(nowNaive + 130 * 60 * 1000)
 
   const [sessions, recipients] = await Promise.all([
     prisma.session.findMany({
@@ -230,9 +236,14 @@ function timeAgo(date: Date): string {
   return `il y a ${Math.floor(diffDays / 7)} sem.`
 }
 
-/** Formatte un délai avant un évènement futur (ex: rappel "séance dans 45 min"). */
+/** Formatte un délai avant un évènement futur (ex: rappel "séance dans 45 min").
+ * `date` est une heure murale naïve (cf. runSessionReminders) : on la convertit
+ * en instant réel avant de la comparer à `Date.now()`. */
 function timeUntil(date: Date): string {
-  const diffMin = Math.max(0, Math.round((date.getTime() - Date.now()) / 60_000))
+  const diffMin = Math.max(
+    0,
+    Math.round((naiveToRealInstant(date).getTime() - Date.now()) / 60_000)
+  )
   if (diffMin < 1) return 'maintenant'
   if (diffMin < 60) return `dans ${diffMin} min`
   const diffH = Math.floor(diffMin / 60)
@@ -271,7 +282,11 @@ export async function buildNotificationFeed(
     const now = new Date()
     const windowStart = new Date()
     windowStart.setDate(windowStart.getDate() - 14)
-    const soonEnd = new Date(now.getTime() + SESSION_SOON_WINDOW_MS)
+    // `startTime` est une heure murale naïve — la fenêtre "bientôt" doit être
+    // comparée dans ce même espace naïf, pas en instant réel direct (même bug
+    // que runSessionReminders : décompte décalé de l'écart Paris/UTC).
+    const nowNaive = realInstantToNaive(now)
+    const soonEndNaive = new Date(nowNaive.getTime() + SESSION_SOON_WINDOW_MS)
 
     const [pastSessions, soonSessions, dismissed] = await Promise.all([
       prisma.session.findMany({
@@ -279,7 +294,7 @@ export async function buildNotificationFeed(
         include: { athleteSessions: { where: { athleteId: user.linkedAthleteId } } },
       }),
       prisma.session.findMany({
-        where: { startTime: { gte: now, lte: soonEnd } },
+        where: { startTime: { gte: nowNaive, lte: soonEndNaive } },
       }),
       prisma.dismissedReminder.findMany({ where: { userId }, select: { key: true } }),
     ])

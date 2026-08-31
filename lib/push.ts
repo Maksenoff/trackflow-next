@@ -5,18 +5,35 @@ import { prisma } from '@/lib/prisma'
 
 let configured = false
 
+/**
+ * `.trim()` sur les 3 valeurs : un copier-coller depuis un générateur de clés
+ * (ou une valeur Vercel saisie avec un retour à la ligne final) casse
+ * silencieusement `webpush.setVapidDetails` sans message d'erreur clair — la
+ * requête échoue juste avec un 401/403 côté endpoint push, très difficile à
+ * relier à la vraie cause.
+ */
 function ensureConfigured(): boolean {
-  const publicKey = process.env.VAPID_PUBLIC_KEY
-  const privateKey = process.env.VAPID_PRIVATE_KEY
-  if (!publicKey || !privateKey) return false
+  const publicKey = process.env.VAPID_PUBLIC_KEY?.trim()
+  const privateKey = process.env.VAPID_PRIVATE_KEY?.trim()
+  const subject = process.env.VAPID_SUBJECT?.trim() || 'mailto:trackflowsupport@gmail.com'
+
+  if (!publicKey || !privateKey) {
+    // eslint-disable-next-line no-console
+    console.error(
+      'VAPID non configuré — notification push ignorée.',
+      'VAPID_PUBLIC_KEY configuré:',
+      !!publicKey,
+      'VAPID_PRIVATE_KEY configuré:',
+      !!privateKey
+    )
+    return false
+  }
 
   if (!configured) {
-    webpush.setVapidDetails(
-      process.env.VAPID_SUBJECT || 'mailto:trackflowsupport@gmail.com',
-      publicKey,
-      privateKey
-    )
+    webpush.setVapidDetails(subject, publicKey, privateKey)
     configured = true
+    // eslint-disable-next-line no-console
+    console.log('VAPID configuré (sujet:', subject, ')')
   }
   return true
 }
