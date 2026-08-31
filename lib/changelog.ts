@@ -12,6 +12,11 @@
 export type ChangelogSection = {
   title: string
   items: string[]
+  // 'feature' (défaut) pour une nouveauté, 'fix' pour une correction — affichés
+  // avec un accent visuel différent sur /changelog pour que les corrections
+  // ne se noient pas au milieu des nouveautés (utile surtout à partir des
+  // versions patch, ex: 3.0.1, qui ne contiendront souvent que des fix).
+  kind?: 'feature' | 'fix'
 }
 
 export type ChangelogEntry = {

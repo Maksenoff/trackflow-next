@@ -89,6 +89,9 @@ export function MobileAccountSheet({
                 {primaryRole ? ROLE_LABELS[primaryRole] : email}
               </div>
             </div>
+            <div className="shrink-0 self-start pt-0.5">
+              <AppVersion />
+            </div>
           </div>
 
           <div className="space-y-1 px-2 pb-2">
@@ -135,10 +138,6 @@ export function MobileAccountSheet({
               <LogOut className="size-4" />
               Se déconnecter
             </button>
-          </div>
-
-          <div className="flex items-center justify-center border-t border-border px-4 py-3">
-            <AppVersion />
           </div>
         </SheetContent>
       </Sheet>

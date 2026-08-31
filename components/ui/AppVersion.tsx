@@ -4,9 +4,9 @@ export function AppVersion() {
   return (
     <Link
       href="/changelog"
-      className="text-xs text-muted-foreground underline decoration-dotted underline-offset-2 transition-colors hover:text-foreground"
+      className="text-[11px] text-muted-foreground/70 underline decoration-dotted underline-offset-2 transition-colors hover:text-muted-foreground"
     >
-      v{process.env.NEXT_PUBLIC_APP_VERSION}
+      TrackFlow {process.env.NEXT_PUBLIC_APP_VERSION}
     </Link>
   )
 }

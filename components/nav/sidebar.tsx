@@ -74,6 +74,10 @@ export function Sidebar({
           })}
         </nav>
 
+        <div className="flex justify-center pb-1.5">
+          <AppVersion />
+        </div>
+
         <div className="relative flex items-center gap-1 border-t border-sidebar-border p-3">
           <div className="min-w-0 flex-1">
             <AccountMenu name={name} linkedAthlete={linkedAthlete} />
@@ -92,10 +96,6 @@ export function Sidebar({
               <LogOut className="size-4" />
             </Button>
           </div>
-        </div>
-
-        <div className="flex justify-center pb-2.5">
-          <AppVersion />
         </div>
       </div>
     </aside>
