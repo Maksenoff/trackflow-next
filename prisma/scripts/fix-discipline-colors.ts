@@ -11,7 +11,13 @@ const prisma = new PrismaClient()
 
 async function main() {
   const athletes = await prisma.athlete.findMany({
-    select: { id: true, firstName: true, lastName: true, disciplines: true, disciplineColors: true },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      disciplines: true,
+      disciplineColors: true,
+    },
   })
 
   let fixed = 0

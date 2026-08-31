@@ -6,33 +6,33 @@ nouveau composant.
 
 ## Thème nuit (dark, par défaut)
 
-| Rôle | Valeur |
-|---|---|
-| Fond principal | `#080810` |
-| Fond secondaire | `#0f0d1a` |
-| Fond cards | `#13111f` |
-| Bordures | `#1e1a2e` |
-| Accent primaire | `#7c3aed` |
-| Accent hover | `#6d28d9` |
-| Accent glow | `rgba(124, 58, 237, 0.15)` |
-| Texte principal | `#f1f0f5` |
-| Texte secondaire | `#8b87a0` |
+| Rôle             | Valeur                     |
+| ---------------- | -------------------------- |
+| Fond principal   | `#080810`                  |
+| Fond secondaire  | `#0f0d1a`                  |
+| Fond cards       | `#13111f`                  |
+| Bordures         | `#1e1a2e`                  |
+| Accent primaire  | `#7c3aed`                  |
+| Accent hover     | `#6d28d9`                  |
+| Accent glow      | `rgba(124, 58, 237, 0.15)` |
+| Texte principal  | `#f1f0f5`                  |
+| Texte secondaire | `#8b87a0`                  |
 
 Zéro teinte bleue en dark — tout vire au violet foncé.
 
 ## Thème jour (light)
 
-| Rôle | Valeur |
-|---|---|
-| Fond principal | `#faf9ff` |
-| Fond secondaire | `#f0eeff` |
-| Fond cards | `#ffffff` |
-| Bordures | `#e4e0f7` |
-| Accent primaire | `#7c3aed` |
-| Accent hover | `#6d28d9` |
-| Accent glow | `rgba(124, 58, 237, 0.1)` |
-| Texte principal | `#1a1a2e` |
-| Texte secondaire | `#6b6880` |
+| Rôle             | Valeur                    |
+| ---------------- | ------------------------- |
+| Fond principal   | `#faf9ff`                 |
+| Fond secondaire  | `#f0eeff`                 |
+| Fond cards       | `#ffffff`                 |
+| Bordures         | `#e4e0f7`                 |
+| Accent primaire  | `#7c3aed`                 |
+| Accent hover     | `#6d28d9`                 |
+| Accent glow      | `rgba(124, 58, 237, 0.1)` |
+| Texte principal  | `#1a1a2e`                 |
+| Texte secondaire | `#6b6880`                 |
 
 Jamais de noir pur en light — fond légèrement lavande, texte doux.
 

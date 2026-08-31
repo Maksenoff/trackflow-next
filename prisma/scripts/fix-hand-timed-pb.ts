@@ -9,7 +9,9 @@ import { updatePersonalBests } from '../../lib/ffa-scraper'
 const prisma = new PrismaClient()
 
 async function main() {
-  const athletes = await prisma.athlete.findMany({ select: { id: true, firstName: true, lastName: true } })
+  const athletes = await prisma.athlete.findMany({
+    select: { id: true, firstName: true, lastName: true },
+  })
 
   for (const athlete of athletes) {
     const before = await prisma.performance.findMany({
@@ -23,7 +25,8 @@ async function main() {
     })
     const beforeIds = new Set(before.map((p) => p.id))
     const afterIds = new Set(after.map((p) => p.id))
-    const changed = beforeIds.size !== afterIds.size || [...beforeIds].some((id) => !afterIds.has(id))
+    const changed =
+      beforeIds.size !== afterIds.size || [...beforeIds].some((id) => !afterIds.has(id))
     if (changed) {
       console.log(`- ${athlete.firstName} ${athlete.lastName} : PB recalculés (changement détecté)`)
     }
