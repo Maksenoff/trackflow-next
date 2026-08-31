@@ -44,6 +44,32 @@ export async function getMonthSessions(year: number, month: number) {
 
 export type MonthSession = Awaited<ReturnType<typeof getMonthSessions>>[number]
 
+/**
+ * Séances personnelles du mois — toujours restreintes à `athleteId` (l'athlète
+ * voit les siennes sur son calendrier), sauf `includeAll` (coach/admin, filtre
+ * "calendrier général" côté UI) qui les remonte pour tout le club avec le nom
+ * de l'athlète attaché.
+ */
+export async function getMonthCustomSessions(
+  year: number,
+  month: number,
+  athleteId: string | null,
+  includeAll: boolean
+) {
+  if (!includeAll && !athleteId) return []
+  const { start, end } = monthRange(year, month)
+  return prisma.athleteCustomSession.findMany({
+    where: {
+      date: { gte: start, lte: end },
+      ...(includeAll ? {} : { athleteId: athleteId! }),
+    },
+    include: { athlete: { select: { id: true, firstName: true, lastName: true } } },
+    orderBy: { date: 'asc' },
+  })
+}
+
+export type MonthCustomSession = Awaited<ReturnType<typeof getMonthCustomSessions>>[number]
+
 export async function getMonthCompetitions(year: number, month: number, athleteId?: string | null) {
   const { start, end } = monthRange(year, month)
   const competitions = await prisma.competition.findMany({
@@ -102,3 +128,12 @@ export async function getSessionDetail(id: string) {
 }
 
 export type SessionDetail = NonNullable<Awaited<ReturnType<typeof getSessionDetail>>>
+
+export async function getCustomSessionDetail(id: string) {
+  return prisma.athleteCustomSession.findUnique({
+    where: { id },
+    include: { athlete: { select: { id: true, firstName: true, lastName: true } } },
+  })
+}
+
+export type CustomSessionDetail = NonNullable<Awaited<ReturnType<typeof getCustomSessionDetail>>>

@@ -15,10 +15,16 @@ export function RpeLogForm({
   sessionId,
   athleteId,
   initial,
+  endpoint,
+  method = 'POST',
 }: {
   sessionId: string
   athleteId: string
   initial?: { difficulty: number | null; comment: string | null; skipped: boolean }
+  /** Séance perso (`PATCH /api/athletes/[id]/custom-sessions/[csId]`) au lieu
+   * d'une séance coach — même formulaire, même rendu, seul l'endpoint change. */
+  endpoint?: string
+  method?: 'POST' | 'PATCH'
 }) {
   const router = useRouter()
   const [difficulty, setDifficulty] = useState(initial?.difficulty ?? 5)
@@ -29,8 +35,8 @@ export function RpeLogForm({
 
   async function handleSubmit() {
     setLoading(true)
-    const res = await fetch(`/api/sessions/${sessionId}/rpe`, {
-      method: 'POST',
+    const res = await fetch(endpoint ?? `/api/sessions/${sessionId}/rpe`, {
+      method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         athleteId,

@@ -4,6 +4,7 @@ import { isAdmin, isCoach, isCompetitionManager, type Role } from '@/lib/roles'
 import {
   getMonthSessions,
   getMonthCompetitions,
+  getMonthCustomSessions,
   getTrainingTypes,
   getCompetitionTypes,
   getCoachUsers,
@@ -14,7 +15,7 @@ import { CalendarView } from '@/components/calendar/calendar-view'
 export default async function CalendarPage({
   searchParams,
 }: {
-  searchParams: { year?: string; month?: string }
+  searchParams: { year?: string; month?: string; showAllCustom?: string }
 }) {
   const now = new Date()
   const year = Number(searchParams.year) || now.getFullYear()
@@ -24,6 +25,9 @@ export default async function CalendarPage({
   const roles = (session?.user.roles ?? []) as Role[]
   const canManageSessions = isAdmin(roles) || isCoach(roles)
   const canManageCompetitions = isAdmin(roles) || isCoach(roles) || isCompetitionManager(roles)
+  // Filtre "calendrier général" (voir les séances persos de tous les athlètes) —
+  // réservé à qui gère déjà les séances, inutile sinon.
+  const showAllCustom = canManageSessions && searchParams.showAllCustom === '1'
 
   let linkedAthleteId: string | null = null
   if (session) {
@@ -31,13 +35,15 @@ export default async function CalendarPage({
     linkedAthleteId = user?.linkedAthleteId ?? null
   }
 
-  const [sessions, competitions, trainingTypes, competitionTypes, coaches] = await Promise.all([
-    getMonthSessions(year, month),
-    getMonthCompetitions(year, month, linkedAthleteId),
-    getTrainingTypes(),
-    getCompetitionTypes(),
-    getCoachUsers(),
-  ])
+  const [sessions, competitions, customSessions, trainingTypes, competitionTypes, coaches] =
+    await Promise.all([
+      getMonthSessions(year, month),
+      getMonthCompetitions(year, month, linkedAthleteId),
+      getMonthCustomSessions(year, month, linkedAthleteId, showAllCustom),
+      getTrainingTypes(),
+      getCompetitionTypes(),
+      getCoachUsers(),
+    ])
 
   return (
     <PageTransition>
@@ -73,12 +79,25 @@ export default async function CalendarPage({
             ffaRegisteredCount: c.ffaRegisteredCount,
             isRegistered: c.isRegistered,
           }))}
+          customSessions={customSessions.map((cs) => ({
+            id: cs.id,
+            title: cs.title,
+            date: cs.date,
+            startTime: cs.startTime,
+            durationMinutes: cs.durationMinutes,
+            description: cs.description,
+            difficulty: cs.difficulty,
+            skipped: cs.skipped,
+            athlete: cs.athlete,
+          }))}
           trainingTypes={trainingTypes}
           competitionTypes={competitionTypes}
           coaches={coaches}
           currentUserId={session?.user.id}
+          linkedAthleteId={linkedAthleteId}
           canManageSessions={canManageSessions}
           canManageCompetitions={canManageCompetitions}
+          showAllCustom={showAllCustom}
         />
       </div>
     </PageTransition>

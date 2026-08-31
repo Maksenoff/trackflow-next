@@ -30,25 +30,34 @@ export default async function AthleteProfilePage({ params }: { params: { id: str
   // canSeeNotes : les notes coach sont privées — jamais visibles par l'athlète lui-même
   // (même sur son propre profil) ni par un gest. compétitions, seulement admin/coach.
   const canSeeNotes = isManager
+  // canSeeCustomSessions : les séances perso sont privées — seuls l'athlète propriétaire
+  // et le staff (admin/coach) les voient. N'importe quel compte pouvait sinon consulter
+  // le profil de n'importe quel athlète (aucun garde-fou de rôle sur cette page) et lire
+  // le journal perso d'un autre athlète via l'onglet Séances.
+  const canSeeCustomSessions = isManager || isSelf
+
+  // Les notes/séances perso ne doivent même pas atteindre le navigateur si le viewer
+  // n'a pas le droit de les voir (sinon elles restent lisibles dans le payload RSC —
+  // tout composant client recevant `athlete` en prop sérialise l'objet entier, qu'il
+  // affiche ou non ces champs ; ProfileHeader ET ProfileTabs doivent donc recevoir
+  // cette même version assainie, pas seulement celui qui affiche l'onglet).
+  const safeAthlete = {
+    ...athlete,
+    notesList: canSeeNotes ? athlete.notesList : [],
+    customSessions: canSeeCustomSessions ? athlete.customSessions : [],
+  }
 
   return (
     <PageTransition>
       <div className="mx-auto max-w-[1600px] space-y-6 p-4 lg:p-8 xl:p-10">
         <BackButton label="Retour aux athlètes" />
         <ProfileHeader
-          athlete={athlete}
+          athlete={safeAthlete}
           canEdit={canEdit}
           canEditProfile={canEditProfile}
           isAdmin={isAdmin(roles)}
         />
-        <ProfileTabs
-          // Les notes ne doivent même pas atteindre le navigateur si le viewer n'a pas
-          // le droit de les voir (sinon elles restent lisibles dans le payload RSC
-          // malgré l'onglet masqué côté UI).
-          athlete={canSeeNotes ? athlete : { ...athlete, notesList: [] }}
-          canEdit={canEdit}
-          canSeeNotes={canSeeNotes}
-        />
+        <ProfileTabs athlete={safeAthlete} canEdit={canEdit} canSeeNotes={canSeeNotes} />
       </div>
     </PageTransition>
   )
