@@ -10,6 +10,9 @@ import {
   Crown,
   Loader2,
   Minus,
+  Pencil,
+  Pin,
+  PinOff,
   Swords,
   Timer,
   Trash2,
@@ -28,6 +31,9 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { AddButton } from '@/components/ui/add-button'
+import { PollFormDialog, type PollFormInitial } from '@/components/votes/poll-form-dialog'
+import { VoteBreakdownDialog } from '@/components/votes/vote-breakdown-dialog'
 import { cn } from '@/lib/utils'
 import type { PollStatus } from '@/lib/polls-data'
 
@@ -42,8 +48,10 @@ type TabKey = 'current' | 'upcoming' | 'past'
 export type PollItem = {
   id: string
   createdAt: string
+  createdById: string | null
   startsAt: string
   expiresAt: string
+  pinnedOrder: number | null
   status: PollStatus
   myVote: string | null
   totalVotes: number
@@ -76,18 +84,39 @@ function timeUntilStart(startsAt: string): string {
   return `dans ${Math.round(diffH / 24)}j`
 }
 
+function toFormInitial(poll: PollItem): PollFormInitial {
+  const [a, b] = poll.options
+  return {
+    id: poll.id,
+    startsAt: poll.startsAt,
+    expiresAt: poll.expiresAt,
+    options: [
+      { id: a.id, label: a.label },
+      { id: b.id, label: b.label },
+    ],
+  }
+}
+
 export function VotesView({
   polls: initial,
   canManage,
+  currentUserId,
 }: {
   polls: PollItem[]
   canManage: boolean
+  currentUserId: string
 }) {
   const router = useRouter()
   const [polls, setPolls] = useState(initial)
   const [cancelingId, setCancelingId] = useState<string | null>(null)
+  const [pinningId, setPinningId] = useState<string | null>(null)
   const [tab, setTab] = useState<TabKey>('current')
   const [direction, setDirection] = useState(1)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [editingPoll, setEditingPoll] = useState<PollItem | null>(null)
+  const [breakdownPollId, setBreakdownPollId] = useState<string | null>(null)
+
+  const canEditPoll = (poll: PollItem) => canManage || poll.createdById === currentUserId
 
   const scheduled = polls.filter((p) => p.status === 'scheduled')
   const active = polls.filter((p) => p.status === 'active')
@@ -147,11 +176,47 @@ export function VotesView({
     const res = await fetch(`/api/polls/${pollId}`, { method: 'DELETE' })
     setCancelingId(null)
     if (!res.ok) {
-      toast.error("Impossible d'annuler ce duel.")
+      toast.error("Impossible d'annuler ce vote.")
       return
     }
     setPolls((ps) => ps.filter((p) => p.id !== pollId))
-    toast.success('Duel annulé · les suggestions sont de nouveau disponibles.')
+    toast.success('Vote annulé.')
+    router.refresh()
+  }
+
+  async function togglePin(poll: PollItem) {
+    setPinningId(poll.id)
+    const isPinned = poll.pinnedOrder !== null
+    const res = await fetch(`/api/polls/${poll.id}/pin`, {
+      method: isPinned ? 'DELETE' : 'POST',
+    })
+    setPinningId(null)
+    if (!res.ok) {
+      const body = await res.json().catch(() => null)
+      toast.error(body?.error ?? "Impossible de modifier l'épinglage.")
+      return
+    }
+    // Mise à jour optimiste + re-tri immédiat (épinglés d'abord) : sans ça
+    // l'épingle/dépingle ne se reflétait qu'après un rechargement complet de
+    // la page, router.refresh() seul ne suffisant pas à faire remonter le
+    // vote visuellement tout de suite (correctif 2026-08-29).
+    const data: { pinnedOrder?: number } | null = isPinned
+      ? null
+      : await res.json().catch(() => null)
+    setPolls((ps) =>
+      ps
+        .map((p) =>
+          p.id === poll.id
+            ? { ...p, pinnedOrder: isPinned ? null : (data?.pinnedOrder ?? null) }
+            : p
+        )
+        .sort((a, b) => {
+          const aOrder = a.pinnedOrder ?? Infinity
+          const bOrder = b.pinnedOrder ?? Infinity
+          if (aOrder !== bOrder) return aOrder - bOrder
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        })
+    )
     router.refresh()
   }
 
@@ -171,11 +236,14 @@ export function VotesView({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Votes</h1>
-        <p className="text-sm text-muted-foreground">
-          {active.length} duel{active.length > 1 ? 's' : ''} en cours
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Votes</h1>
+          <p className="text-sm text-muted-foreground">
+            {active.length} duel{active.length > 1 ? 's' : ''} en cours
+          </p>
+        </div>
+        <AddButton label="Créer un vote" onClick={() => setCreateOpen(true)} />
       </div>
 
       <div className="flex items-center gap-1 overflow-x-auto rounded-full border border-border bg-card p-1 shadow-sm">
@@ -239,8 +307,13 @@ export function VotesView({
                       poll={poll}
                       onVote={vote}
                       canManage={canManage}
+                      canEdit={canEditPoll(poll)}
                       onCancel={() => cancelPoll(poll.id)}
                       canceling={cancelingId === poll.id}
+                      onEdit={() => setEditingPoll(poll)}
+                      onTogglePin={() => togglePin(poll)}
+                      pinning={pinningId === poll.id}
+                      onShowBreakdown={() => setBreakdownPollId(poll.id)}
                     />
                   ))}
                 </div>
@@ -258,9 +331,10 @@ export function VotesView({
                     <ScheduledDuelCard
                       key={poll.id}
                       poll={poll}
-                      canManage={canManage}
+                      canEdit={canEditPoll(poll)}
                       onCancel={() => cancelPoll(poll.id)}
                       canceling={cancelingId === poll.id}
+                      onEdit={() => setEditingPoll(poll)}
                     />
                   ))}
                 </div>
@@ -277,7 +351,13 @@ export function VotesView({
               ) : (
                 <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
                   {expired.map((poll) => (
-                    <PastDuelRow key={poll.id} poll={poll} />
+                    <PastDuelRow
+                      key={poll.id}
+                      poll={poll}
+                      canEdit={canEditPoll(poll)}
+                      onEdit={() => setEditingPoll(poll)}
+                      onShowBreakdown={() => setBreakdownPollId(poll.id)}
+                    />
                   ))}
                 </div>
               ))}
@@ -287,9 +367,24 @@ export function VotesView({
 
       {tab === 'current' && lastCompleted && (
         <div className="border-t border-border pt-6">
-          <LastVoteRecap poll={lastCompleted} />
+          <LastVoteRecap
+            poll={lastCompleted}
+            onShowBreakdown={() => setBreakdownPollId(lastCompleted.id)}
+          />
         </div>
       )}
+
+      <PollFormDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <PollFormDialog
+        open={!!editingPoll}
+        onOpenChange={(open) => !open && setEditingPoll(null)}
+        initial={editingPoll ? toFormInitial(editingPoll) : undefined}
+      />
+      <VoteBreakdownDialog
+        open={!!breakdownPollId}
+        onOpenChange={(open) => !open && setBreakdownPollId(null)}
+        pollId={breakdownPollId}
+      />
     </div>
   )
 }
@@ -298,19 +393,35 @@ function DuelCard({
   poll,
   onVote,
   canManage,
+  canEdit,
   onCancel,
   canceling,
+  onEdit,
+  onTogglePin,
+  pinning,
+  onShowBreakdown,
 }: {
   poll: PollItem
   onVote: (pollId: string, optionId: string) => void
   canManage: boolean
+  canEdit: boolean
   onCancel: () => void
   canceling: boolean
+  onEdit: () => void
+  onTogglePin: () => void
+  pinning: boolean
+  onShowBreakdown: () => void
 }) {
   const [a, b] = poll.options
+  const isPinned = poll.pinnedOrder !== null
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-lg shadow-black/[0.06] dark:shadow-black/30">
+    <div
+      className={cn(
+        'relative overflow-hidden rounded-3xl border bg-card shadow-lg shadow-black/[0.06] dark:shadow-black/30',
+        isPinned ? 'border-amber-500/40' : 'border-border'
+      )}
+    >
       <div
         aria-hidden
         className="pointer-events-none absolute -top-24 -left-20 size-64 rounded-full bg-sky-500/10 blur-3xl"
@@ -320,20 +431,49 @@ function DuelCard({
         className="pointer-events-none absolute -right-20 -bottom-24 size-64 rounded-full bg-rose-500/10 blur-3xl"
       />
 
-      <div className="relative flex items-center justify-between gap-3 border-b border-border px-5 py-3">
+      <div className="relative flex flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-3">
         <span className="inline-flex items-center gap-1.5 text-xs font-bold tracking-wide text-muted-foreground uppercase">
           <span className="relative flex size-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
             <span className="relative inline-flex size-2 rounded-full bg-primary" />
           </span>
           Duel en direct
+          {isPinned && (
+            <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-600 normal-case dark:text-amber-400">
+              <Pin className="size-2.5" />
+              Épinglé
+            </span>
+          )}
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
             <Clock className="size-3" />
             {timeLeft(poll.expiresAt)}
           </span>
           {canManage && (
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              onClick={onTogglePin}
+              disabled={pinning}
+              aria-label={isPinned ? 'Désépingler' : 'Épingler'}
+              title={isPinned ? 'Désépingler' : 'Épingler'}
+            >
+              {pinning ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : isPinned ? (
+                <PinOff className="size-4 text-amber-500" />
+              ) : (
+                <Pin className="size-4" />
+              )}
+            </Button>
+          )}
+          {canEdit && (
+            <Button size="icon-sm" variant="ghost" onClick={onEdit} aria-label="Modifier ce vote">
+              <Pencil className="size-4" />
+            </Button>
+          )}
+          {canEdit && (
             <CancelPollButton
               onCancel={onCancel}
               canceling={canceling}
@@ -374,10 +514,14 @@ function DuelCard({
       </div>
 
       {poll.myVote && (
-        <p className="relative flex items-center justify-center gap-1.5 border-t border-border px-5 py-3 text-xs text-muted-foreground">
+        <button
+          type="button"
+          onClick={onShowBreakdown}
+          className="relative flex w-full items-center justify-center gap-1.5 border-t border-border px-5 py-3 text-xs text-muted-foreground transition-colors hover:bg-primary/[0.03] hover:text-primary"
+        >
           <CheckCircle2 className="size-3.5 text-primary" />
           Vote enregistré · {poll.totalVotes} vote{poll.totalVotes > 1 ? 's' : ''} au total
-        </p>
+        </button>
       )}
     </div>
   )
@@ -398,7 +542,7 @@ function CancelPollButton({
     <AlertDialog>
       <AlertDialogTrigger
         render={
-          <Button size={size} variant="ghost" disabled={canceling} aria-label="Annuler ce duel">
+          <Button size={size} variant="ghost" disabled={canceling} aria-label="Annuler ce vote">
             {canceling ? (
               <Loader2 className={cn(iconSize, 'animate-spin')} />
             ) : (
@@ -409,9 +553,9 @@ function CancelPollButton({
       />
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Annuler ce duel ?</AlertDialogTitle>
+          <AlertDialogTitle>Annuler ce vote ?</AlertDialogTitle>
           <AlertDialogDescription>
-            Les deux suggestions retourneront dans les feedbacks.
+            Les votes déjà enregistrés seront définitivement perdus.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -420,7 +564,7 @@ function CancelPollButton({
             onClick={onCancel}
             className="bg-destructive text-white hover:bg-destructive/90"
           >
-            Annuler le duel
+            Annuler le vote
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -527,14 +671,16 @@ function DuelCorner({
 
 function ScheduledDuelCard({
   poll,
-  canManage,
+  canEdit,
   onCancel,
   canceling,
+  onEdit,
 }: {
   poll: PollItem
-  canManage: boolean
+  canEdit: boolean
   onCancel: () => void
   canceling: boolean
+  onEdit: () => void
 }) {
   const [a, b] = poll.options
   return (
@@ -548,7 +694,12 @@ function ScheduledDuelCard({
             <Timer className="size-3" />
             {timeUntilStart(poll.startsAt)}
           </span>
-          {canManage && (
+          {canEdit && (
+            <Button size="icon-xs" variant="ghost" onClick={onEdit} aria-label="Modifier ce vote">
+              <Pencil className="size-3.5" />
+            </Button>
+          )}
+          {canEdit && (
             <CancelPollButton
               onCancel={onCancel}
               canceling={canceling}
@@ -570,7 +721,17 @@ function ScheduledDuelCard({
   )
 }
 
-function PastDuelRow({ poll }: { poll: PollItem }) {
+function PastDuelRow({
+  poll,
+  canEdit,
+  onEdit,
+  onShowBreakdown,
+}: {
+  poll: PollItem
+  canEdit: boolean
+  onEdit: () => void
+  onShowBreakdown: () => void
+}) {
   const [a, b] = poll.options
   const aVotes = a.votes ?? 0
   const bVotes = b.votes ?? 0
@@ -616,7 +777,26 @@ function PastDuelRow({ poll }: { poll: PollItem }) {
         <span>
           {aPct}% · {aVotes} vote{aVotes > 1 ? 's' : ''}
         </span>
-        <span>{formatDate(poll.expiresAt)}</span>
+        <span className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={onShowBreakdown}
+            className="underline decoration-dotted underline-offset-2 transition-colors hover:text-primary"
+          >
+            {formatDate(poll.expiresAt)}
+          </button>
+          {canEdit && (
+            <Button
+              size="icon-xs"
+              variant="ghost"
+              onClick={onEdit}
+              aria-label="Prolonger ou modifier ce vote"
+              title="Prolonger ou modifier ce vote"
+            >
+              <Pencil className="size-3" />
+            </Button>
+          )}
+        </span>
         <span>
           {bPct}% · {bVotes} vote{bVotes > 1 ? 's' : ''}
         </span>
@@ -626,7 +806,7 @@ function PastDuelRow({ poll }: { poll: PollItem }) {
 }
 
 /** Recap mis en avant du dernier duel terminé (celui dont expiresAt est le plus récent). */
-function LastVoteRecap({ poll }: { poll: PollItem }) {
+function LastVoteRecap({ poll, onShowBreakdown }: { poll: PollItem; onShowBreakdown: () => void }) {
   const [a, b] = poll.options
   const aVotes = a.votes ?? 0
   const bVotes = b.votes ?? 0
@@ -669,9 +849,13 @@ function LastVoteRecap({ poll }: { poll: PollItem }) {
         />
       </div>
 
-      <p className="relative mt-4 border-t border-border pt-3 text-center text-xs text-muted-foreground">
+      <button
+        type="button"
+        onClick={onShowBreakdown}
+        className="relative mt-4 w-full border-t border-border pt-3 text-center text-xs text-muted-foreground transition-colors hover:text-primary"
+      >
         Terminé le {formatDate(poll.expiresAt)} · {total} vote{total > 1 ? 's' : ''} au total
-      </p>
+      </button>
     </div>
   )
 }

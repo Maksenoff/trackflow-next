@@ -4,7 +4,10 @@ export type PollStatus = 'scheduled' | 'active' | 'expired'
 
 export async function getPollsList(userId: string) {
   const polls = await prisma.poll.findMany({
-    orderBy: { createdAt: 'desc' },
+    // Épinglés d'abord (1 puis 2), puis les autres par date de création
+    // décroissante — l'ordre se propage naturellement aux listes filtrées
+    // par statut (scheduled/active/expired) côté UI.
+    orderBy: [{ pinnedOrder: { sort: 'asc', nulls: 'last' } }, { createdAt: 'desc' }],
     include: {
       options: {
         include: {
@@ -26,8 +29,10 @@ export async function getPollsList(userId: string) {
     return {
       id: p.id,
       createdAt: p.createdAt,
+      createdById: p.createdById,
       startsAt: p.startsAt,
       expiresAt: p.expiresAt,
+      pinnedOrder: p.pinnedOrder,
       status,
       myVote,
       totalVotes,

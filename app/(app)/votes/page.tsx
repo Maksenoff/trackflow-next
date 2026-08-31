@@ -14,11 +14,14 @@ export default async function VotesPage() {
       <div className="p-4 lg:p-8 xl:p-10">
         <VotesView
           canManage={canManage}
+          currentUserId={session!.user.id}
           polls={polls.map((p) => ({
             id: p.id,
             createdAt: p.createdAt.toISOString(),
+            createdById: p.createdById,
             startsAt: p.startsAt.toISOString(),
             expiresAt: p.expiresAt.toISOString(),
+            pinnedOrder: p.pinnedOrder,
             status: p.status,
             myVote: p.myVote,
             totalVotes: p.totalVotes,
