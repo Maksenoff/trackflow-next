@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
-import { Loader2, Plus, UsersRound, X, ArrowRight } from 'lucide-react'
+import { Loader2, Plus, UserPlus, UsersRound, X, ArrowRight } from 'lucide-react'
 import { BackButton } from '@/components/ui/back-button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -18,6 +18,7 @@ import { TeamColorPicker } from './team-color-picker'
 import { TeamPhotoUpload } from './team-photo-upload'
 import { RelayBuilder, type RelaySlot, type RelaySlotAthlete } from './relay-builder'
 import { AthleteSelectDialog, type SelectableAthlete } from './athlete-select-dialog'
+import { GuestAddDialog } from './guest-add-dialog'
 import type { CropConfig } from '@/components/athletes/image-position-editor'
 
 export type TeamFormInitialData = {
@@ -63,11 +64,26 @@ export function TeamForm({
   const [slots, setSlots] = useState<RelaySlot[]>(initialData?.positioned ?? [])
   const [bench, setBench] = useState<RelaySlotAthlete[]>(initialData?.bench ?? [])
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [guestDialogOpen, setGuestDialogOpen] = useState(false)
 
   const rosterIds = [...slots.map((s) => s.athlete.id), ...bench.map((a) => a.id)]
 
   function addAthlete(athlete: SelectableAthlete) {
     setBench((b) => [...b, athlete])
+  }
+
+  function addGuest(firstName: string, lastName: string) {
+    setBench((b) => [
+      ...b,
+      {
+        id: `newguest:${crypto.randomUUID()}`,
+        isGuest: true,
+        firstName,
+        lastName,
+        photoUrl: null,
+        photoConfig: {},
+      },
+    ])
   }
 
   function removeFromTeam(athleteId: string) {
@@ -90,17 +106,38 @@ export function TeamForm({
     setBench((b) => [...b, slot.athlete])
   }
 
+  // Un invité (pas de compte athlète) est identifié côté client par un id
+  // préfixé — `guest:<teamMemberId>` s'il existait déjà en base,
+  // `newguest:<uuid>` s'il vient d'être ajouté dans ce formulaire. Dans les
+  // deux cas on envoie nom/prénom ; `guestId` (sans le préfixe) permet à
+  // l'API de mettre à jour la ligne existante au lieu d'en recréer une.
+  function toMemberPayload(
+    a: RelaySlotAthlete,
+    relayOrder: number | null,
+    handoffMark: string | null
+  ) {
+    if (a.id.startsWith('guest:')) {
+      return {
+        guestId: a.id.slice('guest:'.length),
+        guestFirstName: a.firstName,
+        guestLastName: a.lastName,
+        relayOrder,
+        handoffMark,
+      }
+    }
+    if (a.id.startsWith('newguest:')) {
+      return { guestFirstName: a.firstName, guestLastName: a.lastName, relayOrder, handoffMark }
+    }
+    return { athleteId: a.id, relayOrder, handoffMark }
+  }
+
   async function handleSubmit() {
     if (!name.trim() || !discipline) return
     setLoading(true)
 
     const members = [
-      ...slots.map((s, i) => ({
-        athleteId: s.athlete.id,
-        relayOrder: i + 1,
-        handoffMark: s.handoffMark,
-      })),
-      ...bench.map((a) => ({ athleteId: a.id, relayOrder: null, handoffMark: null })),
+      ...slots.map((s, i) => toMemberPayload(s.athlete, i + 1, s.handoffMark)),
+      ...bench.map((a) => toMemberPayload(a, null, null)),
     ]
 
     const res = await fetch(mode === 'edit' ? `/api/teams/${teamId}` : '/api/teams', {
@@ -222,10 +259,16 @@ export function TeamForm({
             <div className="mb-3 flex items-center justify-between gap-3">
               <Label className="text-sm">Athlètes du relais ({slots.length}/4)</Label>
               {canManageMembers && (
-                <Button size="sm" variant="outline" onClick={() => setPickerOpen(true)}>
-                  <Plus className="size-4" />
-                  Ajouter
-                </Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setGuestDialogOpen(true)}>
+                    <UserPlus className="size-4" />
+                    Invité
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setPickerOpen(true)}>
+                    <Plus className="size-4" />
+                    Ajouter
+                  </Button>
+                </div>
               )}
             </div>
 
@@ -249,8 +292,13 @@ export function TeamForm({
                     className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm"
                   >
                     <AthleteAvatar athlete={a} className="size-10" />
-                    <div className="min-w-0 flex-1 truncate text-sm font-semibold">
+                    <div className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-sm font-semibold">
                       {fullName(a.firstName, a.lastName)}
+                      {a.isGuest && (
+                        <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                          Invité
+                        </span>
+                      )}
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
                       {slots.length < 4 && (
@@ -291,13 +339,20 @@ export function TeamForm({
       </div>
 
       {canManageMembers && (
-        <AthleteSelectDialog
-          open={pickerOpen}
-          onOpenChange={setPickerOpen}
-          allAthletes={allAthletes}
-          excludeIds={rosterIds}
-          onSelect={addAthlete}
-        />
+        <>
+          <AthleteSelectDialog
+            open={pickerOpen}
+            onOpenChange={setPickerOpen}
+            allAthletes={allAthletes}
+            excludeIds={rosterIds}
+            onSelect={addAthlete}
+          />
+          <GuestAddDialog
+            open={guestDialogOpen}
+            onOpenChange={setGuestDialogOpen}
+            onAdd={addGuest}
+          />
+        </>
       )}
     </div>
   )

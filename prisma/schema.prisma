@@ -113,17 +113,28 @@ model AthleteSession {
   @@map("athlete_session")
 }
 
+// Séance personnelle ajoutée par l'athlète lui-même (hors programme du coach) —
+// placée sur son propre calendrier, visible de lui seul (+ le coach via le
+// filtre "calendrier général"), avec le même cycle de debrief que les séances
+// coach (cf. lib/session-debrief.ts) : difficulty/skipped remplis après coup.
 model AthleteCustomSession {
-  id          String   @id @default(cuid())
-  athleteId   String
-  athlete     Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
-  title       String
-  comment     String?
-  difficulty  Int?
-  performedAt DateTime @default(now())
-  createdAt   DateTime @default(now())
+  id              String   @id @default(cuid())
+  athleteId       String
+  athlete         Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  title           String
+  date            DateTime
+  startTime       DateTime?
+  durationMinutes Int?
+  // Contenu prévu de la séance (équivalent du "Programme" des séances coach) —
+  // distinct de `comment`, qui est le ressenti saisi après-coup au debrief.
+  description     String?
+  comment         String?
+  difficulty      Int?
+  skipped         Boolean  @default(false)
+  createdAt       DateTime @default(now())
 
   @@index([athleteId])
+  @@index([date])
   @@map("athlete_custom_session")
 }
 
@@ -183,12 +194,21 @@ model TeamMember {
   id          String   @id @default(cuid())
   teamId      String
   team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  athleteId   String
-  athlete     Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  // athleteId absent = "invité" externe à l'appli, identifié uniquement par
+  // guestFirstName/guestLastName (ex: coureur d'un autre club prêté pour un
+  // relais). Les deux champs guest* sont alors requis (validés en Zod), sinon
+  // ignorés pour un membre lié à un compte athlète.
+  athleteId   String?
+  athlete     Athlete? @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  guestFirstName String?
+  guestLastName  String?
   relayOrder  Int? // position 1-4 dans le relais, null = pas encore positionné
   handoffMark String? // repère de transmission vers le coureur suivant (pieds, marque au sol...) — sans objet pour la position 4
   addedAt     DateTime @default(now())
 
+  // NULL est traité comme une valeur distincte à chaque ligne par SQLite et
+  // Postgres — plusieurs invités (athleteId null) dans la même équipe restent
+  // donc possibles malgré cette contrainte unique.
   @@unique([teamId, athleteId])
   @@index([athleteId])
   @@map("team_member")
@@ -449,16 +469,22 @@ model Feedback {
 // Votes communauté
 // ---------------------------------------------------------------------------
 
-// Confrontation entre deux suggestions (Feedback) choisies par un admin, chacune
-// reformulée proprement. Chaque utilisateur vote pour l'une des deux, durée libre
-// (début/fin) fixée à la création, résultats visibles uniquement une fois expiré.
+// Confrontation entre deux options : soit deux suggestions (Feedback) choisies
+// par un admin (chacune reformulée proprement), soit un duel "libre" créé par
+// n'importe quel utilisateur (options en texte libre, sans lien Feedback) —
+// voir POST /api/polls. Chaque utilisateur vote pour l'une des deux, durée
+// libre (début/fin) fixée à la création, résultats toujours visibles.
 model Poll {
   id          String       @id @default(cuid())
   createdById String?
   createdBy   User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
   createdAt   DateTime     @default(now())
-  startsAt    DateTime     @default(now()) // date de début choisie par l'admin — le vote n'est ouvert qu'à partir de cette date
+  startsAt    DateTime     @default(now()) // date de début — le vote n'est ouvert qu'à partir de cette date
   expiresAt   DateTime
+  // Épinglage admin : 1 = épinglé en premier, 2 = épinglé en second, null = pas
+  // épinglé — max 2 en même temps, appliqué par l'API (jamais en base), affichés
+  // avant les autres votes en cours dans cet ordre.
+  pinnedOrder Int?
   options     PollOption[]
   votes       PollVote[]
 
@@ -469,9 +495,12 @@ model PollOption {
   id         String     @id @default(cuid())
   pollId     String
   poll       Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
-  feedbackId String     @unique
-  feedback   Feedback   @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
-  label      String // reformulation admin de la suggestion originale
+  // Nullable : seuls les duels "suggestions" (créés depuis /admin/feedbacks)
+  // référencent une Feedback — les duels libres créés par un utilisateur
+  // n'en ont pas (correctif 2026-08-29, permet la création de vote perso).
+  feedbackId String?    @unique
+  feedback   Feedback?  @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  label      String // reformulation admin de la suggestion originale, ou texte libre pour un duel perso
   votes      PollVote[]
 
   @@map("poll_option")

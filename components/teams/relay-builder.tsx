@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input'
 export type RelaySlotAthlete = AthleteAvatarData & {
   id: string
   licenseNumber?: string | null
+  /** Invité externe à l'appli (pas de compte athlète) — nom/prénom saisis à la main. */
+  isGuest?: boolean
 }
 
 export type RelaySlot = {
@@ -53,10 +55,15 @@ function RelayItem({
         </span>
         <AthleteAvatar athlete={slot.athlete} className="size-10" />
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold">
+          <div className="flex items-center gap-1.5 truncate text-sm font-semibold">
             {fullName(slot.athlete.firstName, slot.athlete.lastName)}
+            {slot.athlete.isGuest && (
+              <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                Invité
+              </span>
+            )}
           </div>
-          {showLicense && slot.athlete.licenseNumber && (
+          {showLicense && !slot.athlete.isGuest && slot.athlete.licenseNumber && (
             <div className="text-xs text-muted-foreground">
               Licence{' '}
               <span className="font-mono font-bold text-foreground">

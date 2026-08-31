@@ -29,14 +29,34 @@ export async function getTeamsList() {
     photoUrl: t.photoUrl,
     photoConfig: JSON.parse(t.photoConfig) as { zoom?: number; x?: number; y?: number },
     createdAt: t.createdAt,
-    members: t.members.map((m) => ({
-      id: m.athlete.id,
-      firstName: m.athlete.firstName,
-      lastName: m.athlete.lastName,
-      photoUrl: m.athlete.photoUrl,
-      photoConfig: JSON.parse(m.athlete.photoConfig) as { zoom?: number; x?: number; y?: number },
-      relayOrder: m.relayOrder,
-    })),
+    members: t.members.map((m) =>
+      m.athlete
+        ? {
+            id: m.athlete.id,
+            isGuest: false as const,
+            firstName: m.athlete.firstName,
+            lastName: m.athlete.lastName,
+            photoUrl: m.athlete.photoUrl,
+            photoConfig: JSON.parse(m.athlete.photoConfig) as {
+              zoom?: number
+              x?: number
+              y?: number
+            },
+            relayOrder: m.relayOrder,
+          }
+        : {
+            // Invité externe à l'appli : identifié par le TeamMember lui-même,
+            // pas d'id athlète — préfixé pour ne jamais collisionner avec un id
+            // d'athlète réel côté front.
+            id: `guest:${m.id}`,
+            isGuest: true as const,
+            firstName: m.guestFirstName ?? '',
+            lastName: m.guestLastName ?? '',
+            photoUrl: null,
+            photoConfig: {} as { zoom?: number; x?: number; y?: number },
+            relayOrder: m.relayOrder,
+          }
+    ),
   }))
 }
 
@@ -75,18 +95,39 @@ export async function getTeamDetail(id: string) {
     photoUrl: team.photoUrl,
     photoConfig: JSON.parse(team.photoConfig) as { zoom?: number; x?: number; y?: number },
     createdAt: team.createdAt,
-    members: team.members.map((m) => ({
-      id: m.athlete.id,
-      firstName: m.athlete.firstName,
-      lastName: m.athlete.lastName,
-      photoUrl: m.athlete.photoUrl,
-      photoConfig: JSON.parse(m.athlete.photoConfig) as { zoom?: number; x?: number; y?: number },
-      disciplines: JSON.parse(m.athlete.disciplines) as string[],
-      disciplineColors: JSON.parse(m.athlete.disciplineColors) as Record<string, string>,
-      licenseNumber: m.athlete.licenseNumber,
-      relayOrder: m.relayOrder,
-      handoffMark: m.handoffMark,
-    })),
+    members: team.members.map((m) =>
+      m.athlete
+        ? {
+            id: m.athlete.id,
+            isGuest: false as const,
+            firstName: m.athlete.firstName,
+            lastName: m.athlete.lastName,
+            photoUrl: m.athlete.photoUrl,
+            photoConfig: JSON.parse(m.athlete.photoConfig) as {
+              zoom?: number
+              x?: number
+              y?: number
+            },
+            disciplines: JSON.parse(m.athlete.disciplines) as string[],
+            disciplineColors: JSON.parse(m.athlete.disciplineColors) as Record<string, string>,
+            licenseNumber: m.athlete.licenseNumber,
+            relayOrder: m.relayOrder,
+            handoffMark: m.handoffMark,
+          }
+        : {
+            id: `guest:${m.id}`,
+            isGuest: true as const,
+            firstName: m.guestFirstName ?? '',
+            lastName: m.guestLastName ?? '',
+            photoUrl: null,
+            photoConfig: {} as { zoom?: number; x?: number; y?: number },
+            disciplines: [] as string[],
+            disciplineColors: {} as Record<string, string>,
+            licenseNumber: null,
+            relayOrder: m.relayOrder,
+            handoffMark: m.handoffMark,
+          }
+    ),
     performances: team.performances.map((p) => ({
       id: p.id,
       time: p.time,

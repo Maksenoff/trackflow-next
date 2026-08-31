@@ -39,27 +39,65 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
     if (members) {
       const existing = await tx.teamMember.findMany({ where: { teamId: params.id } })
-      const existingIds = new Set(existing.map((m) => m.athleteId))
-      // Un simple membre (pas staff) ne peut pas ajouter/retirer d'athlètes de
-      // l'équipe — seulement réordonner/repositionner ceux déjà présents.
-      const incoming = staff ? members : members.filter((m) => existingIds.has(m.athleteId))
+      const existingAthleteIds = new Set(
+        existing.map((m) => m.athleteId).filter((id): id is string => !!id)
+      )
+      // Un "invité" (pas de compte athlète) est retrouvé par l'id de sa ligne
+      // TeamMember plutôt que par athleteId, qui n'existe pas pour lui.
+      const existingGuestIds = new Set(existing.filter((m) => !m.athleteId).map((m) => m.id))
+      // Un simple membre (pas staff) ne peut pas ajouter/retirer d'athlètes ou
+      // d'invités de l'équipe — seulement réordonner/repositionner ceux déjà
+      // présents.
+      const incoming = staff
+        ? members
+        : members.filter((m) =>
+            m.athleteId
+              ? existingAthleteIds.has(m.athleteId)
+              : !!m.guestId && existingGuestIds.has(m.guestId)
+          )
+
+      const keptIds = new Set<string>()
 
       for (const m of incoming) {
-        await tx.teamMember.upsert({
-          where: { teamId_athleteId: { teamId: params.id, athleteId: m.athleteId } },
-          update: { relayOrder: m.relayOrder ?? null, handoffMark: m.handoffMark ?? null },
-          create: {
-            teamId: params.id,
-            athleteId: m.athleteId,
-            relayOrder: m.relayOrder ?? null,
-            handoffMark: m.handoffMark ?? null,
-          },
-        })
+        if (m.athleteId) {
+          const row = await tx.teamMember.upsert({
+            where: { teamId_athleteId: { teamId: params.id, athleteId: m.athleteId } },
+            update: { relayOrder: m.relayOrder ?? null, handoffMark: m.handoffMark ?? null },
+            create: {
+              teamId: params.id,
+              athleteId: m.athleteId,
+              relayOrder: m.relayOrder ?? null,
+              handoffMark: m.handoffMark ?? null,
+            },
+          })
+          keptIds.add(row.id)
+        } else if (m.guestId && existingGuestIds.has(m.guestId)) {
+          const row = await tx.teamMember.update({
+            where: { id: m.guestId },
+            data: {
+              guestFirstName: m.guestFirstName ?? null,
+              guestLastName: m.guestLastName ?? null,
+              relayOrder: m.relayOrder ?? null,
+              handoffMark: m.handoffMark ?? null,
+            },
+          })
+          keptIds.add(row.id)
+        } else if (m.guestFirstName && m.guestLastName) {
+          const row = await tx.teamMember.create({
+            data: {
+              teamId: params.id,
+              guestFirstName: m.guestFirstName,
+              guestLastName: m.guestLastName,
+              relayOrder: m.relayOrder ?? null,
+              handoffMark: m.handoffMark ?? null,
+            },
+          })
+          keptIds.add(row.id)
+        }
       }
 
       if (staff) {
-        const incomingIds = new Set(incoming.map((m) => m.athleteId))
-        const toRemove = existing.filter((m) => !incomingIds.has(m.athleteId))
+        const toRemove = existing.filter((m) => !keptIds.has(m.id))
         if (toRemove.length > 0) {
           await tx.teamMember.deleteMany({ where: { id: { in: toRemove.map((m) => m.id) } } })
         }

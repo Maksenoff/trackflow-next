@@ -40,7 +40,9 @@ export async function POST(request: Request) {
       members: members?.length
         ? {
             create: members.map((m) => ({
-              athleteId: m.athleteId,
+              athleteId: m.athleteId ?? null,
+              guestFirstName: m.athleteId ? null : (m.guestFirstName ?? null),
+              guestLastName: m.athleteId ? null : (m.guestLastName ?? null),
               relayOrder: m.relayOrder ?? null,
               handoffMark: m.handoffMark ?? null,
             })),

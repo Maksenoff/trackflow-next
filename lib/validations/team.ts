@@ -1,11 +1,22 @@
 import { z } from 'zod'
 import { photoConfigSchema } from '@/lib/validations/athlete'
 
-const relayMemberSchema = z.object({
-  athleteId: z.string().min(1),
-  relayOrder: z.number().int().min(1).max(4).nullable().optional(),
-  handoffMark: z.string().trim().max(60).nullable().optional(),
-})
+// Membre lié à un compte athlète (athleteId) OU invité externe à l'appli
+// (guestFirstName + guestLastName, pas de compte) — jamais les deux. guestId
+// identifie un invité déjà en base (pour le mettre à jour au lieu d'en
+// recréer un doublon) ; absent pour un invité tout juste ajouté côté client.
+const relayMemberSchema = z
+  .object({
+    athleteId: z.string().min(1).optional(),
+    guestId: z.string().min(1).optional(),
+    guestFirstName: z.string().trim().min(1).max(60).optional(),
+    guestLastName: z.string().trim().min(1).max(60).optional(),
+    relayOrder: z.number().int().min(1).max(4).nullable().optional(),
+    handoffMark: z.string().trim().max(60).nullable().optional(),
+  })
+  .refine((m) => !!m.athleteId || (!!m.guestFirstName && !!m.guestLastName), {
+    message: 'Athlète ou nom/prénom invité requis',
+  })
 
 // Le plafond de 4 s'applique aux positions du relais (relayOrder non nul), pas
 // au nombre total de membres — une équipe peut avoir des remplaçants au-delà.
