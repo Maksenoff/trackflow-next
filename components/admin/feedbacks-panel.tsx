@@ -73,7 +73,10 @@ export function FeedbacksPanel({ feedbacks: initial }: { feedbacks: FeedbackItem
   const router = useRouter()
   const [feedbacks, setFeedbacks] = useState(initial)
   const [typeFilter, setTypeFilter] = useState<TypeFilter>(null)
-  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>(null)
+  // Par défaut "Nouveaux" plutôt que "Tous" : c'est ce qu'un admin veut voir en
+  // arrivant sur la page (les tickets à traiter), pas l'historique complet
+  // (demande explicite de Maksen le 2026-09-04).
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('new')
   const [search, setSearch] = useState('')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [pollDialogOpen, setPollDialogOpen] = useState(false)
