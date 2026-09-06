@@ -24,8 +24,21 @@ export type LinkedAthleteInfo = {
   photoConfig: { zoom?: number; x?: number; y?: number }
 }
 
+/**
+ * Casse propre systématique ("Jean-Pierre", "Ichallalen") quel que soit
+ * comment le prénom/nom a été saisi à l'inscription — certains comptes ont
+ * leur nom stocké tout en majuscules (convention "NOM Prénom" spontanée sur
+ * un formulaire), d'autres non, ce qui donnait des noms affichés tantôt en
+ * capitales tantôt pas selon le compte (repéré sur le détail des votes,
+ * correctif 2026-09-04, mais s'applique partout où `fullName` est utilisé).
+ * `\p{L}` (Unicode) plutôt que `[a-z]` pour gérer les accents.
+ */
+function toTitleCase(value: string): string {
+  return value.toLowerCase().replace(/(^|[\s'-])\p{L}/gu, (m) => m.toUpperCase())
+}
+
 export function fullName(firstName: string, lastName: string): string {
-  return `${firstName} ${lastName}`
+  return `${toTitleCase(firstName)} ${toTitleCase(lastName)}`
 }
 
 /** Reproduit la logique de catégorie FFA de AthleteController::show() (âge au 31 déc) */

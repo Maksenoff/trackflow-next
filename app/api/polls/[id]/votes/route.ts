@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { fullName } from '@/lib/athlete'
 
 // Détail des votes (qui a voté pour quoi) — accessible à tout utilisateur
 // connecté, comme le reste de la page /votes (déjà consultable par tous),
@@ -33,7 +34,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     options: poll.options.map((o) => ({
       id: o.id,
       label: o.label,
-      voters: o.votes.map((v) => `${v.user.firstName} ${v.user.lastName}`),
+      voters: o.votes.map((v) => fullName(v.user.firstName, v.user.lastName)),
     })),
   })
 }
