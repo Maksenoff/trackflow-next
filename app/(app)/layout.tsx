@@ -43,7 +43,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       />
       <Sidebar roles={roles} name={name} linkedAthlete={linkedAthlete} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <main className="flex-1 pb-24 lg:pb-0">{children}</main>
+        {/* pt-[env(safe-area-inset-top)] : viewport-fit=cover (app/layout.tsx) active
+            les safe-area-inset-* sur iPhone à encoche/Dynamic Island, mais rien ne les
+            respectait encore — sur mobile (pas de Sidebar, main affiché directement
+            sous la barre de statut système) ça poussait le contenu du haut de page
+            (ex: bouton "+ Créer un vote" sur /votes) sous la zone de la barre de
+            statut, injoignable au tap. Vaut 0 sur desktop/appareils sans encoche,
+            aucun effet là où ce n'est pas nécessaire (correctif 2026-09-09). */}
+        <main className="flex-1 pt-[env(safe-area-inset-top)] pb-24 lg:pt-0 lg:pb-0">
+          {children}
+        </main>
       </div>
       <MobileNav roles={roles} name={name} email={email} linkedAthlete={linkedAthlete} />
       <FeedbackWidget />
