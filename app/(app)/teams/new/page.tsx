@@ -12,18 +12,19 @@ export default async function NewTeamPage() {
   const isStaff = isAdmin(roles) || isCoach(roles)
 
   // Un athlète (compte lié à un profil) peut créer sa propre équipe, pas
-  // seulement le staff — même logique que la page liste (/teams).
-  let hasLinkedAthlete = false
-  if (!isStaff && session) {
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { linkedAthleteId: true },
-    })
-    hasLinkedAthlete = !!user?.linkedAthleteId
-  }
+  // seulement le staff — même logique que la page liste (/teams). `athletes`
+  // ne dépend pas de ce contrôle : lancée en parallèle.
+  const [currentUser, athletes] = await Promise.all([
+    !isStaff && session
+      ? prisma.user.findUnique({
+          where: { id: session.user.id },
+          select: { linkedAthleteId: true },
+        })
+      : Promise.resolve(null),
+    getAthletesList(),
+  ])
+  const hasLinkedAthlete = !!currentUser?.linkedAthleteId
   if (!isStaff && !hasLinkedAthlete) redirect('/teams')
-
-  const athletes = await getAthletesList()
 
   return (
     <PageTransition>

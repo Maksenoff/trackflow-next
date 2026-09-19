@@ -259,6 +259,11 @@ export type NotificationFeedItem = {
   url: string | null
   isRead: boolean
   timeAgo: string
+  /** Date de référence de l'item (créée pour la séance à débriefer / la
+   * séance bientôt / la notification stockée selon le cas) — sert au
+   * regroupement par jour (Aujourd'hui/Hier/...) côté panneau notifications
+   * (retour Maksen 2026-09-19, présentation "plus originale"). */
+  date: Date
 }
 
 /** Fusionne les notifications stockées avec les rappels "séance à débriefer" calculés à la volée. */
@@ -319,6 +324,7 @@ export async function buildNotificationFeed(
         url: `/sessions/${session.id}`,
         isRead: false,
         timeAgo: timeAgo(session.date),
+        date: session.date,
       })
     }
 
@@ -333,6 +339,7 @@ export async function buildNotificationFeed(
         url: `/sessions/${session.id}`,
         isRead: false,
         timeAgo: timeUntil(session.startTime),
+        date: session.startTime,
       })
     }
   }
@@ -350,6 +357,7 @@ export async function buildNotificationFeed(
       url: n.type === NOTIFICATION_TYPES.FEEDBACK ? null : n.url,
       isRead: n.isRead,
       timeAgo: timeAgo(n.createdAt),
+      date: n.createdAt,
     })),
   ]
 

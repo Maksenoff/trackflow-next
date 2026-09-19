@@ -30,6 +30,7 @@ export function MobileAccountSheet({
   email,
   primaryRole,
   linkedAthlete,
+  hideTheme = false,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -37,6 +38,12 @@ export function MobileAccountSheet({
   email: string
   primaryRole: Role | null
   linkedAthlete: LinkedAthleteInfo | null
+  /** La nav mobile classique n'a pas d'autre moyen de changer de thème sur
+   * mobile — ce bouton reste son unique accès, donc `false` par défaut. La
+   * nouvelle interface a déjà un bouton thème dans sa barre du haut
+   * (components/new-ui/new-mobile-nav.tsx) : y afficher aussi celui-ci ferait
+   * doublon (retour Maksen 2026-09-19). */
+  hideTheme?: boolean
 }) {
   const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -95,18 +102,20 @@ export function MobileAccountSheet({
           </div>
 
           <div className="space-y-1 px-2 pb-2">
-            <button
-              type="button"
-              onClick={() => setTheme(isDark ? 'light' : 'dark')}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors hover:bg-muted/60"
-            >
-              {isDark ? (
-                <Moon className="size-4 text-muted-foreground" />
-              ) : (
-                <Sun className="size-4 text-muted-foreground" />
-              )}
-              {isDark ? 'Mode sombre' : 'Mode clair'}
-            </button>
+            {!hideTheme && (
+              <button
+                type="button"
+                onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors hover:bg-muted/60"
+              >
+                {isDark ? (
+                  <Moon className="size-4 text-muted-foreground" />
+                ) : (
+                  <Sun className="size-4 text-muted-foreground" />
+                )}
+                {isDark ? 'Mode sombre' : 'Mode clair'}
+              </button>
+            )}
 
             {linkedAthlete && (
               <Link

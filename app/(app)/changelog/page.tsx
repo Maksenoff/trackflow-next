@@ -1,4 +1,4 @@
-import { Sparkles, Wrench } from 'lucide-react'
+import { NotebookPen, Plus, Wrench } from 'lucide-react'
 import { PageTransition } from '@/components/motion/page-transition'
 import { BackButton } from '@/components/ui/back-button'
 import { cn } from '@/lib/utils'
@@ -21,8 +21,8 @@ export default function ChangelogPage() {
           {CHANGELOG.map((entry, i) => (
             <div key={entry.version} className="space-y-4">
               <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1.5 rounded-full bg-gradient-selected px-3 py-1.5 text-sm font-bold text-white shadow-sm shadow-primary/25">
-                  <Sparkles className="size-3.5" />v{entry.version}
+                <span className="flex items-center gap-1.5 rounded-full bg-gradient-selected px-3 py-1.5 text-sm font-bold text-primary-foreground shadow-sm shadow-primary/25">
+                  <NotebookPen className="size-3.5" />v{entry.version}
                 </span>
                 <span className="text-sm text-muted-foreground">{entry.date}</span>
                 {i === 0 && (
@@ -49,11 +49,7 @@ export default function ChangelogPage() {
                           isFix ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'
                         )}
                       >
-                        {isFix ? (
-                          <Wrench className="size-3.5" />
-                        ) : (
-                          <Sparkles className="size-3.5" />
-                        )}
+                        {isFix ? <Wrench className="size-3.5" /> : <Plus className="size-3.5" />}
                         {section.title}
                       </h2>
                       <ul className="space-y-1.5">

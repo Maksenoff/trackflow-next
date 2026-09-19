@@ -8,21 +8,24 @@ import { PageTransition } from '@/components/motion/page-transition'
 import { TeamForm } from '@/components/teams/team-form'
 
 export default async function TeamEditPage({ params }: { params: { id: string } }) {
-  const session = await auth()
+  const [session, team] = await Promise.all([auth(), getTeamDetail(params.id)])
+  if (!team) notFound()
+
   const roles = (session?.user.roles ?? []) as Role[]
   const canManage = isAdmin(roles) || isCoach(roles)
 
-  const team = await getTeamDetail(params.id)
-  if (!team) notFound()
-
-  let linkedAthleteId: string | null = null
-  if (session) {
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { linkedAthleteId: true },
-    })
-    linkedAthleteId = user?.linkedAthleteId ?? null
-  }
+  // `allAthletes` ne dépend que de `canManage` (déjà connu) : lancée en
+  // parallèle plutôt qu'après la résolution de l'utilisateur lié.
+  const [currentUser, allAthletes] = await Promise.all([
+    session
+      ? prisma.user.findUnique({
+          where: { id: session.user.id },
+          select: { linkedAthleteId: true },
+        })
+      : Promise.resolve(null),
+    canManage ? getAthletesList() : Promise.resolve([]),
+  ])
+  const linkedAthleteId = currentUser?.linkedAthleteId ?? null
   const isTeamMember =
     !canManage && !!linkedAthleteId && team.members.some((m) => m.id === linkedAthleteId)
 
@@ -33,8 +36,6 @@ export default async function TeamEditPage({ params }: { params: { id: string } 
   // Suppression : staff toujours, ou l'auteur de la création (lui seul, pas
   // les autres membres même s'ils peuvent éditer le relais).
   const canDelete = canManage || (!!session && team.createdByUserId === session.user.id)
-
-  const allAthletes = canManage ? await getAthletesList() : []
 
   const positioned = team.members
     .filter((m) => m.relayOrder != null)

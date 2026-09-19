@@ -20,7 +20,10 @@ export default async function AdminFeedbacksPage() {
   return (
     <PageTransition>
       <div className="space-y-6">
-        <div>
+        {/* Masqué sur mobile : redondant avec la sous-nav admin (déjà sur
+            "Feedbacks"), même traitement que /calendar (retour Maksen
+            2026-09-18). */}
+        <div className="hidden sm:block">
           <h1 className="text-2xl font-bold tracking-tight">Feedbacks</h1>
           <p className="text-sm text-muted-foreground">
             {unresolved} ticket{unresolved > 1 ? 's' : ''} non résolu{unresolved > 1 ? 's' : ''}

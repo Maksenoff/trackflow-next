@@ -42,6 +42,8 @@ import {
   formatPerformanceValue,
 } from '@/lib/performance'
 import { formatFullDate } from '@/lib/date'
+import { DisciplineSelect } from '@/components/athletes/discipline-select'
+import { SeasonSelect } from '@/components/athletes/season-select'
 import { cn } from '@/lib/utils'
 import { InfoHint } from './info-hint'
 
@@ -123,8 +125,16 @@ export function StatsAdvancedView({
 
   return (
     <div className="space-y-4">
-      {/* Discipline tabs */}
-      <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1">
+      {/* Discipline tabs — dropdown à taille fixe sur mobile avec pictogramme
+          SVG (retour Maksen 2026-09-19), rangée de pills inchangée à partir
+          de `sm:`. */}
+      <DisciplineSelect
+        className="sm:hidden"
+        value={activeDiscipline}
+        onChange={switchDiscipline}
+        disciplines={disciplines}
+      />
+      <div className="no-scrollbar hidden items-center gap-2 overflow-x-auto pb-1 sm:flex">
         {disciplines.map((disc) => {
           const active = disc === activeDiscipline
           return (
@@ -145,40 +155,51 @@ export function StatsAdvancedView({
         })}
       </div>
 
-      {/* Season filter */}
+      {/* Season filter — dropdown à taille fixe sur mobile (retour Maksen
+          2026-09-19, même traitement que l'onglet Performances), rangée de
+          pills inchangée à partir de `sm:`. */}
       {availableSeasons.length > 1 && (
-        <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1">
-          <span className="shrink-0 text-xs text-muted-foreground">Saison :</span>
-          <button
-            type="button"
-            onClick={() => setActiveSeason('all')}
-            className={cn(
-              'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
-              activeSeason === 'all'
-                ? 'border-primary/40 bg-primary/10 text-primary'
-                : 'border-border text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <Layers className="size-3.5" />
-            Toutes
-          </button>
-          {availableSeasons.map((season) => (
+        <>
+          <SeasonSelect
+            className="sm:hidden"
+            value={activeSeason === 'all' ? 'all' : String(activeSeason)}
+            onChange={(v) => setActiveSeason(v === 'all' ? 'all' : Number(v))}
+            allLabel="Toutes"
+            options={availableSeasons.map((s) => ({ value: String(s), label: seasonLabel(s) }))}
+          />
+          <div className="no-scrollbar hidden items-center gap-2 overflow-x-auto pb-1 sm:flex">
+            <span className="shrink-0 text-xs text-muted-foreground">Saison :</span>
             <button
-              key={season}
               type="button"
-              onClick={() => setActiveSeason(season)}
+              onClick={() => setActiveSeason('all')}
               className={cn(
                 'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
-                activeSeason === season
+                activeSeason === 'all'
                   ? 'border-primary/40 bg-primary/10 text-primary'
                   : 'border-border text-muted-foreground hover:text-foreground'
               )}
             >
-              <CalendarRange className="size-3.5" />
-              {seasonLabel(season)}
+              <Layers className="size-3.5" />
+              Toutes
             </button>
-          ))}
-        </div>
+            {availableSeasons.map((season) => (
+              <button
+                key={season}
+                type="button"
+                onClick={() => setActiveSeason(season)}
+                className={cn(
+                  'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+                  activeSeason === season
+                    ? 'border-primary/40 bg-primary/10 text-primary'
+                    : 'border-border text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <CalendarRange className="size-3.5" />
+                {seasonLabel(season)}
+              </button>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Stat cards */}

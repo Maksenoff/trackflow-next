@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { isAdmin, isCoach, type Role } from '@/lib/roles'
 import { getSessionDetail, getTrainingTypes, getCoachUsers } from '@/lib/calendar-data'
 import { hasSessionEnded } from '@/lib/session-debrief'
+import { toDateInputValue } from '@/lib/calendar-grid'
+import { getClubHourlyWeather, forecastAt, DEFAULT_TRAINING_HOUR } from '@/lib/weather'
 import { PageTransition } from '@/components/motion/page-transition'
 import { BackButton } from '@/components/ui/back-button'
 import { SessionHeader } from '@/components/sessions/session-header'
@@ -13,11 +15,15 @@ import { RpePanel } from '@/components/sessions/rpe-panel'
 import { RpeLogForm } from '@/components/sessions/rpe-log-form'
 
 export default async function SessionDetailPage({ params }: { params: { id: string } }) {
-  const [detail, trainingTypes, coaches, authSession] = await Promise.all([
+  const [detail, trainingTypes, coaches, authSession, weather] = await Promise.all([
     getSessionDetail(params.id),
     getTrainingTypes(),
     getCoachUsers(),
     auth(),
+    // Fiche séance uniquement (retour Maksen 2026-09-18 : pas sur les
+    // compétitions "pour le moment", pas sur la grille mois mobile) — cf.
+    // lib/weather.ts.
+    getClubHourlyWeather(),
   ])
   if (!detail) notFound()
 
@@ -52,6 +58,11 @@ export default async function SessionDetailPage({ params }: { params: { id: stri
           canEdit={canEdit}
           trainingTypes={trainingTypes}
           coaches={coaches}
+          forecast={forecastAt(
+            weather,
+            toDateInputValue(detail.date),
+            detail.startTime ? detail.startTime.getUTCHours() : DEFAULT_TRAINING_HOUR
+          )}
         />
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

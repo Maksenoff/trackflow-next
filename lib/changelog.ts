@@ -27,6 +27,49 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '3.1',
+    date: 'Septembre 2026',
+    sections: [
+      {
+        title: 'Nouvelle interface',
+        items: [
+          "Nouveau design pour toute l'application : navigation, tableau de bord et notifications repensés",
+          "Choix de la couleur d'accent dans les paramètres (Apparence)",
+          "Nouveau logo, y compris l'icône de l'application sur l'écran d'accueil",
+        ],
+      },
+      {
+        title: 'Notifications',
+        items: [
+          "Panneau de notifications repensé, organisé par jour, avec une icône propre à chaque type d'événement",
+        ],
+      },
+      {
+        title: 'Séances',
+        items: [
+          "Calculateur d'allure : à partir d'un temps connu sur une distance repère, calcule le temps cible sur la distance de la séance à un % d'allure donné — les temps repère saisis sont mémorisés d'une séance à l'autre",
+        ],
+      },
+      {
+        title: 'Calendrier',
+        items: [
+          'Nouvelle vue semaine mobile en carrousel, un jour à la fois (glissement tactile)',
+          "Météo affichée sur les jours où une séance est prévue, à l'heure de la séance",
+          'Anniversaires des athlètes affichés directement dans le calendrier',
+        ],
+      },
+      {
+        title: 'Corrections',
+        kind: 'fix',
+        items: [
+          'Le panneau Feedbacks (admin) s’ouvre désormais directement sur les tickets "Nouveaux" au lieu de tout afficher par défaut',
+          "Correction de l'affichage des noms, tantôt en majuscules tantôt non, dans le détail d'un vote et ailleurs dans l'application",
+          "Correction d'un affichage cassé sur iPhone : le bouton et le lien « Créer un vote » passaient sous la barre de statut et devenaient inaccessibles",
+        ],
+      },
+    ],
+  },
+  {
     version: '3.0',
     date: 'Août 2026',
     sections: [

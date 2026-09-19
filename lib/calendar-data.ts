@@ -1,9 +1,14 @@
 import { prisma } from '@/lib/prisma'
 import { isAdmin, isCoach } from '@/lib/roles'
 
+// Marge de 6 jours de chaque côté : la vue calendrier a aussi un mode "semaine"
+// (client-side, cf. calendar-view.tsx) dont la semaine affichée peut déborder
+// sur le mois voisin (ex: semaine du 30 août au 5 septembre) — sans cette
+// marge, ces jours-là n'auraient aucune donnée tant qu'on ne renavigue pas
+// vers le mois suivant.
 function monthRange(year: number, month: number) {
-  const start = new Date(year, month - 1, 1)
-  const end = new Date(year, month, 0, 23, 59, 59)
+  const start = new Date(year, month - 1, 1 - 6)
+  const end = new Date(year, month, 0 + 6, 23, 59, 59)
   return { start, end }
 }
 
@@ -112,6 +117,43 @@ export async function getMonthCompetitions(year: number, month: number, athleteI
 }
 
 export type MonthCompetition = Awaited<ReturnType<typeof getMonthCompetitions>>[number]
+
+/**
+ * Anniversaires du mois affiché (avec la même marge de 6 jours que le reste,
+ * pour la vue semaine qui peut déborder sur le mois voisin). Le millésime de
+ * `birthDate` ne sert qu'à calculer l'âge ailleurs — ici on ne compare que
+ * mois/jour, recalés sur l'année (ou les deux années, si la plage chevauche
+ * le nouvel an) de la plage affichée.
+ */
+export async function getMonthBirthdays(year: number, month: number) {
+  const { start, end } = monthRange(year, month)
+  const athletes = await prisma.athlete.findMany({
+    where: { birthDate: { not: null } },
+    select: { id: true, firstName: true, lastName: true, birthDate: true },
+  })
+
+  const years = new Set([start.getFullYear(), end.getFullYear()])
+  const birthdays: { athleteId: string; firstName: string; lastName: string; date: Date }[] = []
+  for (const athlete of athletes) {
+    if (!athlete.birthDate) continue
+    const bMonth = athlete.birthDate.getMonth()
+    const bDay = athlete.birthDate.getDate()
+    for (const y of years) {
+      const candidate = new Date(y, bMonth, bDay)
+      if (candidate >= start && candidate <= end) {
+        birthdays.push({
+          athleteId: athlete.id,
+          firstName: athlete.firstName,
+          lastName: athlete.lastName,
+          date: candidate,
+        })
+      }
+    }
+  }
+  return birthdays
+}
+
+export type MonthBirthday = Awaited<ReturnType<typeof getMonthBirthdays>>[number]
 
 export async function getSessionDetail(id: string) {
   return prisma.session.findUnique({

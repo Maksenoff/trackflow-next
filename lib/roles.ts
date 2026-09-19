@@ -43,6 +43,24 @@ export function isAdmin(userRoles: string[] | undefined): boolean {
   return hasRole(userRoles, ROLES.ADMIN)
 }
 
+/**
+ * Nouvelle interface = interface par défaut pour tout le monde depuis la fin
+ * de la bêta (2026-09-19, cf. app/(app)/layout.tsx) — seul un admin ayant
+ * explicitement mis `User.newUiEnabled` à `false` voit encore l'ancienne.
+ * Centralisé ici car cette règle doit être appliquée identiquement partout où
+ * une page relit ce champ pour choisir son propre rendu (dashboard, athlètes,
+ * équipes...) — le passage en "défaut pour tous" n'avait initialement touché
+ * que le shell, laissant 8 pages avec `if (newUiEnabled)` sur la valeur brute
+ * (donc encore classique par défaut pour un compte non-admin, sous un shell
+ * pourtant déjà nouvelle interface — bug constaté 2026-09-19).
+ */
+export function resolveNewUi(
+  rawNewUiEnabled: boolean | null | undefined,
+  userRoles: string[] | undefined
+): boolean {
+  return !(isAdmin(userRoles) && rawNewUiEnabled === false)
+}
+
 export function isCoach(userRoles: string[] | undefined): boolean {
   return hasRole(userRoles, ROLES.COACH)
 }

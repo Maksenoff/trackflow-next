@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Reorder, useDragControls } from 'framer-motion'
 import type { z } from 'zod'
 import { toast } from 'sonner'
-import { Loader2, User, ListChecks, ImageIcon, X, GripVertical } from 'lucide-react'
+import { Loader2, User, ListChecks, ImageIcon, X, GripVertical, Camera, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ImagePositionEditor } from '@/components/athletes/image-position-editor'
+import { DeleteAthleteButton } from '@/components/athletes/delete-athlete-button'
 import { athleteInputSchema } from '@/lib/validations/athlete'
 import {
   ATHLETE_SPECIALTIES,
@@ -63,11 +64,22 @@ export function AthleteForm({
   athleteId,
   initialData,
   earliestSeasonStart,
+  title,
+  subtitle,
+  showDelete,
 }: {
   mode: 'create' | 'edit'
   athleteId?: string
   initialData?: Partial<AthleteFormValues>
   earliestSeasonStart?: number
+  /** Fusionne le titre de page + les actions Annuler/Enregistrer (+ Supprimer)
+   * dans une seule rangée d'en-tête plutôt qu'une barre d'actions à part —
+   * fourni par la page d'édition ; la page de création garde son propre titre
+   * (flow avec choix import FFA/manuel avant le formulaire) et laisse ce prop
+   * vide, auquel cas seules les actions s'affichent, sans titre dupliqué. */
+  title?: string
+  subtitle?: string
+  showDelete?: boolean
 }) {
   const router = useRouter()
   const ffaSyncSeasonOptions = buildFfaSyncSeasonOptions(earliestSeasonStart)
@@ -219,7 +231,36 @@ export function AthleteForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 pb-28 lg:pb-0">
+      {/* Desktop/tablette : plus de barre à part en bas à droite (retour Maksen,
+          "pas beau") — les actions rejoignent le titre de page dans une seule
+          rangée d'en-tête, façon toolbar d'appli moderne (Linear/Vercel) plutôt
+          qu'une carte vide avec deux boutons perdus dedans. Sur la page de
+          création (pas de `title`), seules les actions s'affichent, alignées à
+          droite, sans rangée-titre dupliquée (déjà affichée par cette page-là). */}
+      <div className="hidden items-start justify-between gap-4 lg:flex">
+        {title && (
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+            {subtitle && <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>}
+          </div>
+        )}
+        <div className="ml-auto flex shrink-0 items-center gap-2.5">
+          {showDelete && athleteId && <DeleteAthleteButton athleteId={athleteId} />}
+          <Button type="button" variant="outline" onClick={() => router.back()}>
+            Annuler
+          </Button>
+          <Button
+            type="submit"
+            disabled={loading || uploadingPhoto || uploadingBanner}
+            className="bg-gradient-to-r from-primary to-primary/80 text-white shadow-lg shadow-primary/30"
+          >
+            {loading && <Loader2 className="size-4 animate-spin" />}
+            {mode === 'create' ? "Créer l'athlète" : 'Enregistrer'}
+          </Button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[1fr_400px]">
         {/* Colonne gauche */}
         <div className="space-y-6">
@@ -404,28 +445,33 @@ export function AthleteForm({
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                  <Input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,image/heic,image/heif"
-                    disabled={uploadingPhoto}
-                    onChange={(e) => handlePhotoChange(e.target.files?.[0])}
-                  />
+                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-muted has-disabled:pointer-events-none has-disabled:opacity-60">
+                    <Camera className="size-3.5" />
+                    {photoUrl ? 'Changer' : 'Ajouter une photo'}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/heic,image/heif"
+                      className="hidden"
+                      disabled={uploadingPhoto}
+                      onChange={(e) => handlePhotoChange(e.target.files?.[0])}
+                    />
+                  </label>
                   {uploadingPhoto && (
                     <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
                   )}
                   {photoUrl && !uploadingPhoto && (
-                    <Button
+                    <button
                       type="button"
-                      variant="ghost"
-                      size="icon-sm"
                       onClick={() => {
                         setPhotoUrl(null)
                         setValue('photoUrl', null)
                         setValue('photoConfig', {})
                       }}
+                      className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-destructive"
                     >
-                      <X className="size-4" />
-                    </Button>
+                      <X className="size-3" />
+                      Retirer
+                    </button>
                   )}
                 </div>
               </div>
@@ -478,12 +524,17 @@ export function AthleteForm({
                 ) : (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <Input
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp,image/heic,image/heif"
-                        disabled={uploadingBanner}
-                        onChange={(e) => handleBannerChange(e.target.files?.[0])}
-                      />
+                      <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-muted has-disabled:pointer-events-none has-disabled:opacity-60">
+                        <Upload className="size-3.5" />
+                        {bannerUrl ? 'Changer la photo' : 'Choisir une photo'}
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/heic,image/heif"
+                          className="hidden"
+                          disabled={uploadingBanner}
+                          onChange={(e) => handleBannerChange(e.target.files?.[0])}
+                        />
+                      </label>
                       {uploadingBanner && (
                         <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
                       )}
@@ -504,13 +555,29 @@ export function AthleteForm({
         </div>
       </div>
 
-      <div className="flex justify-end gap-3">
+      {/* Mobile : barre flottante façon popup plutôt qu'une rangée en bas de
+          formulaire (illisible/dur à atteindre sur un long formulaire) — décalée
+          à GAUCHE, jamais au même endroit que le bouton feedback bugs/suggestions
+          (fixe en bas-DROITE, cf. components/feedback/feedback-widget.tsx), avec
+          le même décalage au-dessus de la nav du bas pour rester cohérent. Fond
+          plein (pas de transparence/blur) + ombre marquée + CTA en dégradé façon
+          bouton "+ Ajouter" (§7 CLAUDE.md) : la version précédente (fond
+          translucide, "Annuler" en ghost) se fondait dans l'arrière-plan sombre
+          et manquait de présence (retour Maksen). */}
+      <div
+        className="fixed left-4 z-30 flex items-center gap-2 rounded-full border border-border bg-card p-2 pr-2.5 shadow-xl shadow-black/30 print:hidden lg:hidden dark:shadow-black/50"
+        style={{ bottom: 'max(5.5rem, calc(env(safe-area-inset-bottom) + 5.5rem))' }}
+      >
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Annuler
         </Button>
-        <Button type="submit" disabled={loading || uploadingPhoto || uploadingBanner}>
+        <Button
+          type="submit"
+          disabled={loading || uploadingPhoto || uploadingBanner}
+          className="bg-gradient-to-r from-primary to-primary/80 text-white shadow-lg shadow-primary/30"
+        >
           {loading && <Loader2 className="size-4 animate-spin" />}
-          {mode === 'create' ? "Créer l'athlète" : 'Enregistrer'}
+          {mode === 'create' ? 'Créer' : 'Enregistrer'}
         </Button>
       </div>
     </form>

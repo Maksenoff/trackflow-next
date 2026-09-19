@@ -4,7 +4,9 @@ import { motion } from 'framer-motion'
 import { Calendar as CalendarIcon, Clock, Hourglass, UserRound, Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { SessionActions } from '@/components/sessions/session-actions'
+import { PaceCalculatorDialog } from '@/components/sessions/pace-calculator-dialog'
 import { formatTime } from '@/lib/date'
+import { weatherIcon, type HourForecast } from '@/lib/weather'
 import { cn } from '@/lib/utils'
 import type { SessionDetail } from '@/lib/calendar-data'
 import type { CoachOption, TrainingTypeOption } from '@/components/calendar/session-form-dialog'
@@ -15,14 +17,21 @@ export function SessionHeader({
   canEdit,
   trainingTypes,
   coaches,
+  forecast,
 }: {
   detail: SessionDetail
   isPast: boolean
   canEdit: boolean
   trainingTypes: TrainingTypeOption[]
   coaches: CoachOption[]
+  /** Météo du club (Marquette-lez-Lille) à la date et l'heure de la séance
+   * (ou 19h de repli si l'heure n'est pas renseignée), si disponible (cf.
+   * lib/weather.ts) — absente hors de la fenêtre de 32 jours couverte
+   * (16 passés + 16 à venir). */
+  forecast?: HourForecast
 }) {
   const color = detail.trainingType?.color ?? '#6366f1'
+  const tileCount = 4 + (detail.coach ? 1 : 0) + (forecast ? 1 : 0)
 
   return (
     <motion.div
@@ -57,8 +66,11 @@ export function SessionHeader({
             <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">{detail.title}</h1>
           </div>
 
-          {canEdit && (
-            <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {/* Personnel au compte connecté, pas réservé aux coachs/admin —
+                cf. lib/pace-calculator.ts. */}
+            <PaceCalculatorDialog />
+            {canEdit && (
               <SessionActions
                 sessionId={detail.id}
                 trainingTypes={trainingTypes}
@@ -74,14 +86,15 @@ export function SessionHeader({
                   coachPresent: detail.coachPresent,
                 }}
               />
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         <div
           className={cn(
             'mt-6 grid grid-cols-2 gap-3 border-t border-border pt-5 sm:grid-cols-4',
-            detail.coach && 'lg:grid-cols-5'
+            tileCount === 5 && 'lg:grid-cols-5',
+            tileCount === 6 && 'lg:grid-cols-6'
           )}
         >
           <StatTile
@@ -118,6 +131,18 @@ export function SessionHeader({
               accent
             />
           )}
+          {forecast &&
+            (() => {
+              const { Icon, label } = weatherIcon(forecast.code)
+              return (
+                <StatTile
+                  icon={Icon}
+                  label={label}
+                  value={`${Math.round(forecast.temp)}°`}
+                  color={color}
+                />
+              )
+            })()}
         </div>
       </div>
     </motion.div>

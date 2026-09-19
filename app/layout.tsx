@@ -1,10 +1,19 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Archivo } from 'next/font/google'
 import './globals.css'
 import { cn } from '@/lib/utils'
 import { Providers } from '@/components/providers'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
+// Police italique de la "nouvelle interface" (bêta, voir components/new-ui/) —
+// chargée globalement mais utilisée uniquement dans le sous-arbre `.new-ui`,
+// jamais dans le reste de l'app classique.
+const archivo = Archivo({
+  subsets: ['latin'],
+  variable: '--font-archivo',
+  style: ['normal', 'italic'],
+  axes: ['wdth'],
+})
 
 export const metadata: Metadata = {
   title: 'TrackFlow',
@@ -37,7 +46,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr" className={cn('font-sans', inter.variable)} suppressHydrationWarning>
+    <html
+      lang="fr"
+      className={cn('font-sans', inter.variable, archivo.variable)}
+      suppressHydrationWarning
+    >
       <body className="antialiased min-h-dvh bg-background text-foreground">
         <Providers>{children}</Providers>
       </body>

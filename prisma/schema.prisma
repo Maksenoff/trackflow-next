@@ -29,6 +29,31 @@ model User {
   lastLoginAt  DateTime? // horodatage de la dernière authentification réussie — peu parlant si la session reste ouverte des jours
   lastActiveAt DateTime? // dernière requête authentifiée reçue de cet utilisateur (voir components/activity-ping.tsx) — reflète le réel dernier usage de l'app
 
+  // Fin de la bêta (2026-09-19) : la nouvelle interface est désormais celle
+  // de tout le club, ce champ n'a plus d'effet que pour un admin (bascule
+  // vers l'ancienne interface pour comparer/dépanner, voir
+  // app/(app)/layout.tsx et components/settings/appearance-panel.tsx) —
+  // reste porté par User (pas ClubSettings) car ça reste, pour un admin, une
+  // préférence personnelle et non un réglage club.
+  newUiEnabled Boolean @default(true)
+  // Couleur d'accent de la nouvelle interface (hex, ou "auto" pour le swatch
+  // Blanc/Noir résolu selon le thème par components/new-ui/new-ui-root.tsx)
+  // — null = violet de marque par défaut (#8A6BFF).
+  accentColor  String?
+
+  // Vue calendrier préférée ("month" | "week") — mémorisée par profil pour
+  // que le choix survive à la navigation/reconnexion (demande Maksen
+  // 2026-09-18) ; null = pas encore de préférence, l'app retombe sur le
+  // défaut "semaine" (cf. app/(app)/calendar/page.tsx).
+  calendarView String?
+
+  // Calculateur d'allure (cf. lib/pace-calculator.ts) : dernier % d'allure
+  // saisi, mémorisé au même titre que les temps repère (PaceReference) —
+  // séparé du modèle PaceReference car ce n'est pas propre à une distance
+  // repère, juste la dernière valeur utilisée, tous calculs confondus
+  // (retour Maksen 2026-09-20 : "tout se mémorise sauf le % d'allure").
+  paceCalculatorPercent Float?
+
   linkedAthleteId String?  @unique
   linkedAthlete   Athlete? @relation("UserLinkedAthlete", fields: [linkedAthleteId], references: [id], onDelete: SetNull)
 
@@ -40,8 +65,27 @@ model User {
   pollVotes          PollVote[]
   coachedSessions    Session[]
   createdTeams       Team[]              @relation("TeamCreatedBy")
+  paceReferences     PaceReference[]
 
   @@map("app_user")
+}
+
+// Calculateur d'allure (séances) — temps de référence connu par distance
+// (ex: 200m en 25s), pour en déduire le temps cible sur une autre distance à
+// un % d'allure donné. Personnel au compte connecté (pas à un profil
+// Athlete) : accessible à tout le monde, coach y compris, cf. demande Maksen
+// 2026-09-20 ("tout le monde à accès au calculateur, c'est personnelle").
+model PaceReference {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  distance    Int // mètres (100, 200, 300, 400, 600, 800...)
+  timeSeconds Float
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, distance])
+  @@index([userId])
+  @@map("pace_reference")
 }
 
 // ---------------------------------------------------------------------------
@@ -118,9 +162,9 @@ model AthleteSession {
 // filtre "calendrier général"), avec le même cycle de debrief que les séances
 // coach (cf. lib/session-debrief.ts) : difficulty/skipped remplis après coup.
 model AthleteCustomSession {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   athleteId       String
-  athlete         Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  athlete         Athlete   @relation(fields: [athleteId], references: [id], onDelete: Cascade)
   title           String
   date            DateTime
   startTime       DateTime?
@@ -130,8 +174,8 @@ model AthleteCustomSession {
   description     String?
   comment         String?
   difficulty      Int?
-  skipped         Boolean  @default(false)
-  createdAt       DateTime @default(now())
+  skipped         Boolean   @default(false)
+  createdAt       DateTime  @default(now())
 
   @@index([athleteId])
   @@index([date])
@@ -191,20 +235,20 @@ model TeamPerformance {
 }
 
 model TeamMember {
-  id          String   @id @default(cuid())
-  teamId      String
-  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  teamId         String
+  team           Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   // athleteId absent = "invité" externe à l'appli, identifié uniquement par
   // guestFirstName/guestLastName (ex: coureur d'un autre club prêté pour un
   // relais). Les deux champs guest* sont alors requis (validés en Zod), sinon
   // ignorés pour un membre lié à un compte athlète.
-  athleteId   String?
-  athlete     Athlete? @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId      String?
+  athlete        Athlete? @relation(fields: [athleteId], references: [id], onDelete: Cascade)
   guestFirstName String?
   guestLastName  String?
-  relayOrder  Int? // position 1-4 dans le relais, null = pas encore positionné
-  handoffMark String? // repère de transmission vers le coureur suivant (pieds, marque au sol...) — sans objet pour la position 4
-  addedAt     DateTime @default(now())
+  relayOrder     Int? // position 1-4 dans le relais, null = pas encore positionné
+  handoffMark    String? // repère de transmission vers le coureur suivant (pieds, marque au sol...) — sans objet pour la position 4
+  addedAt        DateTime @default(now())
 
   // NULL est traité comme une valeur distincte à chaque ligne par SQLite et
   // Postgres — plusieurs invités (athleteId null) dans la même équipe restent
@@ -503,6 +547,11 @@ model PollOption {
   label      String // reformulation admin de la suggestion originale, ou texte libre pour un duel perso
   votes      PollVote[]
 
+  // Aucun index sur une colonne de relation n'est créé automatiquement par
+  // Prisma côté Postgres (contrairement à SQLite, où le dev local ne le
+  // remarque jamais) — `pollId` manquait ici, chaque poll de la liste
+  // (getPollsList) chargeant ses options via ce champ.
+  @@index([pollId])
   @@map("poll_option")
 }
 
@@ -516,6 +565,11 @@ model PollVote {
   user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   votedAt  DateTime   @default(now())
 
+  // `pollId` seul reste couvert par le préfixe de l'index unique composite
+  // ci-dessous — `optionId` (comptage des votes par option) et `userId`
+  // (recherche "mon vote" dans getPollsList) n'avaient eux aucune couverture.
   @@unique([pollId, userId])
+  @@index([optionId])
+  @@index([userId])
   @@map("poll_vote")
 }

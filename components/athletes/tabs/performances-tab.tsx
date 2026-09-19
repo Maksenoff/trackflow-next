@@ -25,6 +25,7 @@ import {
 import { formatFullDate } from '@/lib/date'
 import { baseDisciplineCode } from '@/lib/disciplines'
 import { DisciplinePictogram } from '@/components/athletes/discipline-pictogram'
+import { SeasonSelect } from '@/components/athletes/season-select'
 import { Badge } from '@/components/ui/badge'
 import { useIsLightTheme } from '@/lib/use-is-light-theme'
 import { cn } from '@/lib/utils'
@@ -192,21 +193,27 @@ export function PerformancesTab({
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* Une seule rangée de pills scrollable, sur mobile comme desktop (fusion du
-            Select mobile + de la rangée desktop, correctif 2026-08-28) : le slide
-            tactile fonctionne nativement sur mobile via overflow-x-auto, sans
-            scrollbar visible (juste le doigt qui glisse). scrollbar-thin-desktop
-            ne fait apparaître une scrollbar fine que sur desktop (correctif
-            2026-09-03), pour indiquer qu'il reste des saisons à faire défiler là
-            où le geste tactile n'existe pas. */}
-        <div className="scrollbar-thin-desktop flex min-w-0 items-center gap-2 overflow-x-auto pb-1.5">
+        {/* Mobile : dropdown à taille fixe plutôt que la rangée de pills, qui
+            donnait un scroll latéral énorme dès qu'un athlète a beaucoup de
+            saisons (retour Maksen 2026-09-19). Desktop (`sm:` et plus) :
+            rangée de pills scrollable inchangée, avec scrollbar fine
+            (scrollbar-thin-desktop) pour indiquer qu'il reste des saisons à
+            faire défiler là où il n'y a pas de geste tactile. */}
+        <SeasonSelect
+          className="sm:hidden"
+          value={season}
+          onChange={setSeason}
+          allLabel="Toutes"
+          options={seasonOptions.map((s) => ({ value: s, label: s }))}
+        />
+        <div className="scrollbar-thin-desktop hidden min-w-0 items-center gap-2 overflow-x-auto pb-1.5 sm:flex">
           <button
             type="button"
             onClick={() => setSeason('all')}
             className={cn(
               'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
               season === 'all'
-                ? 'bg-gradient-selected text-white shadow-sm shadow-primary/25'
+                ? 'bg-gradient-selected text-primary-foreground shadow-sm shadow-primary/25'
                 : 'border border-border text-muted-foreground hover:border-primary/30 hover:text-foreground'
             )}
           >
@@ -221,7 +228,7 @@ export function PerformancesTab({
               className={cn(
                 'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
                 season === s
-                  ? 'bg-gradient-selected text-white shadow-sm shadow-primary/25'
+                  ? 'bg-gradient-selected text-primary-foreground shadow-sm shadow-primary/25'
                   : 'border border-border text-muted-foreground hover:border-primary/30 hover:text-foreground'
               )}
             >

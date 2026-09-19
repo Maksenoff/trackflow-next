@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Plus, Search, UserPlus, Users } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { AthleteCard, type AthleteCardData } from '@/components/athletes/athlete-card'
+import { markSilentNavigation } from '@/components/ui/route-progress'
 
 const SEARCH_DEBOUNCE_MS = 300
 const SKELETON_COUNT = 8
@@ -43,6 +44,10 @@ export function AthletesGrid({
       if (next) params.set('q', next)
       else params.delete('q')
       startTransition(() => {
+        // Le filtrage se fait déjà côté client (liste complète en mémoire) —
+        // ce replace ne fait que persister `?q=` dans l'URL, rien ne charge
+        // réellement derrière (même raison que settings-tabs.tsx).
+        markSilentNavigation()
         router.replace(`${pathname}?${params.toString()}`)
       })
     }, SEARCH_DEBOUNCE_MS)
@@ -51,7 +56,9 @@ export function AthletesGrid({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
+        {/* Masqué sur mobile : redondant avec la nav (déjà sur "Athlètes"),
+            même traitement que /calendar (retour Maksen 2026-09-18). */}
+        <div className="hidden sm:block">
           <h1 className="text-2xl font-bold tracking-tight">Athlètes</h1>
           <p className="text-sm text-muted-foreground">
             {athletes.length} athlète{athletes.length > 1 ? 's' : ''} suivi

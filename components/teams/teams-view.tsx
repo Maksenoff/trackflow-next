@@ -7,7 +7,9 @@ import { TeamCard, type TeamCardData } from './team-card'
 export function TeamsView({ teams, canCreate }: { teams: TeamCardData[]; canCreate: boolean }) {
   return (
     <div className="space-y-6">
-      <div>
+      {/* Masqué sur mobile : redondant avec la nav (déjà sur "Équipes"),
+          même traitement que /calendar (retour Maksen 2026-09-18). */}
+      <div className="hidden sm:block">
         <h1 className="text-2xl font-bold tracking-tight">Équipes</h1>
         <p className="text-sm text-muted-foreground">
           {teams.length} équipe{teams.length > 1 ? 's' : ''}

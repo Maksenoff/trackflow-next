@@ -10,8 +10,20 @@ import { useEffect } from 'react'
  */
 export function ServiceWorkerRegister() {
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'production') return
     if (!('serviceWorker' in navigator)) return
+
+    if (process.env.NODE_ENV !== 'production') {
+      // Un SW enregistré lors d'un test `next build && next start` antérieur
+      // reste actif dans le navigateur même après retour à `npm run dev` — il
+      // intercepte les requêtes et sert de vieilles réponses en cache,
+      // indépendamment du code réellement servi (source d'un bug fantôme
+      // "le code a changé mais l'écran ne bouge pas", constaté 2026-09-19).
+      // On désenregistre systématiquement en dev pour éviter ce piège.
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        regs.forEach((reg) => reg.unregister())
+      })
+      return
+    }
 
     navigator.serviceWorker.register('/sw.js').catch((err) => {
       // Pas bloquant : l'app reste utilisable sans SW (juste pas de PWA/push).

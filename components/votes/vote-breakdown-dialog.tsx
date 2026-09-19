@@ -26,10 +26,15 @@ export function VoteBreakdownDialog({
   open,
   onOpenChange,
   pollId,
+  meta,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   pollId: string | null
+  /** Date de fin + total de votes — déplacés ici depuis la ligne du duel
+   * (bouton "i" compact à la place, cf. PastDuelRow) pour désencombrer les
+   * listes, surtout en mobile (retour Maksen). */
+  meta?: { endsLabel: string; totalVotes: number } | null
 }) {
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<Breakdown | null>(null)
@@ -55,7 +60,11 @@ export function VoteBreakdownDialog({
             <Users className="size-4 text-primary" />
             Détail des votes
           </DialogTitle>
-          <DialogDescription>Qui a voté pour quoi.</DialogDescription>
+          <DialogDescription>
+            Qui a voté pour quoi.
+            {meta &&
+              ` ${meta.endsLabel} · ${meta.totalVotes} vote${meta.totalVotes > 1 ? 's' : ''} au total.`}
+          </DialogDescription>
         </DialogHeader>
 
         {loading ? (

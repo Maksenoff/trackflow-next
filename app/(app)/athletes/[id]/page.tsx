@@ -1,12 +1,15 @@
 import { notFound } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isAdmin, isCoach, type Role } from '@/lib/roles'
+import { isAdmin, isCoach, resolveNewUi, type Role } from '@/lib/roles'
 import { getAthleteDetail } from '@/lib/athletes-data'
 import { PageTransition } from '@/components/motion/page-transition'
 import { BackButton } from '@/components/ui/back-button'
 import { ProfileHeader } from '@/components/athletes/profile-header'
 import { ProfileTabs } from '@/components/athletes/profile-tabs'
+import { NewProfileHeader } from '@/components/new-ui/new-profile-header'
+import { NewProfileTabs } from '@/components/new-ui/new-profile-tabs'
+import { NewBackButton } from '@/components/new-ui/new-back-button'
 
 export default async function AthleteProfilePage({ params }: { params: { id: string } }) {
   const [athlete, session] = await Promise.all([getAthleteDetail(params.id), auth()])
@@ -14,12 +17,16 @@ export default async function AthleteProfilePage({ params }: { params: { id: str
 
   const roles = (session?.user.roles ?? []) as Role[]
   const isManager = isAdmin(roles) || isCoach(roles)
-
-  let isSelf = false
-  if (session) {
-    const user = await prisma.user.findUnique({ where: { id: session.user.id } })
-    isSelf = user?.linkedAthleteId === athlete.id
-  }
+  // Une seule requête pour les deux champs (avant : deux `findUnique` distincts
+  // sur le même `session.user.id` — retour Maksen, minimiser les chargements).
+  const currentUser = session
+    ? await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { newUiEnabled: true, linkedAthleteId: true },
+      })
+    : null
+  const newUiEnabled = resolveNewUi(currentUser?.newUiEnabled, roles)
+  const isSelf = currentUser?.linkedAthleteId === athlete.id
 
   // canEdit : gère séances/compétitions/objectifs de l'athlète (coach inclus, et
   // l'athlète pour son propre profil).
@@ -45,6 +52,23 @@ export default async function AthleteProfilePage({ params }: { params: { id: str
     ...athlete,
     notesList: canSeeNotes ? athlete.notesList : [],
     customSessions: canSeeCustomSessions ? athlete.customSessions : [],
+  }
+
+  if (newUiEnabled) {
+    return (
+      <PageTransition>
+        <div className="mx-auto max-w-[1600px] p-4 pb-24 lg:p-8 lg:pb-10 xl:p-10">
+          <NewBackButton label="Retour aux athlètes" />
+          <NewProfileHeader
+            athlete={safeAthlete}
+            canEdit={canEdit}
+            canEditProfile={canEditProfile}
+            isAdmin={isAdmin(roles)}
+          />
+          <NewProfileTabs athlete={safeAthlete} canEdit={canEdit} canSeeNotes={canSeeNotes} />
+        </div>
+      </PageTransition>
+    )
   }
 
   return (

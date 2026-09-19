@@ -436,13 +436,11 @@ export function NotificationBell({
         </button>
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetContent
-            side="bottom"
-            className="flex max-h-[80dvh] flex-col rounded-t-[28px] border-border pb-[max(1rem,env(safe-area-inset-bottom))]"
+            side="top"
+            className="flex max-h-[80dvh] flex-col rounded-b-[28px] border-border pt-[max(1rem,env(safe-area-inset-top))]"
             showCloseButton={false}
           >
-            <div className="mx-auto mt-1 h-1 w-9 shrink-0 rounded-full bg-muted" />
-
-            <div className="flex items-center justify-between px-4 pt-2">
+            <div className="flex items-center justify-between px-4">
               <SheetTitle className="text-base">Notifications</SheetTitle>
               {unread > 0 && (
                 <button

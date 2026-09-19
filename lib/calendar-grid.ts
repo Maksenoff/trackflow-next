@@ -32,6 +32,41 @@ export function buildMonthGrid(year: number, month: number): CalendarCell[] {
   return cells
 }
 
+/** Les 7 jours (lundi -> dimanche) de la semaine contenant `anchor`. */
+export function buildWeekGrid(anchor: Date): CalendarCell[] {
+  const weekday = (anchor.getDay() + 6) % 7 // 0 = lundi
+  const monday = new Date(anchor)
+  monday.setDate(anchor.getDate() - weekday)
+
+  const month = anchor.getMonth()
+  const cells: CalendarCell[] = []
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + i)
+    cells.push({ date: d, day: d.getDate(), inMonth: d.getMonth() === month })
+  }
+  return cells
+}
+
+export function addDays(date: Date, days: number): Date {
+  const d = new Date(date)
+  d.setDate(d.getDate() + days)
+  return d
+}
+
+/** "1 - 7 sept. 2026" ou "29 sept. - 5 oct. 2026" si la semaine chevauche deux mois. */
+export function weekLabel(anchor: Date): string {
+  const cells = buildWeekGrid(anchor)
+  const start = cells[0].date
+  const end = cells[6].date
+  const shortMonths = FR_MONTHS.map((m) => m.slice(0, 3).replace(/^./, (c) => c))
+  const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()
+  if (sameMonth) {
+    return `${start.getDate()} - ${end.getDate()} ${shortMonths[start.getMonth()]}. ${start.getFullYear()}`
+  }
+  return `${start.getDate()} ${shortMonths[start.getMonth()]}. - ${end.getDate()} ${shortMonths[end.getMonth()]}. ${end.getFullYear()}`
+}
+
 export function sameDay(a: Date, b: Date): boolean {
   return (
     a.getFullYear() === b.getFullYear() &&

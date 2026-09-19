@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Clock,
   Crown,
+  Info,
   Loader2,
   Minus,
   Pencil,
@@ -115,6 +116,7 @@ export function VotesView({
   const [createOpen, setCreateOpen] = useState(false)
   const [editingPoll, setEditingPoll] = useState<PollItem | null>(null)
   const [breakdownPollId, setBreakdownPollId] = useState<string | null>(null)
+  const breakdownPoll = polls.find((p) => p.id === breakdownPollId) ?? null
 
   const canEditPoll = (poll: PollItem) => canManage || poll.createdById === currentUserId
 
@@ -237,7 +239,9 @@ export function VotesView({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
+        {/* Masqué sur mobile : redondant avec la nav (déjà sur "Votes"),
+            même traitement que /calendar (retour Maksen 2026-09-18). */}
+        <div className="hidden sm:block">
           <h1 className="text-2xl font-bold tracking-tight">Votes</h1>
           <p className="text-sm text-muted-foreground">
             {active.length} duel{active.length > 1 ? 's' : ''} en cours
@@ -384,6 +388,17 @@ export function VotesView({
         open={!!breakdownPollId}
         onOpenChange={(open) => !open && setBreakdownPollId(null)}
         pollId={breakdownPollId}
+        meta={
+          breakdownPoll
+            ? {
+                endsLabel:
+                  breakdownPoll.status === 'expired'
+                    ? `Terminé le ${formatDate(breakdownPoll.expiresAt)}`
+                    : `Se termine le ${formatDate(breakdownPoll.expiresAt)}`,
+                totalVotes: breakdownPoll.totalVotes,
+              }
+            : null
+        }
       />
     </div>
   )
@@ -721,6 +736,63 @@ function ScheduledDuelCard({
   )
 }
 
+/**
+ * Résultat d'un côté dans la liste "Passés" — même logique de mise en avant
+ * du gagnant que `RecapSide` (couronne + texte coloré côté vainqueur, gris
+ * côté perdant) : avant, seule la couleur du libellé changeait (le
+ * pourcentage/nb de votes en dessous restait gris des deux côtés), beaucoup
+ * trop discret pour voir qui a vraiment gagné en un coup d'œil (retour
+ * Maksen) — désormais tout le bloc (couronne, libellé, stat) est coloré côté
+ * gagnant.
+ */
+function PastSide({
+  label,
+  pct,
+  votes,
+  won,
+  color,
+  align = 'left',
+  hasVotes,
+}: {
+  label: string
+  pct: number
+  votes: number
+  won: boolean
+  color: 'blue' | 'rose'
+  align?: 'left' | 'right'
+  hasVotes: boolean
+}) {
+  const styles = CORNER_STYLES[color]
+  return (
+    <div className={cn('min-w-0', align === 'right' && 'text-right')}>
+      <div
+        className={cn(
+          'flex items-center gap-1',
+          align === 'right' && 'flex-row-reverse justify-end'
+        )}
+      >
+        {won && <Crown className={cn('size-3.5 shrink-0', styles.text)} />}
+        <span
+          className={cn(
+            'truncate text-sm font-semibold',
+            won ? styles.text : 'text-muted-foreground'
+          )}
+        >
+          {label}
+        </span>
+      </div>
+      <p
+        className={cn(
+          'mt-0.5 truncate text-xs font-semibold',
+          won ? styles.text : 'text-muted-foreground/70'
+        )}
+      >
+        {hasVotes ? `${pct}% · ${votes} vote${votes > 1 ? 's' : ''}` : 'Aucun vote'}
+      </p>
+    </div>
+  )
+}
+
 function PastDuelRow({
   poll,
   canEdit,
@@ -736,70 +808,81 @@ function PastDuelRow({
   const aVotes = a.votes ?? 0
   const bVotes = b.votes ?? 0
   const total = poll.totalVotes
-  const aPct = total > 0 ? Math.round((aVotes / total) * 100) : 50
-  const bPct = total > 0 ? 100 - aPct : 50
-  const winner = total === 0 ? null : aVotes === bVotes ? 'tie' : aVotes > bVotes ? a.id : b.id
+  const hasVotes = total > 0
+  const aPct = hasVotes ? Math.round((aVotes / total) * 100) : 0
+  const bPct = hasVotes ? 100 - aPct : 0
+  const winner = !hasVotes ? null : aVotes === bVotes ? 'tie' : aVotes > bVotes ? a.id : b.id
 
   return (
-    <div className="flex flex-col gap-2.5 p-4">
-      <div className="flex items-center gap-2 text-sm font-semibold">
-        <span
-          className={cn(
-            'flex flex-1 items-center gap-1 truncate',
-            winner === a.id ? 'text-sky-500' : 'text-muted-foreground'
+    <div className="flex flex-col gap-3 p-4 sm:p-5">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-3">
+        <PastSide
+          label={a.label}
+          pct={aPct}
+          votes={aVotes}
+          won={winner === a.id}
+          color="blue"
+          hasVotes={hasVotes}
+        />
+        <div className="flex items-center justify-center pt-0.5">
+          {winner === 'tie' ? (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[9px] font-bold tracking-wide text-muted-foreground uppercase">
+              Égalité
+            </span>
+          ) : !hasVotes ? (
+            <Minus className="size-3.5 shrink-0 text-muted-foreground/40" />
+          ) : (
+            <Trophy className="size-3.5 shrink-0 text-muted-foreground/30" />
           )}
-        >
-          {winner === a.id && <Crown className="size-3.5 shrink-0" />}
-          <span className="truncate">{a.label}</span>
-        </span>
-        {winner === 'tie' ? (
-          <Minus className="size-4 shrink-0 text-muted-foreground" />
-        ) : (
-          <Trophy className="size-4 shrink-0 text-muted-foreground/50" />
-        )}
-        <span
-          className={cn(
-            'flex flex-1 items-center justify-end gap-1 truncate text-right',
-            winner === b.id ? 'text-rose-500' : 'text-muted-foreground'
-          )}
-        >
-          <span className="truncate">{b.label}</span>
-          {winner === b.id && <Crown className="size-3.5 shrink-0" />}
-        </span>
+        </div>
+        <PastSide
+          label={b.label}
+          pct={bPct}
+          votes={bVotes}
+          won={winner === b.id}
+          color="rose"
+          align="right"
+          hasVotes={hasVotes}
+        />
       </div>
 
       <div className="flex h-2 overflow-hidden rounded-full bg-muted">
-        <div className="bg-sky-500" style={{ width: `${aPct}%` }} />
-        <div className="bg-rose-500" style={{ width: `${bPct}%` }} />
+        <div
+          className={hasVotes ? CORNER_STYLES.blue.bar : 'bg-muted-foreground/20'}
+          style={{ width: `${hasVotes ? aPct : 50}%` }}
+        />
+        <div
+          className={hasVotes ? CORNER_STYLES.rose.bar : 'bg-muted-foreground/25'}
+          style={{ width: `${hasVotes ? bPct : 50}%` }}
+        />
       </div>
 
-      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-        <span>
-          {aPct}% · {aVotes} vote{aVotes > 1 ? 's' : ''}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={onShowBreakdown}
-            className="underline decoration-dotted underline-offset-2 transition-colors hover:text-primary"
+      {/* Date de fin + total de votes déplacés dans la fiche détail (bouton
+          "i" plutôt qu'une ligne de texte toujours affichée) — trop d'infos
+          collées les unes aux autres sur une seule ligne, surtout en mobile
+          (retour Maksen). */}
+      <div className="flex items-center justify-center gap-1">
+        <Button
+          size="icon-xs"
+          variant="ghost"
+          onClick={onShowBreakdown}
+          aria-label="Voir le détail du vote (date de fin, total de votes, qui a voté pour quoi)"
+          title="Détail du vote"
+          className="text-muted-foreground"
+        >
+          <Info className="size-3.5" />
+        </Button>
+        {canEdit && (
+          <Button
+            size="icon-xs"
+            variant="ghost"
+            onClick={onEdit}
+            aria-label="Prolonger ou modifier ce vote"
+            title="Prolonger ou modifier ce vote"
           >
-            {formatDate(poll.expiresAt)}
-          </button>
-          {canEdit && (
-            <Button
-              size="icon-xs"
-              variant="ghost"
-              onClick={onEdit}
-              aria-label="Prolonger ou modifier ce vote"
-              title="Prolonger ou modifier ce vote"
-            >
-              <Pencil className="size-3" />
-            </Button>
-          )}
-        </span>
-        <span>
-          {bPct}% · {bVotes} vote{bVotes > 1 ? 's' : ''}
-        </span>
+            <Pencil className="size-3" />
+          </Button>
+        )}
       </div>
     </div>
   )
@@ -849,13 +932,21 @@ function LastVoteRecap({ poll, onShowBreakdown }: { poll: PollItem; onShowBreakd
         />
       </div>
 
-      <button
-        type="button"
-        onClick={onShowBreakdown}
-        className="relative mt-4 w-full border-t border-border pt-3 text-center text-xs text-muted-foreground transition-colors hover:text-primary"
-      >
-        Terminé le {formatDate(poll.expiresAt)} · {total} vote{total > 1 ? 's' : ''} au total
-      </button>
+      {/* Même traitement que PastDuelRow : date de fin + total de votes
+          déplacés dans la fiche détail plutôt qu'une ligne de texte toujours
+          affichée (retour Maksen, "pareil qu'en Passés"). */}
+      <div className="relative mt-4 flex justify-center border-t border-border pt-3">
+        <Button
+          size="icon-xs"
+          variant="ghost"
+          onClick={onShowBreakdown}
+          aria-label="Voir le détail du vote (date de fin, total de votes, qui a voté pour quoi)"
+          title="Détail du vote"
+          className="text-muted-foreground"
+        >
+          <Info className="size-3.5" />
+        </Button>
+      </div>
     </div>
   )
 }

@@ -370,3 +370,352 @@
   background: linear-gradient(90deg, transparent, var(--accent-glow), transparent);
   animation: shimmer-sweep 1.6s ease-in-out infinite;
 }
+
+/* =========================================================================
+   Nouvelle interface (bêta) — components/new-ui/*
+   Système de tokens entièrement séparé du thème classique ci-dessus (préfixe
+   --nu-), pour ne jamais interférer avec les pages qui n'ont pas basculé sur
+   cette interface. Scopé sous .new-ui (posé sur le wrapper racine par
+   app/(app)/layout.tsx quand User.newUiEnabled est vrai), combiné avec la
+   classe .dark déjà posée par next-themes sur <html> — clair par défaut,
+   overrides sous .dark .new-ui. Couleur d'accent personnalisable par
+   utilisateur (--nu-accent-user, injectée en style inline depuis
+   User.accentColor) ; #8A6BFF (violet de marque) si absente. Le swatch
+   "Blanc/Noir" (components/settings/appearance-panel.tsx) est un cas
+   particulier : sa valeur stockée est le mot "auto", résolu côté client par
+   NewUiRoot selon le thème réel (blanc en sombre, noir en clair) plutôt
+   qu'une couleur figée, avec --nu-onacc-user recalculé en même temps pour
+   garder un contraste correct sur les pastilles/badges qui posent du texte
+   par-dessus l'accent (sinon "blanc sur blanc" en thème sombre).
+   ========================================================================= */
+.new-ui {
+  --nu-acc: var(--nu-accent-user, #8a6bff);
+  --nu-ok: #3ddc97;
+  --nu-ko: #ff5c7a;
+  --nu-pb: #ffc93c;
+  --nu-bg: #f4f6f8;
+  --nu-surf: #ffffff;
+  --nu-surf2: #edf1f5;
+  --nu-line: #e2e7ed;
+  --nu-txt: #0b0f14;
+  --nu-dim: #64707e;
+  --nu-onacc: var(--nu-onacc-user, #ffffff);
+  --nu-rim: rgba(11, 15, 20, 0.05);
+  --nu-art: 0.1;
+  font-family: var(--font-archivo), var(--font-sans);
+}
+.dark .new-ui {
+  --nu-bg: #090b0f;
+  --nu-surf: #13171d;
+  --nu-surf2: #1a1f27;
+  --nu-line: #222832;
+  --nu-txt: #eef2f7;
+  --nu-dim: #8e99a6;
+  --nu-rim: rgba(255, 255, 255, 0.045);
+  --nu-art: 0.075;
+}
+/* Composants classiques montés tels quels dans la nouvelle interface
+   (onglets Séances/Compétitions/Objectifs/Notes, dialogs, dropdowns...) :
+   ils utilisent les tokens shadcn classiques (--primary, --card, --border...)
+   définis en violet dans :root/.dark plus haut. On les redéclare ici avec les
+   équivalents --nu-* pour que ce contenu suive la palette/l'accent de la
+   nouvelle interface au lieu de garder le violet classique — sans toucher un
+   seul composant. Les variables custom properties sont réévaluées à l'endroit
+   où elles sont consommées : cette redéclaration sur .new-ui (posée sur le
+   wrapper ET sur <body> via NewUiRoot, donc aussi dans les portails de
+   dialogs/dropdowns) prime sur l'héritage venu de :root/.dark, même à
+   spécificité CSS égale, car c'est le même élément qui la redéfinit — pas un
+   conflit de spécificité entre sélecteurs concurrents. --destructive n'est
+   volontairement pas touché : le rouge de suppression doit rester rouge quel
+   que soit le thème. */
+.new-ui {
+  --background: var(--nu-bg);
+  --foreground: var(--nu-txt);
+  --card: var(--nu-surf);
+  --card-foreground: var(--nu-txt);
+  --card-elevated: var(--nu-surf2);
+  --popover: var(--nu-surf);
+  --popover-foreground: var(--nu-txt);
+  --primary: var(--nu-acc);
+  --primary-hover: color-mix(in srgb, var(--nu-acc) 88%, black);
+  --primary-foreground: var(--nu-onacc);
+  --secondary: var(--nu-surf2);
+  --secondary-foreground: var(--nu-txt);
+  --muted: var(--nu-surf2);
+  --muted-foreground: var(--nu-dim);
+  --accent: var(--nu-surf2);
+  --accent-foreground: var(--nu-acc);
+  --accent-glow: color-mix(in srgb, var(--nu-acc) 12%, transparent);
+  --border: var(--nu-line);
+  --input: var(--nu-surf2);
+  --ring: var(--nu-acc);
+  --shadow-card: inset 0 1px 0 var(--nu-rim);
+  --shadow-card-elevated: inset 0 1px 0 var(--nu-rim);
+  --gradient-selected: linear-gradient(
+    90deg,
+    var(--nu-acc),
+    color-mix(in srgb, var(--nu-acc) 70%, white)
+  );
+  /* Graphes de la page Stats avancées (components/athletes/stats/*.tsx) :
+     --chart-1 est la couleur "par défaut" (courbe de progression, PB, total
+     perfs) et suit donc l'accent choisi. --chart-3 distingue la catégorie
+     Compétition de la catégorie Entraînement sur le même graphe — laissé sur
+     un bleu fixe plutôt que l'accent, sinon les deux légendes deviennent
+     indiscernables l'une de l'autre. --chart-2/--chart-4 encodent un
+     positif/négatif réel (vent légal/illégal) : vert/rouge fixes, jamais
+     l'accent, pour ne pas laisser croire qu'un vent illégal est "dans le
+     thème" donc anodin. */
+  --chart-1: var(--nu-acc);
+  --chart-2: var(--nu-ok);
+  --chart-3: #4c8dff;
+  --chart-4: var(--nu-ko);
+  --chart-5: var(--nu-acc);
+}
+/* Titres/branding en italique compressé façon mockup ("Track*flow*") —
+   classe utilitaire plutôt que répéter font-variation-settings partout. */
+.new-ui .nu-it {
+  font-style: italic;
+  font-variation-settings:
+    'wdth' 106,
+    'wght' 720;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.new-ui .nu-num {
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.025em;
+}
+/* Motif de piste en fond de carte (hero/side) : plus visible au survol,
+   comme `.hero:hover .bgart .lines, .side:hover .bgart .lines` dans le
+   mockup. `.group` est posé sur le Link englobant (new-hero.tsx). */
+.new-ui .nu-track-lines {
+  transition: opacity 0.35s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+.new-ui .group:hover .nu-track-lines {
+  opacity: calc(var(--nu-art) * 1.8) !important;
+}
+
+/* Effets JS/CSS repris du mockup (sélection, focus, scrollbar, sheen bouton,
+   swing cloche) — le reste (marqueur nav glissant, pilules segmentées,
+   entrée en cascade, halo curseur, compteurs) est géré directement dans les
+   composants (Framer Motion / composants dédiés). */
+.new-ui ::selection {
+  background: color-mix(in srgb, var(--nu-acc) 22%, transparent);
+  color: inherit;
+}
+.new-ui :focus-visible {
+  outline: 2px solid var(--nu-acc);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+/* Champs de saisie : pas de contour arrondi flottant par-dessus le champ
+   (rendu comme une "deuxième zone de texte" fantôme sur les pills de
+   recherche) — le conteneur gère lui-même son focus via `:focus-within`. */
+.new-ui input:focus-visible,
+.new-ui textarea:focus-visible,
+.new-ui select:focus-visible {
+  outline: none;
+}
+/* Pill de recherche (new-athletes-page.tsx) : le halo de focus se pose sur le
+   conteneur entier, pas sur le champ lui-même. */
+.new-ui .nu-search:focus-within {
+  border-color: color-mix(in srgb, var(--nu-acc) 50%, transparent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--nu-acc) 10%, transparent);
+}
+.new-ui .nu-search:focus-within .nu-search-icon {
+  color: var(--nu-acc) !important;
+}
+/* Boutons outline de la plaque d'identité (Stats avancées, Podiums, Modifier,
+   licence, menu "···" FFA...) — jusque-là sans aucun état hover. */
+.new-ui .nu-tool:hover {
+  background: var(--nu-surf2) !important;
+  color: var(--nu-txt) !important;
+  border-color: color-mix(in srgb, var(--nu-txt) 18%, transparent) !important;
+}
+/* Champs de formulaire (new-athlete-form.tsx) : hover + focus, comme .f input
+   dans le mockup outils. */
+.new-ui .nu-field:hover {
+  border-color: color-mix(in srgb, var(--nu-txt) 14%, transparent) !important;
+}
+.new-ui .nu-field:focus {
+  border-color: color-mix(in srgb, var(--nu-acc) 55%, transparent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--nu-acc) 12%, transparent);
+  background: var(--nu-surf2) !important;
+}
+/* Pastille "modifications non enregistrées" (new-athlete-form.tsx). */
+.new-ui .nu-pulse-dot {
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--lact, #ffb020) 45%, transparent);
+  animation: nu-pulse 2.4s cubic-bezier(0.2, 0.9, 0.25, 1) infinite;
+}
+@keyframes nu-pulse {
+  70%,
+  100% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
+/* Entrée en fondu + léger slide-up (listes de relayeurs/historique équipe). */
+@keyframes nu-rise {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.new-ui * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--nu-line) transparent;
+}
+.new-ui ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.new-ui ::-webkit-scrollbar-thumb {
+  background: var(--nu-line);
+  border-radius: 99px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+/* `.new-ui *` ci-dessus force une scrollbar fine partout sous <body> (portails
+   inclus, ex: popups Select) — même spécificité que `.no-scrollbar` mais
+   déclarée après, donc elle gagnait sur la cascade et faisait réapparaître une
+   scrollbar parasite sur les dropdowns saison/discipline (retour Maksen
+   2026-09-19). Sélecteur `.new-ui .no-scrollbar` plus spécifique pour regagner
+   la priorité. */
+.new-ui .no-scrollbar {
+  scrollbar-width: none;
+}
+.new-ui .no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Tuile pointillée "+ Ajouter" — même dosage de teinte au survol que
+   `components/ui/add-tile.tsx` (bordure/fond/texte accent), porté en tokens
+   --nu-*. Passe par une classe dédiée plutôt qu'un hover Tailwind arbitraire
+   sur l'élément : un `border`/`color` inline (valeurs dynamiques par page)
+   bloquerait sinon silencieusement tout hover en stylesheet, quelle que soit
+   sa spécificité. */
+.new-ui .nu-add-tile {
+  border: 1px dashed var(--nu-line);
+  color: var(--nu-dim);
+  transition:
+    border-color 0.2s,
+    background-color 0.2s,
+    color 0.2s;
+}
+.new-ui .nu-add-tile:hover {
+  border-color: color-mix(in srgb, var(--nu-acc) 40%, transparent);
+  background: color-mix(in srgb, var(--nu-acc) 5%, transparent);
+  color: var(--nu-acc);
+}
+
+.new-ui .nu-team-poster {
+  border: 1px solid var(--nu-line);
+  box-shadow: inset 0 1px 0 var(--nu-rim);
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+}
+.new-ui .nu-team-poster:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset 0 1px 0 var(--nu-rim),
+    0 16px 38px rgba(0, 0, 0, 0.3);
+}
+
+.new-ui .nu-step-h-1 {
+  height: 150px;
+}
+.new-ui .nu-step-h-2 {
+  height: 114px;
+}
+.new-ui .nu-step-h-3 {
+  height: 90px;
+}
+@media (max-width: 719px) {
+  .new-ui .nu-step-h-1 {
+    height: 116px;
+  }
+  .new-ui .nu-step-h-2 {
+    height: 92px;
+  }
+  .new-ui .nu-step-h-3 {
+    height: 74px;
+  }
+}
+@media (max-width: 420px) {
+  .new-ui .nu-step-h-1 {
+    height: 96px;
+  }
+  .new-ui .nu-step-h-2 {
+    height: 78px;
+  }
+  .new-ui .nu-step-h-3 {
+    height: 64px;
+  }
+}
+
+.new-ui .nu-sheen {
+  position: relative;
+  overflow: hidden;
+}
+.new-ui .nu-sheen::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -70%;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  transform: skewX(-18deg);
+}
+.new-ui .nu-sheen:hover::after {
+  animation: nu-sheen 0.7s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+@keyframes nu-sheen {
+  to {
+    left: 130%;
+  }
+}
+
+.new-ui .nu-bell:hover svg {
+  animation: nu-swing 0.6s cubic-bezier(0.2, 0.9, 0.25, 1);
+  transform-origin: 50% 15%;
+}
+@keyframes nu-swing {
+  20% {
+    transform: rotate(11deg);
+  }
+  45% {
+    transform: rotate(-8deg);
+  }
+  70% {
+    transform: rotate(5deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.new-ui .nu-brand:hover .nu-logo {
+  transform: rotate(-10deg);
+}
+.new-ui .nu-logo {
+  transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+.new-ui .nu-theme-btn:hover {
+  transform: rotate(-25deg);
+}
+.new-ui .nu-theme-btn {
+  transition:
+    transform 0.35s cubic-bezier(0.2, 0.9, 0.25, 1),
+    color 0.18s,
+    background 0.18s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .new-ui .nu-sheen::after,
+  .new-ui .nu-bell:hover svg {
+    animation: none !important;
+  }
+}

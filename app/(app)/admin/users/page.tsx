@@ -16,7 +16,10 @@ export default async function AdminUsersPage() {
   return (
     <PageTransition>
       <div className="space-y-6">
-        <div>
+        {/* Masqué sur mobile : redondant avec la sous-nav admin (déjà sur
+            "Utilisateurs"), même traitement que /calendar (retour Maksen
+            2026-09-18). */}
+        <div className="hidden sm:block">
           <h1 className="text-2xl font-bold tracking-tight">Utilisateurs</h1>
           <p className="text-sm text-muted-foreground">
             {users.length} compte{users.length > 1 ? 's' : ''}

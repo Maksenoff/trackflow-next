@@ -204,7 +204,7 @@ export function GoalFormDialog({
                                   className={cn(
                                     'flex flex-col items-center gap-1 rounded-xl px-2 py-2.5 text-[11px] font-semibold transition-colors',
                                     active
-                                      ? 'bg-gradient-selected text-white shadow-sm shadow-primary/25'
+                                      ? 'bg-gradient-selected text-primary-foreground shadow-sm shadow-primary/25'
                                       : 'text-muted-foreground hover:bg-card'
                                   )}
                                 >
@@ -242,7 +242,7 @@ export function GoalFormDialog({
                         className={cn(
                           'flex flex-col items-center gap-1 rounded-xl px-2 py-2.5 text-[11px] font-semibold transition-colors',
                           active
-                            ? 'bg-gradient-selected text-white shadow-sm shadow-primary/25'
+                            ? 'bg-gradient-selected text-primary-foreground shadow-sm shadow-primary/25'
                             : 'text-muted-foreground hover:bg-card'
                         )}
                       >

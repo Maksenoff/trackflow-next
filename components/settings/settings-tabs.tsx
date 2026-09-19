@@ -3,12 +3,21 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Trophy, Zap, Settings2 } from 'lucide-react'
+import { Trophy, Zap, Settings2, Palette } from 'lucide-react'
 import { TypeManager, type ManagedType } from '@/components/admin/type-manager'
 import { ClubConfigPanel } from '@/components/settings/club-config-panel'
+import { AppearancePanel } from '@/components/settings/appearance-panel'
+import { markSilentNavigation } from '@/components/ui/route-progress'
 import { cn } from '@/lib/utils'
 
-type TabKey = 'sessions' | 'competitions' | 'configuration'
+type TabKey = 'sessions' | 'competitions' | 'configuration' | 'appearance'
+
+const SHORT_LABELS: Record<TabKey, string> = {
+  sessions: 'Séance',
+  competitions: 'Compét.',
+  configuration: 'Config',
+  appearance: 'Style',
+}
 
 export function SettingsTabs({
   initialTab,
@@ -17,7 +26,11 @@ export function SettingsTabs({
   showSessions = true,
   showCompetitions = true,
   showConfiguration = false,
+  showAppearance = true,
+  isAdmin = false,
   initialClubCode = null,
+  initialNewUiEnabled = false,
+  initialAccentColor = null,
 }: {
   initialTab: TabKey
   sessionTypes: ManagedType[]
@@ -25,7 +38,11 @@ export function SettingsTabs({
   showSessions?: boolean
   showCompetitions?: boolean
   showConfiguration?: boolean
+  showAppearance?: boolean
+  isAdmin?: boolean
   initialClubCode?: string | null
+  initialNewUiEnabled?: boolean
+  initialAccentColor?: string | null
 }) {
   const router = useRouter()
 
@@ -60,6 +77,16 @@ export function SettingsTabs({
           },
         ]
       : []),
+    ...(showAppearance
+      ? [
+          {
+            key: 'appearance' as const,
+            label: 'Apparence',
+            icon: Palette,
+            count: null,
+          },
+        ]
+      : []),
   ]
 
   const [active, setActive] = useState<TabKey>(initialTab)
@@ -71,6 +98,11 @@ export function SettingsTabs({
     const to = tabs.findIndex((t) => t.key === key)
     setDirection(to > from ? 1 : -1)
     setActive(key)
+    // Toutes les données (types séances/compétitions...) sont déjà chargées
+    // en amont (page.tsx) — ce replace ne fait que garder l'onglet actif
+    // dans l'URL (retour au lien, partage...), rien ne charge réellement
+    // derrière, donc pas de barre de progression (retour Maksen 2026-09-21).
+    markSilentNavigation()
     router.replace(`/settings?tab=${key}`, { scroll: false })
   }
 
@@ -124,13 +156,7 @@ export function SettingsTabs({
                     onglets (Séances/Compétitions/Config, vue admin) dépassaient la
                     largeur d'un petit écran et forçaient un scroll horizontal
                     (correctif 2026-09-03). */}
-                <span className="sm:hidden">
-                  {t.key === 'sessions'
-                    ? 'Séance'
-                    : t.key === 'competitions'
-                      ? 'Compét.'
-                      : 'Config'}
-                </span>
+                <span className="sm:hidden">{SHORT_LABELS[t.key]}</span>
                 {t.count !== null && (
                   <span
                     className={cn(
@@ -161,8 +187,14 @@ export function SettingsTabs({
               <TypeManager kind="session" initialTypes={sessionTypes} />
             ) : active === 'competitions' ? (
               <TypeManager kind="competition" initialTypes={competitionTypes} />
-            ) : (
+            ) : active === 'configuration' ? (
               <ClubConfigPanel initialClubCode={initialClubCode} />
+            ) : (
+              <AppearancePanel
+                isAdmin={isAdmin}
+                initialNewUiEnabled={initialNewUiEnabled}
+                initialAccentColor={initialAccentColor}
+              />
             )}
           </motion.div>
         </AnimatePresence>

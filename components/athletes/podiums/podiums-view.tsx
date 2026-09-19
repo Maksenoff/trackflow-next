@@ -18,9 +18,11 @@ import { useRouter } from 'next/navigation'
 import { initials } from '@/lib/athlete'
 import { formatFullDate } from '@/lib/date'
 import { computeSeason } from '@/lib/performance'
+import { SeasonSelect } from '@/components/athletes/season-select'
 import { useIsLightTheme } from '@/lib/use-is-light-theme'
 import { cn } from '@/lib/utils'
 import { MEDAL_GRADIENTS, type MedalRank } from './medal-colors'
+import { MedalIcon } from './medal-icon'
 import { PodiumFormDialog } from './podium-form-dialog'
 
 export type PodiumItem = {
@@ -36,7 +38,7 @@ export type PodiumItem = {
   source: 'ffa' | 'manual'
 }
 
-type AthleteInfo = {
+export type AthleteInfo = {
   firstName: string
   lastName: string
   photoUrl: string | null
@@ -96,7 +98,7 @@ export function PodiumsView({
 
   if (podiums.length === 0) {
     return (
-      <div className="rounded-3xl border border-dashed border-border bg-card py-16 text-center shadow-sm">
+      <div className="rounded-2xl border border-dashed border-border bg-card py-16 text-center shadow-sm">
         <Trophy className="mx-auto mb-3 size-9 text-muted-foreground/50" />
         <p className="mb-1 text-lg font-extrabold">Aucun podium pour le moment</p>
         <p className="mb-5 text-sm text-muted-foreground">
@@ -130,23 +132,14 @@ export function PodiumsView({
           return (
             <div
               key={rank}
-              className="relative flex items-center gap-2 overflow-hidden rounded-3xl border p-3 shadow-sm transition-transform duration-200 hover:-translate-y-0.5 sm:gap-3 sm:p-4"
+              className="relative flex items-center gap-2.5 rounded-2xl border p-3 shadow-sm transition-transform duration-200 hover:-translate-y-0.5 sm:gap-3 sm:p-4"
               style={{
-                borderColor: `color-mix(in srgb, ${style.ring} ${isLight ? 55 : 35}%, transparent)`,
-                backgroundColor: `color-mix(in srgb, ${style.ring} ${isLight ? 16 : 11}%, var(--card))`,
+                borderColor: `color-mix(in srgb, ${style.ring} ${isLight ? 45 : 28}%, transparent)`,
+                backgroundColor: `color-mix(in srgb, ${style.ring} ${isLight ? 10 : 7}%, var(--card))`,
               }}
             >
-              <span
-                aria-hidden
-                className="pointer-events-none absolute -top-5 -right-5 size-16 rounded-full blur-2xl"
-                style={{ background: style.ring, opacity: isLight ? 0.35 : 0.25 }}
-              />
-              <span
-                className="relative flex size-9 shrink-0 items-center justify-center rounded-2xl border-2 text-xs font-black shadow-sm sm:size-11 sm:text-sm"
-                style={{ background: style.disc, borderColor: style.ring, color: style.text }}
-              >
-                {rank}
-              </span>
+              <MedalIcon rank={rank} size={34} className="shrink-0 sm:hidden" />
+              <MedalIcon rank={rank} size={40} className="hidden shrink-0 sm:block" />
               <div className="relative min-w-0">
                 <div
                   className="text-xl font-black tabular-nums sm:text-2xl"
@@ -232,19 +225,16 @@ export function PodiumsView({
   )
 }
 
-function RankBadge({ rank, className }: { rank: number; className?: string }) {
-  const style = medalStyle(rank)
-  return (
-    <span
-      className={cn(
-        'flex size-8 shrink-0 items-center justify-center rounded-full border font-black shadow-sm',
-        className
-      )}
-      style={{ background: style.disc, borderColor: style.ring, color: style.text }}
-    >
-      {rank}
-    </span>
-  )
+function RankBadge({
+  rank,
+  size = 32,
+  className,
+}: {
+  rank: number
+  size?: number
+  className?: string
+}) {
+  return <MedalIcon rank={rank} size={size} className={className} />
 }
 
 async function deletePodium(athleteId: string, podiumId: string) {
@@ -298,7 +288,7 @@ function RowActions({
   )
 }
 
-function PodiumListView({
+export function PodiumListView({
   podiums,
   athleteId,
   canEdit,
@@ -320,7 +310,7 @@ function PodiumListView({
               className="flex items-center gap-3 p-3"
               style={{ borderLeft: `3px solid ${style.ring}` }}
             >
-              <RankBadge rank={p.rank} className="size-8 text-xs" />
+              <RankBadge rank={p.rank} size={32} />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-extrabold">{p.discipline}</div>
                 <div className="truncate text-xs text-muted-foreground">
@@ -360,7 +350,7 @@ function PodiumListView({
               return (
                 <tr key={p.id} className="border-b border-border last:border-b-0 hover:bg-muted/30">
                   <td className="px-4 py-2.5">
-                    <RankBadge rank={p.rank} className="size-7 text-[11px]" />
+                    <RankBadge rank={p.rank} size={28} />
                   </td>
                   <td className="px-3 py-2.5 font-extrabold">{p.discipline}</td>
                   <td className="hidden px-3 py-2.5 text-muted-foreground md:table-cell">
@@ -394,58 +384,15 @@ function PodiumListView({
 }
 
 /**
- * Filets de vitesse façon flou de mouvement sprint — remplace le motif de
- * rayures statique (correctif 2026-08-25, "plus original que des rayures,
- * moderne et sport"). Chaque trait balaie la carte de gauche à droite en
- * boucle, vitesse/longueur/délai variés pour un rendu organique plutôt que
- * mécanique, teinté sur la médaille en cours (or/argent/bronze).
+ * Scène podium à 3 marches, une compétition à la fois par année — plat
+ * (color-mix, pas de dégradé glossy) pour coller au reste de l'appli, tout
+ * en gardant l'esprit "podium" (photo de l'athlète sur sa marche, swap par
+ * saison). Repassée une 2e fois le 2026-09-20 (retour Maksen : "pas assez
+ * pro/sport, trop d'effets lumineux") — le fond radial pleine carte et les
+ * filets de vitesse animés (SprintStreaks) de la 1ère passe sont retirés, et
+ * l'anneau photo n'a plus d'ombre portée colorée (juste un anneau plein).
  */
-const SPRINT_LANES = [
-  { top: '14%', width: 34, height: 3, duration: 2.6, delay: 0 },
-  { top: '27%', width: 22, height: 2, duration: 3.4, delay: 0.6 },
-  { top: '41%', width: 44, height: 3, duration: 2.2, delay: 1.1 },
-  { top: '58%', width: 26, height: 2, duration: 3.1, delay: 0.3 },
-  { top: '71%', width: 38, height: 3, duration: 2.8, delay: 1.6 },
-  { top: '85%', width: 20, height: 2, duration: 3.6, delay: 0.9 },
-]
-
-function SprintStreaks({ color, isLight }: { color: string; isLight: boolean }) {
-  const streakColor = `color-mix(in srgb, ${color} ${isLight ? 55 : 45}%, transparent)`
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-      {SPRINT_LANES.map((lane, i) => (
-        <motion.span
-          key={i}
-          className="absolute rounded-full"
-          style={{
-            top: lane.top,
-            height: lane.height,
-            width: `${lane.width}%`,
-            background: `linear-gradient(90deg, transparent, ${streakColor}, transparent)`,
-          }}
-          initial={{ left: '-40%', opacity: 0 }}
-          animate={{ left: '110%', opacity: [0, 1, 1, 0] }}
-          transition={{
-            duration: lane.duration,
-            delay: lane.delay,
-            repeat: Infinity,
-            repeatDelay: 0.6,
-            ease: 'linear',
-          }}
-        />
-      ))}
-    </div>
-  )
-}
-
-/**
- * Scène podium à 3 marches, une compétition à la fois par année — repensée en
- * plat (color-mix, pas de dégradé glossy ni de motif diagonal derrière) pour
- * coller au reste de l'appli, mais en gardant l'esprit "podium" (photo de
- * l'athlète sur sa marche, swap par saison) que la grille de cards avait
- * perdu (correctif 2026-08-25, retour demandé par Maksen).
- */
-function PodiumSceneView({
+export function PodiumSceneView({
   podiums,
   athlete,
   athleteId,
@@ -503,7 +450,16 @@ function PodiumSceneView({
 
   return (
     <div className="space-y-4">
-      <div className="no-scrollbar flex items-center gap-2 overflow-x-auto pb-1">
+      {/* Mobile : dropdown à taille fixe plutôt que la rangée de pills (retour
+          Maksen 2026-09-19, même traitement que Performances/Stats avancées).
+          Desktop (`sm:` et plus) : rangée de pills scrollable inchangée. */}
+      <SeasonSelect
+        className="sm:hidden"
+        value={String(season)}
+        onChange={(v) => selectSeason(Number(v))}
+        options={seasons.map((s) => ({ value: String(s.seasonStart), label: s.label }))}
+      />
+      <div className="no-scrollbar hidden items-center gap-2 overflow-x-auto pb-1 sm:flex">
         {seasons.map((s) => (
           <button
             key={s.seasonStart}
@@ -544,7 +500,7 @@ function PodiumSceneView({
                   borderColor: active ? s.ring : 'var(--border)',
                 }}
               >
-                <RankBadge rank={p.rank} className="size-4 text-[9px]" />
+                <RankBadge rank={p.rank} size={18} />
                 {p.discipline}
               </button>
             )
@@ -552,138 +508,139 @@ function PodiumSceneView({
         </div>
       )}
 
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-8">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        {/* Liseré de couleur plein (médaille en cours), même pattern que
+            l'en-tête des séances (session-header.tsx) — identité de couleur
+            sans effet lumineux. */}
         <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 transition-[background] duration-300"
-          style={{
-            background: `radial-gradient(120% 70% at 50% 105%, color-mix(in srgb, ${currentStyle.ring} ${isLight ? 48 : 38}%, transparent), transparent 65%)`,
-          }}
+          className="h-1.5 transition-[background] duration-300"
+          style={{ background: currentStyle.ring }}
         />
-        <SprintStreaks color={currentStyle.ring} isLight={isLight} />
-        <div className="relative mb-5 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => go(-1)}
-            disabled={index === 0}
-            className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
-            aria-label="Compétition précédente"
-          >
-            <ChevronLeft className="size-4" />
-          </button>
+        <div className="relative p-5 sm:p-8">
+          <div className="relative mb-5 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => go(-1)}
+              disabled={index === 0}
+              className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+              aria-label="Compétition précédente"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
 
-          <div className="min-w-0 text-center">
-            <div className="truncate text-base font-black tracking-tight sm:text-lg">
-              {current.discipline}
+            <div className="min-w-0 text-center">
+              <div className="truncate text-base font-black tracking-tight sm:text-lg">
+                {current.discipline}
+              </div>
+              <div className="truncate text-xs font-semibold text-muted-foreground">
+                {current.level} · {formatFullDate(current.recordedAt)}
+                {current.venue ? ` · ${current.venue}` : ''}
+              </div>
             </div>
-            <div className="truncate text-xs font-semibold text-muted-foreground">
-              {current.level} · {formatFullDate(current.recordedAt)}
-              {current.venue ? ` · ${current.venue}` : ''}
-            </div>
+
+            <button
+              type="button"
+              onClick={() => go(1)}
+              disabled={index === seasonPodiums.length - 1}
+              className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+              aria-label="Compétition suivante"
+            >
+              <ChevronRight className="size-4" />
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={() => go(1)}
-            disabled={index === seasonPodiums.length - 1}
-            className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
-            aria-label="Compétition suivante"
-          >
-            <ChevronRight className="size-4" />
-          </button>
-        </div>
-
-        <AnimatePresence mode="popLayout" custom={direction} initial={false}>
-          <motion.div
-            key={current.id}
-            custom={direction}
-            initial={{ x: direction * 40, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: direction * -40, opacity: 0 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
-            drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.2}
-            onDragEnd={handleDragEnd}
-            className="relative touch-pan-y"
-          >
-            <div className="mx-auto flex max-w-md items-end justify-center gap-3 sm:gap-6">
-              {STEP_ORDER.map((rank) => {
-                const isOurs = rank === current.rank
-                const style = medalStyle(rank)
-                return (
-                  <div key={rank} className="flex flex-1 flex-col items-center">
-                    <div className="relative mb-2 flex items-end justify-center">
-                      {isOurs ? (
-                        <div
-                          className="relative size-16 overflow-hidden rounded-full sm:size-20"
-                          style={{ boxShadow: `0 0 0 4px ${style.ring}, ${style.glow}` }}
-                        >
-                          {athlete.photoUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={athlete.photoUrl}
-                              alt=""
-                              className="size-full object-cover"
-                              style={{
-                                objectPosition: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
-                                transform: `scale(${athlete.photoConfig.zoom ?? 1})`,
-                                transformOrigin: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
-                              }}
-                            />
-                          ) : (
-                            <div className="flex size-full items-center justify-center bg-gradient-to-br from-primary to-primary/60 text-base font-bold text-primary-foreground">
-                              {initials(athlete.firstName, athlete.lastName)}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground/40 sm:size-20">
-                          <UserRound className="size-7" />
-                        </div>
-                      )}
+          <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+            <motion.div
+              key={current.id}
+              custom={direction}
+              initial={{ x: direction * 40, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: direction * -40, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.2}
+              onDragEnd={handleDragEnd}
+              className="relative touch-pan-y"
+            >
+              <div className="mx-auto flex max-w-md items-end justify-center gap-3 sm:gap-6">
+                {STEP_ORDER.map((rank) => {
+                  const isOurs = rank === current.rank
+                  const style = medalStyle(rank)
+                  return (
+                    <div key={rank} className="flex flex-1 flex-col items-center">
+                      <div className="relative mb-2 flex items-end justify-center">
+                        {isOurs ? (
+                          <div
+                            className="relative size-16 overflow-hidden rounded-full sm:size-20"
+                            style={{ boxShadow: `0 0 0 3px var(--card), 0 0 0 5px ${style.ring}` }}
+                          >
+                            {athlete.photoUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={athlete.photoUrl}
+                                alt=""
+                                className="size-full object-cover"
+                                style={{
+                                  objectPosition: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
+                                  transform: `scale(${athlete.photoConfig.zoom ?? 1})`,
+                                  transformOrigin: `${athlete.photoConfig.x ?? 50}% ${athlete.photoConfig.y ?? 50}%`,
+                                }}
+                              />
+                            ) : (
+                              <div className="flex size-full items-center justify-center bg-gradient-to-br from-primary to-primary/60 text-base font-bold text-primary-foreground">
+                                {initials(athlete.firstName, athlete.lastName)}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground/40 sm:size-20">
+                            <UserRound className="size-7" />
+                          </div>
+                        )}
+                        <MedalIcon
+                          rank={rank}
+                          size={28}
+                          className="absolute -bottom-1 left-1/2 z-10 -translate-x-1/2 sm:hidden"
+                        />
+                        <MedalIcon
+                          rank={rank}
+                          size={32}
+                          className="absolute -bottom-1 left-1/2 z-10 hidden -translate-x-1/2 sm:block"
+                        />
+                      </div>
                       <div
-                        className="absolute -bottom-1 left-1/2 z-10 flex size-7 -translate-x-1/2 items-center justify-center rounded-full border-2 text-xs font-black sm:size-8"
+                        className={cn(
+                          'flex w-full flex-col items-center justify-start gap-1 rounded-t-2xl border pt-2.5',
+                          STEP_HEIGHT[rank]
+                        )}
                         style={{
-                          background: style.disc,
-                          borderColor: style.ring,
-                          color: style.text,
+                          backgroundColor: `color-mix(in srgb, ${style.ring} ${isLight ? 22 : 14}%, var(--card))`,
+                          borderColor: `color-mix(in srgb, ${style.ring} ${isLight ? 55 : 35}%, transparent)`,
                         }}
                       >
-                        {rank}
+                        <span className="text-sm font-black" style={{ color: style.ring }}>
+                          {rankOrdinal(rank)}
+                        </span>
+                        {isOurs && current.performance && (
+                          <span className="px-1 text-center font-mono text-[11px] font-bold text-muted-foreground">
+                            {current.performance}
+                          </span>
+                        )}
                       </div>
                     </div>
-                    <div
-                      className={cn(
-                        'flex w-full flex-col items-center justify-start gap-1 rounded-t-2xl border pt-2.5',
-                        STEP_HEIGHT[rank]
-                      )}
-                      style={{
-                        backgroundColor: `color-mix(in srgb, ${style.ring} ${isLight ? 22 : 14}%, var(--card))`,
-                        borderColor: `color-mix(in srgb, ${style.ring} ${isLight ? 55 : 35}%, transparent)`,
-                      }}
-                    >
-                      <span className="text-sm font-black" style={{ color: style.ring }}>
-                        {rankOrdinal(rank)}
-                      </span>
-                      {isOurs && current.performance && (
-                        <span className="px-1 text-center font-mono text-[11px] font-bold text-muted-foreground">
-                          {current.performance}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </motion.div>
-        </AnimatePresence>
+                  )
+                })}
+              </div>
+            </motion.div>
+          </AnimatePresence>
 
-        <div className="relative mt-4 flex items-center justify-center gap-2">
-          <span className="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
-            {index + 1} / {seasonPodiums.length}
-          </span>
-          {canEdit && <RowActions podium={current} athleteId={athleteId} onEdit={onEdit} />}
+          <div className="relative mt-4 flex items-center justify-center gap-2">
+            <span className="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
+              {index + 1} / {seasonPodiums.length}
+            </span>
+            {canEdit && <RowActions podium={current} athleteId={athleteId} onEdit={onEdit} />}
+          </div>
         </div>
       </div>
     </div>
