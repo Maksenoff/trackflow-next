@@ -126,17 +126,27 @@ export function NewSidebar({
       <div className="flex items-center gap-2 border-t border-[var(--nu-line)] p-3.5">
         {(() => {
           const avatar = linkedAthlete?.photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={linkedAthlete.photoUrl}
-              alt=""
-              className="size-8.5 shrink-0 rounded-full object-cover"
-              style={{
-                objectPosition: `${linkedAthlete.photoConfig.x ?? 50}% ${linkedAthlete.photoConfig.y ?? 50}%`,
-                transform: `scale(${linkedAthlete.photoConfig.zoom ?? 1})`,
-                transformOrigin: `${linkedAthlete.photoConfig.x ?? 50}% ${linkedAthlete.photoConfig.y ?? 50}%`,
-              }}
-            />
+            // `size-8.5` + `overflow-hidden` doivent être sur ce wrapper, pas
+            // sur l'<img> lui-même : un `transform: scale()` posé directement
+            // sur l'image ne change pas sa boîte de layout (34px) mais son
+            // rendu visuel déborde sans rien pour le clipper, agrandissant la
+            // photo hors de son cercle (retour Maksen 2026-09-19, "l'image de
+            // profil en bas à gauche est immense" — constaté en prod). Même
+            // structure que le composant Avatar partagé (Root avec
+            // overflow-hidden, Image en size-full à l'intérieur).
+            <span className="size-8.5 shrink-0 overflow-hidden rounded-full">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={linkedAthlete.photoUrl}
+                alt=""
+                className="size-full object-cover"
+                style={{
+                  objectPosition: `${linkedAthlete.photoConfig.x ?? 50}% ${linkedAthlete.photoConfig.y ?? 50}%`,
+                  transform: `scale(${linkedAthlete.photoConfig.zoom ?? 1})`,
+                  transformOrigin: `${linkedAthlete.photoConfig.x ?? 50}% ${linkedAthlete.photoConfig.y ?? 50}%`,
+                }}
+              />
+            </span>
           ) : (
             <span
               className="flex size-8.5 shrink-0 items-center justify-center rounded-full text-xs font-bold"

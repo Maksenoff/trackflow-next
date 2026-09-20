@@ -37,8 +37,15 @@ yarn-error.log*
 next-env.d.ts
 
 # database (dev)
+# Prisma résout les URL sqlite "file:./prisma/dev.db" relativement au dossier
+# de schema.prisma (prisma/), pas au cwd — le fichier réel vit donc à
+# prisma/prisma/dev.db, pas prisma/dev.db (constaté 2026-09-19 après avoir
+# supprimé par erreur ce qui ressemblait à un doublon). Les deux motifs sont
+# gardés : `/prisma/dev.db` au cas où une commande future le résout depuis la
+# racine, `/prisma/prisma/` pour le chemin réel actuel.
 /prisma/dev.db
 /prisma/dev.db-journal
+/prisma/prisma/
 /prisma/migrations-sqlite-archive
 
 # pwa generated
