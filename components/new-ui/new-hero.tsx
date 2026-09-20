@@ -135,11 +135,14 @@ function HeroShell({
   )
 }
 
-function Kpi({ value, label }: { value: string; label: string }) {
+function Kpi({ value, label, dot }: { value: string; label: string; dot?: string }) {
   return (
     <div>
-      <div className="nu-num text-xl font-bold" style={{ color: 'var(--nu-txt)' }}>
-        {value}
+      <div className="flex items-center gap-1.5">
+        {dot && <span className="size-2 shrink-0 rounded-full" style={{ background: dot }} />}
+        <span className="nu-num text-xl font-bold" style={{ color: 'var(--nu-txt)' }}>
+          {value}
+        </span>
       </div>
       <div
         className="mt-1 text-[10.5px] font-semibold tracking-[0.1em] uppercase"
@@ -237,7 +240,11 @@ export function NewHero({ data }: { data: HeroData }) {
             </div>
             {session.coach && (
               <div className="self-start sm:self-auto">
-                <Kpi value={session.coach.firstName} label="Créée par" />
+                <Kpi
+                  value={session.coach.firstName}
+                  label="Coach"
+                  dot={session.coachPresent ? '#10b981' : '#f43f5e'}
+                />
               </div>
             )}
           </>

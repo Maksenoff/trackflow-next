@@ -65,6 +65,7 @@ export const CHANGELOG: ChangelogEntry[] = [
           'Le panneau Feedbacks (admin) s’ouvre désormais directement sur les tickets "Nouveaux" au lieu de tout afficher par défaut',
           "Correction de l'affichage des noms, tantôt en majuscules tantôt non, dans le détail d'un vote et ailleurs dans l'application",
           "Correction d'un affichage cassé sur iPhone : le bouton et le lien « Créer un vote » passaient sous la barre de statut et devenaient inaccessibles",
+          'Sur le tableau de bord, la prochaine séance affiche maintenant le prénom du coach avec un point vert (présent) ou rouge (absent) plutôt que "créée par"',
         ],
       },
     ],
