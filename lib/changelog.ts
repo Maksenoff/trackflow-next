@@ -72,6 +72,8 @@ export const CHANGELOG: ChangelogEntry[] = [
           "Correction de l'affichage des noms, tantôt en majuscules tantôt non, dans le détail d'un vote et ailleurs dans l'application",
           "Correction d'un affichage cassé sur iPhone : le bouton et le lien « Créer un vote » passaient sous la barre de statut et devenaient inaccessibles",
           'Sur le tableau de bord, la prochaine séance affiche maintenant le prénom du coach avec un point vert (présent) ou rouge (absent) plutôt que "créée par"',
+          "Modifier la date de fin d'un vote en cours l'enregistre maintenant correctement (l'affichage restait figé sur l'ancienne date malgré la sauvegarde)",
+          'Le temps restant affiché sur les votes en cours (et le compte à rebours avant un vote à venir) se met à jour tout seul, sans recharger la page',
         ],
       },
     ],

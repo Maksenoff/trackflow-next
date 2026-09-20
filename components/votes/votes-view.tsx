@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -77,6 +77,19 @@ function timeLeft(expiresAt: string): string {
   return `${Math.round(diffH / 24)}j restants`
 }
 
+// Force un re-render périodique pour que "Xh restantes"/"dans Xj" reste à
+// jour sans interaction (avant : figé à la valeur calculée au chargement de
+// la page tant que rien d'autre ne re-render le composant — correctif
+// 2026-09-20). Minute suffit : timeLeft/timeUntilStart n'affichent jamais
+// une précision plus fine que l'heure.
+function useLiveTick(intervalMs = 60_000) {
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), intervalMs)
+    return () => clearInterval(id)
+  }, [intervalMs])
+}
+
 function timeUntilStart(startsAt: string): string {
   const diffMs = new Date(startsAt).getTime() - Date.now()
   if (diffMs <= 0) return 'Bientôt'
@@ -117,6 +130,17 @@ export function VotesView({
   const [editingPoll, setEditingPoll] = useState<PollItem | null>(null)
   const [breakdownPollId, setBreakdownPollId] = useState<string | null>(null)
   const breakdownPoll = polls.find((p) => p.id === breakdownPollId) ?? null
+
+  // `polls` ne se resynchronise pas tout seul depuis `initial` après un
+  // router.refresh() : `useState(initial)` ne lit la prop qu'au premier
+  // rendu, donc un router.refresh() déclenché ailleurs (ex: édition d'un
+  // vote via PollFormDialog, qui ne fait pas de mise à jour optimiste locale
+  // comme vote/cancelPoll/togglePin) laissait la carte affichée figée sur les
+  // anciennes dates malgré la sauvegarde réussie en base (correctif
+  // 2026-09-20).
+  useEffect(() => {
+    setPolls(initial)
+  }, [initial])
 
   const canEditPoll = (poll: PollItem) => canManage || poll.createdById === currentUserId
 
@@ -429,6 +453,7 @@ function DuelCard({
 }) {
   const [a, b] = poll.options
   const isPinned = poll.pinnedOrder !== null
+  useLiveTick()
 
   return (
     <div
@@ -698,6 +723,7 @@ function ScheduledDuelCard({
   onEdit: () => void
 }) {
   const [a, b] = poll.options
+  useLiveTick()
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-dashed border-border bg-card/60 p-4 opacity-80">
       <div className="flex items-center justify-between gap-3">
