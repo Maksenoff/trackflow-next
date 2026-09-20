@@ -99,3 +99,39 @@ export function relativeDayShort(date: Date): {
   if (diff === 1) return { label: 'Dem.', tone: 'tomorrow' }
   return { label: formatShortDate(date), tone: 'future' }
 }
+
+// Seuil "actif à l'instant" partagé entre `timeSinceLabel` (texte) et
+// `isActiveNow` (pastille verte/rouge des cards utilisateur admin) — les
+// deux doivent basculer en même temps, jamais un texte "à l'instant" à côté
+// d'une pastille rouge.
+const ACTIVE_NOW_MS = 60_000
+
+/** Pastille verte (actif à l'instant) vs rouge des cards utilisateur admin. */
+export function isActiveNow(date: Date | null): boolean {
+  if (!date) return false
+  return Date.now() - date.getTime() < ACTIVE_NOW_MS
+}
+
+/**
+ * Temps écoulé depuis `date`, format compact "X minutes" / "X heures" /
+ * "X jours et Y heures" — jamais de secondes, jamais de minutes une fois
+ * passé l'heure (demande explicite de Maksen 2026-09-20, pour la pastille
+ * "dernière connexion" des cards utilisateur admin).
+ */
+export function timeSinceLabel(date: Date | null): string {
+  if (!date) return 'Jamais'
+  const diffMs = Date.now() - date.getTime()
+  if (diffMs < ACTIVE_NOW_MS) return "à l'instant"
+
+  const minutes = Math.floor(diffMs / 60_000)
+  if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''}`
+
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours} heure${hours > 1 ? 's' : ''}`
+
+  const days = Math.floor(hours / 24)
+  const remainingHours = hours % 24
+  const daysLabel = `${days} jour${days > 1 ? 's' : ''}`
+  if (remainingHours === 0) return daysLabel
+  return `${daysLabel} et ${remainingHours} heure${remainingHours > 1 ? 's' : ''}`
+}

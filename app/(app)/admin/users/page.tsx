@@ -37,6 +37,7 @@ export default async function AdminUsersPage() {
                 email: user.email,
                 roles: JSON.parse(user.roles) as Role[],
                 disabled: user.disabled,
+                lastActiveAt: user.lastActiveAt,
               }}
               isSelf={user.id === session?.user.id}
               index={index}

@@ -65,6 +65,12 @@ export const CHANGELOG: ChangelogEntry[] = [
         ],
       },
       {
+        title: 'Admin',
+        items: [
+          "Les cartes utilisateur affichent désormais depuis quand chaque compte n'a plus été actif (pastille verte si actif à l'instant, rouge sinon)",
+        ],
+      },
+      {
         title: 'Corrections',
         kind: 'fix',
         items: [

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { initials } from '@/lib/athlete'
+import { isActiveNow, timeSinceLabel } from '@/lib/date'
 import { ROLE_LABELS, ROLE_COLORS, type Role } from '@/lib/roles'
 import { cn } from '@/lib/utils'
 
@@ -13,6 +14,10 @@ export type UserCardData = {
   email: string
   roles: Role[]
   disabled?: boolean
+  /** Dernière requête authentifiée reçue de ce compte — reflète le réel
+   *  dernier usage de l'app (voir lib/auth.ts / components/activity-ping.tsx),
+   *  plus fiable que la dernière connexion si la session reste ouverte. */
+  lastActiveAt?: Date | null
 }
 
 export function UserCard({
@@ -37,29 +42,30 @@ export function UserCard({
           user.disabled && 'opacity-60'
         )}
       >
-        <div className="absolute top-3 right-3 flex items-center gap-1.5">
-          {user.disabled && (
-            <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-bold text-destructive">
-              Désactivé
-            </span>
-          )}
-          {isSelf && (
-            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-              Vous
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-3">
+        <div className="flex items-start gap-3">
           <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/60 text-sm font-bold text-primary-foreground">
             {initials(user.firstName, user.lastName)}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="truncate font-bold">
               {user.firstName} {user.lastName}
             </div>
             <div className="truncate text-xs text-muted-foreground">{user.email}</div>
           </div>
+          {(user.disabled || isSelf) && (
+            <div className="flex shrink-0 items-center gap-1.5">
+              {user.disabled && (
+                <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-bold text-destructive">
+                  Désactivé
+                </span>
+              )}
+              {isSelf && (
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                  Vous
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-1.5">
@@ -81,6 +87,21 @@ export function UserCard({
             )
           })}
         </div>
+
+        {user.lastActiveAt !== undefined && (
+          <div
+            className="flex items-center gap-1.5 text-xs text-muted-foreground"
+            title="Dernière activité"
+          >
+            <span
+              className={cn(
+                'size-2 shrink-0 rounded-full',
+                isActiveNow(user.lastActiveAt ?? null) ? 'bg-emerald-500' : 'bg-rose-500'
+              )}
+            />
+            {timeSinceLabel(user.lastActiveAt ?? null)}
+          </div>
+        )}
       </Link>
     </motion.div>
   )
