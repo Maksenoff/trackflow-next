@@ -74,6 +74,8 @@ export const CHANGELOG: ChangelogEntry[] = [
           'Sur le tableau de bord, la prochaine séance affiche maintenant le prénom du coach avec un point vert (présent) ou rouge (absent) plutôt que "créée par"',
           "Modifier la date de fin d'un vote en cours l'enregistre maintenant correctement (l'affichage restait figé sur l'ancienne date malgré la sauvegarde)",
           'Le temps restant affiché sur les votes en cours (et le compte à rebours avant un vote à venir) se met à jour tout seul, sans recharger la page',
+          "Sur la fiche athlète, le badge SB (meilleure performance de la saison) s'affiche maintenant pour chaque saison passée, plus seulement la saison en cours",
+          "Le badge PB (record personnel) reste maintenant affiché sur la performance qui était le record à l'époque, même après avoir été battue par un record plus récent — et en consultant une saison passée, le record affiché est bien celui d'alors, pas un record fait plus tard",
         ],
       },
     ],

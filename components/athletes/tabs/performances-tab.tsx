@@ -13,9 +13,11 @@ import {
   YAxis,
 } from 'recharts'
 import {
+  computeAllSeasonBests,
+  computeBestUpToSeason,
   computeCategory,
   computeNiceAxis,
-  computeSeasonBests,
+  computePbProgression,
   computeSeason,
   formatDiscipline,
   formatPerformanceValue,
@@ -97,16 +99,37 @@ export function PerformancesTab({
     return Array.from(set).sort().reverse()
   }, [performances])
 
-  const seasonBests = useMemo(() => computeSeasonBests(performances), [performances])
+  // Meilleur résultat de chaque saison (pas seulement celle en cours) par
+  // discipline — sert à la fois à badger "SB" chaque ligne (y compris dans
+  // les saisons passées) et à afficher le bon SB dans l'en-tête de discipline
+  // selon la saison filtrée (voir `activeSeasonStart` plus bas).
+  const allSeasonBests = useMemo(() => computeAllSeasonBests(performances), [performances])
   const seasonBestIds = useMemo(
-    () => new Set(Array.from(seasonBests.values()).map((p) => p.id)),
-    [seasonBests]
+    () => new Set(Array.from(allSeasonBests.values()).map((p) => p.id)),
+    [allSeasonBests]
   )
+  // Saison dont l'en-tête "SB" de chaque discipline doit refléter le record :
+  // la saison filtrée si une saison précise est sélectionnée, sinon la
+  // saison en cours (comportement historique quand "Toutes" est actif).
+  const activeSeasonStart = useMemo(() => {
+    if (season === 'all') return computeSeason(new Date()).seasonStart
+    return Number(season.split('-')[0])
+  }, [season])
+
+  // Perfs qui étaient un record personnel au moment où elles ont été
+  // réalisées (indépendamment des records plus récents) — badge "PB" par
+  // ligne, à ne pas confondre avec `Performance.isPersonalBest` en base qui
+  // ne marque que le record actuel (utilisé uniquement pour le "PB" de
+  // l'en-tête de discipline, `allTimeBests` ci-dessous, qui doit lui rester
+  // le record all-time réel quel que soit le filtre).
+  const pbProgressionIds = useMemo(() => computePbProgression(performances), [performances])
 
   // Record all-time (PB) par discipline, calculé sur l'historique complet de
-  // l'athlète — jamais sur `filtered`, sinon le badge "PB" de l'en-tête varie
-  // avec le filtre saison/indoor-outdoor et se confond avec le SB (correctif
-  // 2026-08-24 : le PB doit rester le record all-time quel que soit le filtre actif).
+  // l'athlète — jamais sur `filtered`, sinon le badge "PB" de l'en-tête se
+  // confondrait avec le SB au moindre filtre indoor/outdoor (correctif
+  // 2026-08-24). Reste la valeur utilisée quand "Toutes" les saisons sont
+  // affichées ; `headerBests` ci-dessous prend le relai pour une saison
+  // précise (voir plus bas).
   const allTimeBests = useMemo(() => {
     const map = new Map<string, Performance>()
     for (const perf of performances) {
@@ -123,6 +146,18 @@ export function PerformancesTab({
     }
     return map
   }, [performances])
+
+  // PB affiché en en-tête de discipline : le record all-time quand "Toutes"
+  // les saisons sont affichées, mais le record TEL QU'IL ÉTAIT à la fin de
+  // la saison consultée dès qu'un filtre saison précis est actif — sinon en
+  // remontant sur une saison antérieure à un record, ce record (pas encore
+  // réalisé à l'époque) continuait de s'afficher (correctif 2026-09-20,
+  // demande explicite de Maksen).
+  const headerBests = useMemo(
+    () =>
+      season === 'all' ? allTimeBests : computeBestUpToSeason(performances, activeSeasonStart),
+    [season, allTimeBests, performances, activeSeasonStart]
+  )
 
   const filtered = useMemo(() => {
     return performances.filter((p) => {
@@ -161,8 +196,8 @@ export function PerformancesTab({
       )
       const recentFirst = [...chronological].reverse()
       const unit = perfs[0]?.unit ?? 's'
-      const best = allTimeBests.get(discipline) ?? recentFirst[0]
-      const seasonBest = seasonBests.get(discipline) ?? null
+      const best = headerBests.get(discipline) ?? recentFirst[0]
+      const seasonBest = allSeasonBests.get(`${activeSeasonStart}|${discipline}`) ?? null
       const chartData = chronological.map((p) => ({
         date: formatFullDate(p.recordedAt),
         value: p.value,
@@ -179,7 +214,7 @@ export function PerformancesTab({
         ticks,
       }
     })
-  }, [filtered, disciplineColors, disciplineOrder, seasonBests, allTimeBests])
+  }, [filtered, disciplineColors, disciplineOrder, allSeasonBests, activeSeasonStart, headerBests])
 
   if (performances.length === 0) {
     return (
@@ -463,7 +498,8 @@ export function PerformancesTab({
 
                         <div className="divide-y divide-border sm:hidden">
                           {perfs.map((perf, idx) => {
-                            const isSB = seasonBestIds.has(perf.id) && !perf.isPersonalBest
+                            const isPB = pbProgressionIds.has(perf.id)
+                            const isSB = seasonBestIds.has(perf.id) && !isPB
                             const { seasonShort } = computeSeason(perf.recordedAt)
                             return (
                               <motion.div
@@ -478,11 +514,11 @@ export function PerformancesTab({
                                   <span
                                     className={cn(
                                       'w-5 shrink-0 text-right text-[9px] font-extrabold',
-                                      !perf.isPersonalBest && isSB ? SILVER : ''
+                                      !isPB && isSB ? SILVER : ''
                                     )}
-                                    style={perf.isPersonalBest ? GOLD_STYLE : undefined}
+                                    style={isPB ? GOLD_STYLE : undefined}
                                   >
-                                    {perf.isPersonalBest ? 'PB' : isSB ? 'SB' : ''}
+                                    {isPB ? 'PB' : isSB ? 'SB' : ''}
                                   </span>
                                   <span className="w-14 shrink-0 font-mono text-sm font-bold whitespace-nowrap tabular-nums">
                                     {formatPerformanceValue(perf.value, perf.unit)}
@@ -563,7 +599,8 @@ export function PerformancesTab({
                             </thead>
                             <tbody>
                               {perfs.map((perf) => {
-                                const isSB = seasonBestIds.has(perf.id) && !perf.isPersonalBest
+                                const isPB = pbProgressionIds.has(perf.id)
+                                const isSB = seasonBestIds.has(perf.id) && !isPB
                                 const { seasonShort } = computeSeason(perf.recordedAt)
                                 const category = computeCategory(perf.recordedAt, birthDate)
                                 return (
@@ -579,11 +616,11 @@ export function PerformancesTab({
                                         <span
                                           className={cn(
                                             'w-6 shrink-0 text-right text-[10px] font-extrabold',
-                                            !perf.isPersonalBest && isSB ? SILVER : ''
+                                            !isPB && isSB ? SILVER : ''
                                           )}
-                                          style={perf.isPersonalBest ? GOLD_STYLE : undefined}
+                                          style={isPB ? GOLD_STYLE : undefined}
                                         >
-                                          {perf.isPersonalBest ? 'PB' : isSB ? 'SB' : ''}
+                                          {isPB ? 'PB' : isSB ? 'SB' : ''}
                                         </span>
                                         <span className="w-16 shrink-0 font-mono font-bold whitespace-nowrap tabular-nums">
                                           {formatPerformanceValue(perf.value, perf.unit)}

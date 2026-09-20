@@ -176,3 +176,102 @@ export function computeSeasonBests<T extends PerfWithDate>(performances: T[]): M
   }
   return bests
 }
+
+/**
+ * Meilleur résultat de CHAQUE saison (pas seulement celle en cours), par
+ * saison + discipline — clé `"${seasonStart}|${discipline}"`. Isolé de
+ * `computeSeasonBests` (qui reste volontairement limité à la saison en
+ * cours pour le widget dashboard) : l'onglet Performances de la fiche
+ * athlète a besoin, lui, de badger "SB" la meilleure perf de chaque saison
+ * passée, pas seulement celle en cours. Sans ça, une perf qui était le
+ * record personnel jusqu'à ce qu'une plus récente la dépasse se retrouvait
+ * sans aucun badge (ni PB — plus le record all-time — ni SB — pas dans la
+ * saison en cours), donnant l'impression qu'elle "disparaissait" (correctif
+ * 2026-09-20, demande explicite de Maksen).
+ */
+export function computeAllSeasonBests<T extends PerfWithDate>(performances: T[]): Map<string, T> {
+  const bests = new Map<string, T>()
+  for (const perf of performances) {
+    if (isHandTimed(perf.value, perf.unit)) continue
+    const { seasonStart } = computeSeason(perf.recordedAt)
+    const key = `${seasonStart}|${perf.discipline}`
+    const current = bests.get(key)
+    if (!current) {
+      bests.set(key, perf)
+      continue
+    }
+    const improved = isLowerBetter(perf.unit)
+      ? perf.value < current.value
+      : perf.value > current.value
+    if (improved) bests.set(key, perf)
+  }
+  return bests
+}
+
+/**
+ * IDs des performances qui représentaient, au moment où elles ont été
+ * réalisées, une amélioration du record personnel jusque-là — par
+ * discipline, en parcourant l'historique chronologiquement. Contrairement à
+ * `Performance.isPersonalBest` en base (qui ne marque que LE record actuel
+ * et se déplace intégralement dessus à chaque nouveau record, recalculé par
+ * la sync FFA — cf. lib/ffa-scraper.ts), le résultat couvre TOUTE la
+ * progression : une perf de 2021 qui était le record personnel à l'époque
+ * reste badgée "PB" même après avoir été dépassée par un record plus
+ * récent. Demande explicite de Maksen 2026-09-20 : "je veux que le PB à
+ * cette époque soit affiché, pas un PB que j'ai fait dans le futur".
+ */
+export function computePbProgression<T extends PerfWithDate>(performances: T[]): Set<string> {
+  const byDiscipline = new Map<string, T[]>()
+  for (const perf of performances) {
+    if (isHandTimed(perf.value, perf.unit)) continue
+    const list = byDiscipline.get(perf.discipline) ?? []
+    list.push(perf)
+    byDiscipline.set(perf.discipline, list)
+  }
+
+  const ids = new Set<string>()
+  for (const perfs of byDiscipline.values()) {
+    const chronological = [...perfs].sort((a, b) => a.recordedAt.getTime() - b.recordedAt.getTime())
+    let best: T | null = null
+    for (const perf of chronological) {
+      const improved =
+        !best || (isLowerBetter(perf.unit) ? perf.value < best.value : perf.value > best.value)
+      if (improved) {
+        ids.add(perf.id)
+        best = perf
+      }
+    }
+  }
+  return ids
+}
+
+/**
+ * Record personnel "tel qu'il était" à la fin d'une saison donnée, par
+ * discipline — le meilleur résultat parmi les performances de cette saison
+ * et de toutes les saisons antérieures, jamais les saisons suivantes. Sert
+ * à afficher, quand on consulte une saison passée sur la fiche athlète, le
+ * PB tel qu'il se présentait à l'époque plutôt que le record actuel
+ * (demande explicite de Maksen 2026-09-20 : un PB fait après la saison
+ * consultée ne doit pas s'afficher en remontant dans le temps avant qu'il
+ * ait été réalisé).
+ */
+export function computeBestUpToSeason<T extends PerfWithDate>(
+  performances: T[],
+  upToSeasonStart: number
+): Map<string, T> {
+  const bests = new Map<string, T>()
+  for (const perf of performances) {
+    if (isHandTimed(perf.value, perf.unit)) continue
+    if (computeSeason(perf.recordedAt).seasonStart > upToSeasonStart) continue
+    const current = bests.get(perf.discipline)
+    if (!current) {
+      bests.set(perf.discipline, perf)
+      continue
+    }
+    const improved = isLowerBetter(perf.unit)
+      ? perf.value < current.value
+      : perf.value > current.value
+    if (improved) bests.set(perf.discipline, perf)
+  }
+  return bests
+}
