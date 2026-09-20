@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils'
 // la couleur par défaut quand aucune n'est choisie (fallback CSS dans
 // globals.css) — volontairement absent de cette liste, il n'est pas un choix
 // de personnalisation mais la base de l'app.
-const ACCENT_SWATCHES = [
+export const ACCENT_SWATCHES = [
   { value: '#3B82F6', label: 'Bleu' },
   { value: '#EF4444', label: 'Rouge' },
   { value: '#22C55E', label: 'Vert' },
@@ -29,7 +29,7 @@ const ACCENT_SWATCHES = [
   { value: '#14B8A6', label: 'Vert / Bleu' },
 ] as const
 
-const DEFAULT_ACCENT = '#8A6BFF'
+export const DEFAULT_ACCENT = '#8A6BFF'
 
 export function AppearancePanel({
   isAdmin,

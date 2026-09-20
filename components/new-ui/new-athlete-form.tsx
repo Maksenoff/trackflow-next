@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import { Loader2, X, GripVertical, Camera, Upload, Search, Check, ChevronDown } from 'lucide-react'
 import { ImagePositionEditor } from '@/components/athletes/image-position-editor'
 import { DeleteAthleteButton } from '@/components/athletes/delete-athlete-button'
+import { ACCENT_SWATCHES, DEFAULT_ACCENT } from '@/components/settings/appearance-panel'
 import { athleteInputSchema } from '@/lib/validations/athlete'
 import {
   ATHLETE_SPECIALTIES,
@@ -145,11 +146,15 @@ export function NewAthleteForm({
   fullName,
   initialData,
   earliestSeasonStart,
+  showAppTheme,
+  initialAccentColor,
 }: {
   athleteId: string
   fullName: string
   initialData: Partial<AthleteFormValues>
   earliestSeasonStart?: number
+  showAppTheme?: boolean
+  initialAccentColor?: string | null
 }) {
   const router = useRouter()
   const ffaSyncSeasonOptions = buildFfaSyncSeasonOptions(earliestSeasonStart)
@@ -161,6 +166,27 @@ export function NewAthleteForm({
   const [dpQuery, setDpQuery] = useState('')
   const [dpGroup, setDpGroup] = useState(0)
   const [openPalette, setOpenPalette] = useState<string | null>(null)
+  const [accentColor, setAccentColor] = useState(initialAccentColor ?? DEFAULT_ACCENT)
+  const [savingAccent, setSavingAccent] = useState(false)
+
+  async function handlePickAccent(value: string) {
+    if (value === accentColor) return
+    const prev = accentColor
+    setAccentColor(value)
+    setSavingAccent(true)
+    const res = await fetch('/api/users/me/appearance', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accentColor: value }),
+    })
+    setSavingAccent(false)
+    if (!res.ok) {
+      toast.error('Impossible d’enregistrer la couleur.')
+      setAccentColor(prev)
+      return
+    }
+    router.refresh()
+  }
 
   const {
     register,
@@ -751,6 +777,63 @@ export function NewAthleteForm({
               )}
             </div>
           </section>
+
+          {showAppTheme && (
+            <section
+              className="mt-4 rounded-[20px] p-6"
+              style={{
+                background: 'var(--nu-surf)',
+                border: '1px solid var(--nu-line)',
+                boxShadow: 'inset 0 1px 0 var(--nu-rim)',
+              }}
+            >
+              <div className="mb-1 flex items-center gap-2">
+                <h2
+                  className="text-[15px] font-bold tracking-[-0.01em]"
+                  style={{ color: 'var(--nu-txt)' }}
+                >
+                  Thème de l&apos;application
+                </h2>
+                {savingAccent && (
+                  <Loader2 className="size-3.5 animate-spin" style={{ color: 'var(--nu-dim)' }} />
+                )}
+              </div>
+              <p className="mb-3.5 text-[11.5px]" style={{ color: 'var(--nu-dim)' }}>
+                Couleur d&apos;accent de l&apos;application, propre à ton compte.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {ACCENT_SWATCHES.map((swatch) => {
+                  const selected = swatch.value.toLowerCase() === accentColor.toLowerCase()
+                  const isAuto = swatch.value === 'auto'
+                  return (
+                    <button
+                      key={swatch.value}
+                      type="button"
+                      aria-label={swatch.label}
+                      title={swatch.label}
+                      onClick={() => handlePickAccent(swatch.value)}
+                      className="flex size-9 items-center justify-center rounded-full ring-2 ring-offset-2 transition-transform hover:scale-110"
+                      style={{
+                        ...(isAuto
+                          ? { background: 'linear-gradient(135deg, #fff 50%, #0b0d10 50%)' }
+                          : { backgroundColor: swatch.value }),
+                        boxShadow: isAuto ? 'inset 0 0 0 1px var(--nu-line)' : undefined,
+                        ['--tw-ring-color' as string]: selected ? 'var(--nu-txt)' : 'transparent',
+                        ['--tw-ring-offset-color' as string]: 'var(--nu-surf)',
+                      }}
+                    >
+                      {selected && (
+                        <Check
+                          className="size-4 drop-shadow"
+                          style={{ color: isAuto ? 'var(--nu-acc)' : '#fff' }}
+                        />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+          )}
         </aside>
       </div>
     </form>

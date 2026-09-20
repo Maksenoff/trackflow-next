@@ -59,6 +59,12 @@ export const CHANGELOG: ChangelogEntry[] = [
         ],
       },
       {
+        title: 'Profil',
+        items: [
+          "Les comptes athlète peuvent désormais choisir la couleur d'accent de l'application directement depuis leur page de modification de profil",
+        ],
+      },
+      {
         title: 'Corrections',
         kind: 'fix',
         items: [

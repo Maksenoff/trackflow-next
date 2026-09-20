@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isAdmin, resolveNewUi, type Role } from '@/lib/roles'
+import { isAdmin, isCoach, isCompetitionManager, resolveNewUi, type Role } from '@/lib/roles'
 import { getAthleteDetail } from '@/lib/athletes-data'
 import { fullName as formatFullName } from '@/lib/athlete'
 import { PageTransition } from '@/components/motion/page-transition'
@@ -22,7 +22,7 @@ export default async function EditAthletePage({ params }: { params: { id: string
   const currentUser = session
     ? await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { newUiEnabled: true, linkedAthleteId: true },
+        select: { newUiEnabled: true, linkedAthleteId: true, accentColor: true },
       })
     : null
   const newUiEnabled = resolveNewUi(currentUser?.newUiEnabled, roles)
@@ -32,6 +32,13 @@ export default async function EditAthletePage({ params }: { params: { id: string
   // modifier les profils des autres athlètes.
   const canEdit = isAdmin(roles) || currentUser?.linkedAthleteId === athlete.id
   if (!canEdit) redirect(`/athletes/${athlete.id}`)
+
+  // Personnalisation du thème (couleur d'accent) proposée ici uniquement pour
+  // les comptes sans onglet "Paramètres" dans la nav (athlète pur) — décision
+  // Maksen 2026-09-20 : plutôt que d'ajouter l'onglet Paramètres à ces
+  // comptes, le réglage vient se loger sur la page qu'ils utilisent déjà pour
+  // gérer leur propre profil. Admin/coach/gest. compét. gardent /settings.
+  const showAppTheme = !isAdmin(roles) && !isCoach(roles) && !isCompetitionManager(roles)
 
   const earliestPerformance = athlete.performances.reduce<Date | null>(
     (min, p) => (min === null || p.recordedAt < min ? p.recordedAt : min),
@@ -81,6 +88,8 @@ export default async function EditAthletePage({ params }: { params: { id: string
             fullName={formatFullName(athlete.firstName, athlete.lastName)}
             earliestSeasonStart={earliestSeasonStart}
             initialData={formInitialData}
+            showAppTheme={showAppTheme}
+            initialAccentColor={currentUser?.accentColor ?? null}
           />
         </div>
       </PageTransition>
